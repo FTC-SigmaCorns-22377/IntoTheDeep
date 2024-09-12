@@ -1,0 +1,4 @@
+[submodule "library"]
+	path = library
+	url = https://github.com/hivemindhq/library/
+	branch = src
