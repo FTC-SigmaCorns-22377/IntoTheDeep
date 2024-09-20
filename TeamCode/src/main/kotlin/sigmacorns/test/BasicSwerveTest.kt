@@ -15,13 +15,9 @@ import net.hivemindrobotics.lib.math.radians
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
 import sigmacorns.common.control.swerve.TICKS_PER_REV
-import sigmacorns.common.control.swerve.angleToTick
 import sigmacorns.common.control.swerve.tickToAngle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
-import kotlin.math.atan2
-import kotlin.math.hypot
-import kotlin.math.sign
 
 @TeleOp
 class BasicSwerveTest: LinearOpMode() {
@@ -48,8 +44,6 @@ class BasicSwerveTest: LinearOpMode() {
             Vector2.fromAngle(1* PI /4.0,1.0),
         )
 
-        val flipped = arrayOf(1,1,1,1)
-
         val dashboard = FtcDashboard.getInstance()
         val dashTelemetry = dashboard.telemetry
 
@@ -67,10 +61,12 @@ class BasicSwerveTest: LinearOpMode() {
         val controllers = arrayOf(turnController.copy(),turnController.copy(),turnController.copy(),turnController.copy())
         val turns = arrayOf(turn1,turn2,turn3,turn4)
         val turnEncoders = arrayOf(turn1Encoder,turn2Encoder,turn3Encoder,turn4Encoder)
+        val drives = arrayOf(drive1,drive2,drive3,drive4)
 
         //for + to be positive theta on the unit circle when looking top down encoders 1 and 2 need to be reversed.
         val reversedEncoders = arrayOf(-1,-1,1,1)
         val reversedPowers = arrayOf(-1,-1,-1,-1)
+        val reversedDrives = arrayOf(1.0,-1.0,1.0,1.0)
 
         turnEncoders.forEach {
             it.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
@@ -87,19 +83,6 @@ class BasicSwerveTest: LinearOpMode() {
             if(gamepad1.back) imu.resetYaw()
             val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
 
-            if(gamepad1.a) drive1.power = 1.0
-            if(gamepad1.b) drive2.power = 1.0
-            if(gamepad1.x) drive3.power = 1.0
-            if(gamepad1.y) drive4.power = 1.0
-
-            val pow = if(angleTarget)
-                hypot(gamepad1.left_stick_x.toDouble(),gamepad1.left_stick_y.toDouble())
-            else gamepad1.left_stick_y.toDouble()
-            drive1.power = pow
-            drive2.power = -pow
-            drive3.power = pow
-            drive4.power = pow
-
             if(gamepad1.right_bumper) {
                 controllers.forEach { it.target = 0.0; it.position=0.0; }
                 turnEncoders.forEach {
@@ -108,7 +91,11 @@ class BasicSwerveTest: LinearOpMode() {
                 }
             }
 
-            if(gamepad1.dpad_up) turn1.power = 1.0
+            if(gamepad1.a) drive1.power = 1.0
+            else if(gamepad1.b) drive2.power = 1.0
+            else if(gamepad1.x) drive3.power = 1.0
+            else if(gamepad1.y) drive4.power = 1.0
+            else if(gamepad1.dpad_up) turn1.power = 1.0
             else if(gamepad1.dpad_down) turn2.power = 1.0
             else if(gamepad1.dpad_left) turn3.power = 1.0
             else if(gamepad1.dpad_right) turn4.power = 1.0
@@ -123,21 +110,28 @@ class BasicSwerveTest: LinearOpMode() {
                     val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
                     if(angleTarget) {
                         var target = vs[i].angleFromOrigin
-                            var diff = normalizeRadians(target - tickToAngle(pos.toInt()))
+                        val cur = tickToAngle(pos.toInt())
+                        var diff = normalizeRadians(target - cur)
+                        val flipped = diff.absoluteValue > PI
+                        if(flipped) target = normalizeRadians(target- PI)
+                        diff = normalizeRadians(target - cur)
 
-                            val targetTicks = pos + diff/(2*PI) * TICKS_PER_REV
-                            controllers[i].target = targetTicks
+                        val driveDir = (if(flipped) -1 else 1)*reversedDrives[i]
+
+                        val targetTicks = pos + diff/(2*PI) * TICKS_PER_REV
+                        controllers[i].target = targetTicks
+                        drives[i].power = vs[i].magnitude*driveDir
                     } else {
                         controllers[i].target -= gamepad1.left_stick_x*400.0
+                        val pow = gamepad1.left_stick_y.toDouble()
+                        drives[i].power = pow*reversedDrives[i]
                     }
+
                     controllers[i].position = pos
                     turns[i].power = reversedPowers[i]*controllers[i].update(timer.seconds())
                 }
-                drive1.power = vs[0].magnitude*flipped[0]
-                drive2.power = -vs[1].magnitude*flipped[1]
-                drive3.power = vs[2].magnitude*flipped[2]
-                drive4.power = vs[3].magnitude*flipped[3]
             }
+
             for(i in controllers.indices) {
                 dashTelemetry.addData("Wheel " + (i+1),
                     "target = " + controllers[i].target +
