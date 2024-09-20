@@ -1,55 +1,81 @@
 package sigmacorns.common.control.swerve
 
-import com.qualcomm.robotcore.hardware.CRServoImplEx
-import com.qualcomm.robotcore.hardware.DcMotorEx
-import com.qualcomm.robotcore.util.ElapsedTime
-import net.hivemindrobotics.lib.control.controller.Controller
-import net.hivemindrobotics.lib.control.filter.SlewRateLimiter
+import android.icu.text.DecimalFormat
+import com.qualcomm.robotcore.hardware.CRServo
+import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.PIDCoefficients
+import net.hivemindrobotics.lib.control.controller.PIDController
+import net.hivemindrobotics.lib.math.Vector2
+import org.firstinspires.ftc.robotcore.external.Telemetry
 import kotlin.math.PI
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
-import sigmacorns.common.control.PIDAngleController
 
-const val TICKS_PER_REV: Double = 20480.0
+class Swerve(val drives: Array<DcMotor>, var turns: Array<CRServo>, var turnEncoders: Array<DcMotor>) {
+    val turnPIDCoefficients = PIDCoefficients(0.0001,0.0,0.0)
+    val moduleController = ModuleController(
+        PIDController(turnPIDCoefficients),
+        0.0,
+        Vector2(0,0)
+    )
 
-class Module(
-    val motor: DcMotorEx,
-    val turn: CRServoImplEx,
-    val controller: Controller,
-    val slewRateLimiter: SlewRateLimiter,
-    val reverseEncoders: Boolean,
-    val reversePower: Boolean,
-) {
-    private val timer = ElapsedTime()
-    var target: Double = 0.0
+    val modules = arrayOf(moduleController.copy(),moduleController.copy(),moduleController.copy(),moduleController.copy())
+    val reversedPowers = arrayOf(1.0,-1.0,1.0,1.0)
+    val reversedEncoders = arrayOf(-1.0,-1.0,1.0,1.0)
+    val reversedTurns = arrayOf(-1.0,-1.0,-1.0,-1.0)
 
-    fun update() {
-        val dt = timer.seconds()
-        val pidTarget = slewRateLimiter.calculate(target)
+    val turnDirs = arrayOf(
+        Vector2.fromAngle(7* PI /4.0,1.0),
+        Vector2.fromAngle(5* PI /4.0,1.0),
+        Vector2.fromAngle(3* PI /4.0,1.0),
+        Vector2.fromAngle(1* PI /4.0,1.0),
+    )
+
+    init {
+        for(i in modules.indices) {
+            modules[i].drivePowerReversed = reversedPowers[i]
+            modules[i].reverseEncoders = reversedEncoders[i]
+            modules[i].turnPowerReversed = reversedTurns[i]
+        }
     }
-}
 
-fun genSetpoint(curPos: Int, desiredHeading: Double): Int {
-    //0-360
-    val heading = 360*((curPos.toDouble()/ TICKS_PER_REV)%1.0)
+    fun update(targetPower: Vector2, angVelPower: Double, dt: Double) {
+        var vs = turnDirs.map { it*angVelPower + targetPower }
+        val maxMag = vs.maxBy { it.magnitude }.magnitude
+        if(maxMag>1.0) vs = vs.map { it/maxMag }
 
-    val delta = (desiredHeading - heading + 540) % 360 - 180;
+        for(i in modules.indices) {
+            val powers = modules[i].update(dt, turnEncoders[i].currentPosition.toDouble(), vs[i])
+            turns[i].power = powers.turn
+            drives[i].power = powers.drive
+        }
 
-    return (delta* TICKS_PER_REV).toInt()
-}
+        if(telemetry!=null) {
+            telemetry!!.addData("vs [0]",vs[0])
+            telemetry!!.addData("vs [1]",vs[1])
+            telemetry!!.addData("vs [2]",vs[2])
+            telemetry!!.addData("vs [3]",vs[3])
+        }
+    }
 
+    fun reset() {
+        modules.forEach { it.target = ModuleTarget(0,0); it.position=0.0; }
+        turnEncoders.forEach {
+            it.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+            it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        }
+    }
 
-//-pi..pi
-fun tickToAngle(pos: Int): Double {
-    //-2pi to 2pi
-    val a = 2*PI*((pos.toDouble()/ TICKS_PER_REV)%1.0)
-    //-pi to pi
-    return normalizeRadians(a)
-}
+    var telemetry: Telemetry? = null;
+    fun telemetry(tel: Telemetry) {
+        telemetry = tel
+        for(i in modules.indices) {
+            val fmt = DecimalFormat("#,###.##")
+            tel.addData("Wheel " + (i+1),
+                "target = " + fmt.format(modules[i].target.angleFromOrigin)  +
+                        " pos = " + fmt.format(modules[i].position) +
+                        " power = " + fmt.format(turns[i].power) +
+                        "\n angle = " + fmt.format(tickToAngle((reversedEncoders[i]*turnEncoders[i].currentPosition).toInt()))
+            )
+        }
 
-fun angleToTick(curPos: Double, desiredHeading: Double): Double {
-    val curAngle = tickToAngle(curPos.toInt())
-    val diff = normalizeRadians(desiredHeading-curAngle)
-    val diffWrapped = if(diff>PI) diff-2*PI else if(diff<-PI) diff+2*PI else diff
-
-    return diffWrapped/(2*PI) * TICKS_PER_REV
+    }
 }

@@ -1,17 +1,27 @@
 package sigmacorns.test
 
 import com.acmerobotics.dashboard.FtcDashboard
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.hardware.PIDCoefficients
 import com.qualcomm.robotcore.util.ElapsedTime
 import net.hivemindrobotics.lib.control.controller.PIDController
+import net.hivemindrobotics.lib.math.Vector2
+import net.hivemindrobotics.lib.math.radians
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
+import sigmacorns.common.control.swerve.TICKS_PER_REV
 import sigmacorns.common.control.swerve.angleToTick
 import sigmacorns.common.control.swerve.tickToAngle
+import kotlin.math.PI
+import kotlin.math.absoluteValue
 import kotlin.math.atan2
 import kotlin.math.hypot
+import kotlin.math.sign
 
 @TeleOp
 class BasicSwerveTest: LinearOpMode() {
@@ -31,8 +41,25 @@ class BasicSwerveTest: LinearOpMode() {
         val turn3 = hardwareMap.get(CRServo::class.java, "t2")
         val turn4 = hardwareMap.get(CRServo::class.java, "t4")
 
+        val turnDirs = arrayOf(
+            Vector2.fromAngle(7* PI /4.0,1.0),
+            Vector2.fromAngle(5* PI /4.0,1.0),
+            Vector2.fromAngle(3* PI /4.0,1.0),
+            Vector2.fromAngle(1* PI /4.0,1.0),
+        )
+
+        val flipped = arrayOf(1,1,1,1)
+
         val dashboard = FtcDashboard.getInstance()
         val dashTelemetry = dashboard.telemetry
+
+        val imu = hardwareMap.get(IMU::class.java,"imu")
+        val params = IMU.Parameters(
+            RevHubOrientationOnRobot(
+            RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+            RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
+        ))
+        imu.initialize(params)
 
         waitForStart()
 
@@ -56,6 +83,9 @@ class BasicSwerveTest: LinearOpMode() {
         while (opModeIsActive()) {
             if(!wasLBumpPressed && gamepad1.left_bumper) angleTarget = !angleTarget
             wasLBumpPressed = gamepad1.left_bumper
+
+            if(gamepad1.back) imu.resetYaw()
+            val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
 
             if(gamepad1.a) drive1.power = 1.0
             if(gamepad1.b) drive2.power = 1.0
@@ -82,14 +112,31 @@ class BasicSwerveTest: LinearOpMode() {
             else if(gamepad1.dpad_down) turn2.power = 1.0
             else if(gamepad1.dpad_left) turn3.power = 1.0
             else if(gamepad1.dpad_right) turn4.power = 1.0
-            else for (i in controllers.indices) {
-                val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
-                val theta = atan2(gamepad1.left_stick_y.toDouble(),gamepad1.left_stick_x.toDouble())
-                    .takeUnless { it.isNaN() }
-                    ?: 0.0
-                if(angleTarget) controllers[i].target = angleToTick(pos,theta) else controllers[i].target -= gamepad1.left_stick_x*400.0
-                controllers[i].position = pos
-                turns[i].power = reversedPowers[i]*controllers[i].update(timer.seconds())
+            else {
+                val transform = Vector2(-gamepad1.left_stick_x,gamepad1.left_stick_y).rotate(-heading.radians)
+                val turn = gamepad1.right_trigger-gamepad1.left_trigger
+                var vs = turnDirs.map { it*-turn.toDouble() + transform }
+                val maxMag = vs.maxBy { it.magnitude }.magnitude
+                if(maxMag>1.0) vs = vs.map { it/maxMag }
+
+                for (i in controllers.indices) {
+                    val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
+                    if(angleTarget) {
+                        var target = vs[i].angleFromOrigin
+                            var diff = normalizeRadians(target - tickToAngle(pos.toInt()))
+
+                            val targetTicks = pos + diff/(2*PI) * TICKS_PER_REV
+                            controllers[i].target = targetTicks
+                    } else {
+                        controllers[i].target -= gamepad1.left_stick_x*400.0
+                    }
+                    controllers[i].position = pos
+                    turns[i].power = reversedPowers[i]*controllers[i].update(timer.seconds())
+                }
+                drive1.power = vs[0].magnitude*flipped[0]
+                drive2.power = -vs[1].magnitude*flipped[1]
+                drive3.power = vs[2].magnitude*flipped[2]
+                drive4.power = vs[3].magnitude*flipped[3]
             }
             for(i in controllers.indices) {
                 dashTelemetry.addData("Wheel " + (i+1),
