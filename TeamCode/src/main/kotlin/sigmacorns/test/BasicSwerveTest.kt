@@ -1,6 +1,7 @@
 package sigmacorns.test
 
 import com.acmerobotics.dashboard.FtcDashboard
+import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
@@ -9,15 +10,22 @@ import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.hardware.PIDCoefficients
 import com.qualcomm.robotcore.util.ElapsedTime
-import net.hivemindrobotics.lib.control.controller.PIDController
-import net.hivemindrobotics.lib.math.Vector2
-import net.hivemindrobotics.lib.math.radians
+import net.unnamedrobotics.lib.control.controller.PIDController
+import net.unnamedrobotics.lib.math.Vector2
+import net.unnamedrobotics.lib.math.radians
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
 import sigmacorns.common.control.swerve.TICKS_PER_REV
 import sigmacorns.common.control.swerve.tickToAngle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
+
+@Config
+object ModuleTurnPIDConstants {
+    @JvmField var P: Double = 0.0001
+    @JvmField var I: Double = 0.0
+    @JvmField var D: Double = 0.0
+}
 
 @TeleOp
 class BasicSwerveTest: LinearOpMode() {
@@ -58,7 +66,7 @@ class BasicSwerveTest: LinearOpMode() {
         waitForStart()
 
         val turnController = PIDController(PIDCoefficients(0.0001,0.0,0.0))
-        val controllers = arrayOf(turnController.copy(),turnController.copy(),turnController.copy(),turnController.copy())
+        val controllers: Array<PIDController> = arrayOf(turnController.copy() as PIDController,turnController.copy() as PIDController,turnController.copy() as PIDController,turnController.copy() as PIDController)
         val turns = arrayOf(turn1,turn2,turn3,turn4)
         val turnEncoders = arrayOf(turn1Encoder,turn2Encoder,turn3Encoder,turn4Encoder)
         val drives = arrayOf(drive1,drive2,drive3,drive4)
@@ -76,6 +84,7 @@ class BasicSwerveTest: LinearOpMode() {
         val timer = ElapsedTime()
         var angleTarget = false
         var wasLBumpPressed = false
+        var vs = listOf(Vector2(),Vector2(),Vector2(),Vector2())
         while (opModeIsActive()) {
             if(!wasLBumpPressed && gamepad1.left_bumper) angleTarget = !angleTarget
             wasLBumpPressed = gamepad1.left_bumper
@@ -102,22 +111,24 @@ class BasicSwerveTest: LinearOpMode() {
             else {
                 val transform = Vector2(-gamepad1.left_stick_x,gamepad1.left_stick_y).rotate(-heading.radians)
                 val turn = gamepad1.right_trigger-gamepad1.left_trigger
-                var vs = turnDirs.map { it*-turn.toDouble() + transform }
+                val keepOrientation = transform.magnitude + turn.absoluteValue < 0.001
+                if (!keepOrientation) vs = turnDirs.map { it*-turn.toDouble() + transform }
                 val maxMag = vs.maxBy { it.magnitude }.magnitude
                 if(maxMag>1.0) vs = vs.map { it/maxMag }
 
                 for (i in controllers.indices) {
+                    controllers[i].coefficients = PIDCoefficients(ModuleTurnPIDConstants.P,ModuleTurnPIDConstants.I,ModuleTurnPIDConstants.D)
+
                     val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
                     if(angleTarget) {
                         var target = vs[i].angleFromOrigin
                         val cur = tickToAngle(pos.toInt())
                         var diff = normalizeRadians(target - cur)
-                        val flipped = diff.absoluteValue > PI
-                        if(flipped) target = normalizeRadians(target- PI)
+                        val flipped = diff.absoluteValue > PI/2.0
+                        if(flipped) target = normalizeRadians(target - PI)
                         diff = normalizeRadians(target - cur)
-
-                        val driveDir = (if(flipped) -1 else 1)*reversedDrives[i]
-
+                        var driveDir = (if(flipped) -1 else 1)*reversedDrives[i]
+                        if (keepOrientation) driveDir = 0.0
                         val targetTicks = pos + diff/(2*PI) * TICKS_PER_REV
                         controllers[i].target = targetTicks
                         drives[i].power = vs[i].magnitude*driveDir
@@ -139,6 +150,8 @@ class BasicSwerveTest: LinearOpMode() {
                            " power = " + turns[i].power +
                            "\n angle = " + tickToAngle(reversedEncoders[i]*turnEncoders[i].currentPosition)
                 )
+
+                dashTelemetry.addData("Wheel " + (i+1) + " error: ",controllers[i].target-controllers[i].position)
             }
 
             dashTelemetry.update()
