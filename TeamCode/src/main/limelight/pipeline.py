@@ -68,3 +68,6 @@ def runPipeline(image, llrobot):
     llpython = [0, 0, 0, 0, 0, 0, 0, 0]
 
     return largestContour, output, llpython
+
+
+
