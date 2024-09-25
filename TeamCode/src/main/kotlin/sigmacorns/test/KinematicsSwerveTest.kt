@@ -1,12 +1,16 @@
 package sigmacorns.test
 
 import com.acmerobotics.dashboard.FtcDashboard
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.util.ElapsedTime
-import net.hivemindrobotics.lib.math.Vector2
+import net.unnamedrobotics.lib.math.Vector2
+import net.unnamedrobotics.lib.math.radians
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import sigmacorns.common.control.swerve.Swerve
 @TeleOp
 class KinematicsSwerveTest: LinearOpMode(){
@@ -37,12 +41,27 @@ class KinematicsSwerveTest: LinearOpMode(){
 
         val timer = ElapsedTime()
 
+        val imu = hardwareMap.get(IMU::class.java,"imu")
+        val params = IMU.Parameters(
+            RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
+            )
+        )
+        imu.initialize(params)
+
         waitForStart()
 
         while (opModeIsActive()) {
             if(gamepad1.right_bumper) controller.reset()
+            val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
 
-            controller.update(Vector2(gamepad1.left_stick_x,gamepad1.left_stick_y), 0.0, timer.seconds())
+            controller.update(
+                Vector2(gamepad1.left_stick_x,gamepad1.left_stick_y).rotate(-heading.radians),
+                (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
+                gamepad1.left_stick_button,
+                timer.seconds()
+            )
             controller.telemetry(dashTelemetry)
             dashTelemetry.update()
 

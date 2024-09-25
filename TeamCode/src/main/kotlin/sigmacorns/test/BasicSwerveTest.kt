@@ -112,6 +112,7 @@ class BasicSwerveTest: LinearOpMode() {
                 val transform = Vector2(-gamepad1.left_stick_x,gamepad1.left_stick_y).rotate(-heading.radians)
                 val turn = gamepad1.right_trigger-gamepad1.left_trigger
                 val keepOrientation = transform.magnitude + turn.absoluteValue < 0.001
+                val locked = gamepad1.left_stick_button
                 if (!keepOrientation) vs = turnDirs.map { it*-turn.toDouble() + transform }
                 val maxMag = vs.maxBy { it.magnitude }.magnitude
                 if(maxMag>1.0) vs = vs.map { it/maxMag }
@@ -121,14 +122,14 @@ class BasicSwerveTest: LinearOpMode() {
 
                     val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
                     if(angleTarget) {
-                        var target = vs[i].angleFromOrigin
+                        var target = if(locked) turnDirs[i].angleFromOrigin+PI/2.0 else vs[i].angleFromOrigin
                         val cur = tickToAngle(pos.toInt())
                         var diff = normalizeRadians(target - cur)
                         val flipped = diff.absoluteValue > PI/2.0
                         if(flipped) target = normalizeRadians(target - PI)
                         diff = normalizeRadians(target - cur)
                         var driveDir = (if(flipped) -1 else 1)*reversedDrives[i]
-                        if (keepOrientation) driveDir = 0.0
+                        if (keepOrientation || locked) driveDir = 0.0
                         val targetTicks = pos + diff/(2*PI) * TICKS_PER_REV
                         controllers[i].target = targetTicks
                         drives[i].power = vs[i].magnitude*driveDir

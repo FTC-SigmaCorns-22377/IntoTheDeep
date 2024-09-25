@@ -4,23 +4,24 @@ import android.icu.text.DecimalFormat
 import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.PIDCoefficients
-import net.hivemindrobotics.lib.control.controller.PIDController
-import net.hivemindrobotics.lib.math.Vector2
+import net.unnamedrobotics.lib.control.controller.PIDController
+import net.unnamedrobotics.lib.math.Vector2
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import kotlin.math.PI
+import kotlin.math.absoluteValue
 
 class Swerve(val drives: Array<DcMotor>, var turns: Array<CRServo>, var turnEncoders: Array<DcMotor>) {
-    val turnPIDCoefficients = PIDCoefficients(0.0001,0.0,0.0)
+    val turnPIDCoefficients = PIDCoefficients(0.00004,0.0,0.0)
     val moduleController = ModuleController(
         PIDController(turnPIDCoefficients),
         0.0,
-        Vector2(0,0)
+        ModuleTarget(Vector2(0,0),false)
     )
 
     val modules = arrayOf(moduleController.copy(),moduleController.copy(),moduleController.copy(),moduleController.copy())
     val reversedPowers = arrayOf(1.0,-1.0,1.0,1.0)
-    val reversedEncoders = arrayOf(-1.0,-1.0,1.0,1.0)
-    val reversedTurns = arrayOf(-1.0,-1.0,-1.0,-1.0)
+    val reversedEncoders = arrayOf(-1,-1,1,1)
+    val reversedTurns = arrayOf(-1,-1,-1,-1)
 
     val turnDirs = arrayOf(
         Vector2.fromAngle(7* PI /4.0,1.0),
@@ -31,19 +32,22 @@ class Swerve(val drives: Array<DcMotor>, var turns: Array<CRServo>, var turnEnco
 
     init {
         for(i in modules.indices) {
-            modules[i].drivePowerReversed = reversedPowers[i]
-            modules[i].reverseEncoders = reversedEncoders[i]
-            modules[i].turnPowerReversed = reversedTurns[i]
+            modules[i].drivePowerReversed = reversedPowers[i].toDouble()
+            modules[i].reverseEncoders = reversedEncoders[i].toDouble()
+            modules[i].turnPowerReversed = reversedTurns[i].toDouble()
         }
     }
 
-    fun update(targetPower: Vector2, angVelPower: Double, dt: Double) {
-        var vs = turnDirs.map { it*angVelPower + targetPower }
+    var vs = listOf(Vector2(0.0,0.0),Vector2(0.0,0.0),Vector2(0.0,0.0),Vector2(0.0,0.0))
+    fun update(transform: Vector2, turn: Double, lockWheels: Boolean, dt: Double) {
+        val keepOrientation = (transform.magnitude + turn.absoluteValue < 0.001) || lockWheels
+        if (!keepOrientation) vs = turnDirs.map { it*turn + transform }
+        if (lockWheels) vs = turnDirs.map { it }
         val maxMag = vs.maxBy { it.magnitude }.magnitude
         if(maxMag>1.0) vs = vs.map { it/maxMag }
 
         for(i in modules.indices) {
-            val powers = modules[i].update(dt, turnEncoders[i].currentPosition.toDouble(), vs[i])
+            val powers = modules[i].updateStateless(dt,reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble(), ModuleTarget(v=vs[i],keepOrientation))
             turns[i].power = powers.turn
             drives[i].power = powers.drive
         }
@@ -57,7 +61,7 @@ class Swerve(val drives: Array<DcMotor>, var turns: Array<CRServo>, var turnEnco
     }
 
     fun reset() {
-        modules.forEach { it.target = ModuleTarget(0,0); it.position=0.0; }
+        modules.forEach { it.target = ModuleTarget(v=Vector2(0,0), keepOrientation = false); it.position=0.0; }
         turnEncoders.forEach {
             it.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
             it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
@@ -70,7 +74,7 @@ class Swerve(val drives: Array<DcMotor>, var turns: Array<CRServo>, var turnEnco
         for(i in modules.indices) {
             val fmt = DecimalFormat("#,###.##")
             tel.addData("Wheel " + (i+1),
-                "target = " + fmt.format(modules[i].target.angleFromOrigin)  +
+                "target = " + fmt.format(modules[i].target.v.angleFromOrigin)  +
                         " pos = " + fmt.format(modules[i].position) +
                         " power = " + fmt.format(turns[i].power) +
                         "\n angle = " + fmt.format(tickToAngle((reversedEncoders[i]*turnEncoders[i].currentPosition).toInt()))

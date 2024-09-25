@@ -31,5 +31,5 @@ android {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation 'sigmacorns:library:0.1a'
+    compileOnly ("net.unnamedrobotics:library:1.0.21-rc")
 }
