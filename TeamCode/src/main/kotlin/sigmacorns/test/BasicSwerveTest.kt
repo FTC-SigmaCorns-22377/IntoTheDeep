@@ -20,12 +20,12 @@ import sigmacorns.common.control.swerve.tickToAngle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 
-@Config
-object ModuleTurnPIDConstants {
-    @JvmField var P: Double = 0.0001
-    @JvmField var I: Double = 0.0
-    @JvmField var D: Double = 0.0
-}
+//@Config
+//object ModuleTurnPIDConstants {
+//    @JvmField var P: Double = 0.0001
+//    @JvmField var I: Double = 0.0
+//    @JvmField var D: Double = 0.0
+//}
 
 @TeleOp
 class BasicSwerveTest: LinearOpMode() {
@@ -118,7 +118,7 @@ class BasicSwerveTest: LinearOpMode() {
                 if(maxMag>1.0) vs = vs.map { it/maxMag }
 
                 for (i in controllers.indices) {
-                    controllers[i].coefficients = PIDCoefficients(ModuleTurnPIDConstants.P,ModuleTurnPIDConstants.I,ModuleTurnPIDConstants.D)
+                    controllers[i].coefficients = PIDCoefficients(0.0001,0.0,0.0)
 
                     val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
                     if(angleTarget) {
