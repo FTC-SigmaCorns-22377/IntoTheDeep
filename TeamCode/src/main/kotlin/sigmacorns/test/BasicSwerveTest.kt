@@ -19,6 +19,8 @@ import sigmacorns.common.control.swerve.TICKS_PER_REV
 import sigmacorns.common.control.swerve.tickToAngle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
+import com.qualcomm.hardware.digitalchickenlabs.OctoQuad
+import com.qualcomm.hardware.digitalchickenlabs.OctoQuadBase
 
 @Config
 object ModuleTurnPIDConstants {
@@ -30,15 +32,19 @@ object ModuleTurnPIDConstants {
 @TeleOp
 class BasicSwerveTest: LinearOpMode() {
     override fun runOpMode() {
+
         val drive1 = hardwareMap.get(DcMotor::class.java, "m1")
         val drive2 = hardwareMap.get(DcMotor::class.java, "m2")
         val drive3 = hardwareMap.get(DcMotor::class.java, "m3")
         val drive4 = hardwareMap.get(DcMotor::class.java, "m4")
 
-        val turn1Encoder = hardwareMap.get(DcMotor::class.java, "m8")
-        val turn2Encoder = hardwareMap.get(DcMotor::class.java, "m4")
-        val turn3Encoder = hardwareMap.get(DcMotor::class.java, "m1")
-        val turn4Encoder = hardwareMap.get(DcMotor::class.java, "m5")
+        val octoquad = hardwareMap.get(OctoQuad::class.java, "octoquad")
+        octoquad.channelBankConfig = OctoQuadBase.ChannelBankConfig.ALL_PULSE_WIDTH // all absolute
+
+        val turn1Encoder = 1; // OctoQuad 1 - E3 (m8), motor 1
+        val turn2Encoder = 3; // OctoQuad 3 - C3 (m5), motor 2
+        val turn3Encoder = 2; // OctoQuad 2 - C0 (m1), motor 3
+        val turn4Encoder = 0; // OctoQuad 0 - E0 (m5), motor 4
 
         val turn1 = hardwareMap.get(CRServo::class.java, "t1")
         val turn2 = hardwareMap.get(CRServo::class.java, "t3")
@@ -68,8 +74,10 @@ class BasicSwerveTest: LinearOpMode() {
         val turnController = PIDController(PIDCoefficients(0.0001,0.0,0.0))
         val controllers: Array<PIDController> = arrayOf(turnController.copy() as PIDController,turnController.copy() as PIDController,turnController.copy() as PIDController,turnController.copy() as PIDController)
         val turns = arrayOf(turn1,turn2,turn3,turn4)
-        val turnEncoders = arrayOf(turn1Encoder,turn2Encoder,turn3Encoder,turn4Encoder)
         val drives = arrayOf(drive1,drive2,drive3,drive4)
+
+        val turnEncoders = arrayOf(turn1Encoder,turn2Encoder,turn3Encoder,turn4Encoder)
+        val turnEncoderOffsets = arrayOf(0, 0, 0, 0) // Set these to what the encoders read when facing forwards
 
         //for + to be positive theta on the unit circle when looking top down encoders 1 and 2 need to be reversed.
         val reversedEncoders = arrayOf(-1,-1,1,1)
@@ -77,8 +85,8 @@ class BasicSwerveTest: LinearOpMode() {
         val reversedDrives = arrayOf(1.0,-1.0,1.0,1.0)
 
         turnEncoders.forEach {
-            it.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
-            it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+            octoquad.setSingleEncoderDirection(it, if (reversedEncoders[it] == -1) { OctoQuadBase.EncoderDirection.REVERSE } else { OctoQuadBase.EncoderDirection.FORWARD }, );
+            octoquad.saveParametersToFlash();
         }
 
         val timer = ElapsedTime()
@@ -94,10 +102,11 @@ class BasicSwerveTest: LinearOpMode() {
 
             if(gamepad1.right_bumper) {
                 controllers.forEach { it.target = 0.0; it.position=0.0; }
-                turnEncoders.forEach {
-                    it.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
-                    it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
-                }
+            }
+
+            val encoderReadingsNoOffsets = octoquad.readAllPositions()
+            val encoderReadings = encoderReadingsNoOffsets.mapIndexed { index, i ->
+                i - turnEncoderOffsets[index]
             }
 
             if(gamepad1.a) drive1.power = 1.0
@@ -119,7 +128,7 @@ class BasicSwerveTest: LinearOpMode() {
                 for (i in controllers.indices) {
                     controllers[i].coefficients = PIDCoefficients(ModuleTurnPIDConstants.P,ModuleTurnPIDConstants.I,ModuleTurnPIDConstants.D)
 
-                    val pos = reversedEncoders[i]*turnEncoders[i].currentPosition.toDouble()
+                    val pos = reversedEncoders[i]*encoderReadings[turnEncoders[i]].toDouble()
                     if(angleTarget) {
                         var target = vs[i].angleFromOrigin
                         val cur = tickToAngle(pos.toInt())
@@ -148,10 +157,12 @@ class BasicSwerveTest: LinearOpMode() {
                     "target = " + controllers[i].target +
                            " pos = " + controllers[i].position +
                            " power = " + turns[i].power +
-                           "\n angle = " + tickToAngle(reversedEncoders[i]*turnEncoders[i].currentPosition)
+                           "\n angle = " + tickToAngle(reversedEncoders[i]*encoderReadings[turnEncoders[i]])
                 )
 
                 dashTelemetry.addData("Wheel " + (i+1) + " error: ",controllers[i].target-controllers[i].position)
+
+                dashTelemetry.addData("encoder_pos_non_offset=" + encoderReadingsNoOffsets[i] + ", with_offset=" + encoderReadings[i])
             }
 
             dashTelemetry.update()
