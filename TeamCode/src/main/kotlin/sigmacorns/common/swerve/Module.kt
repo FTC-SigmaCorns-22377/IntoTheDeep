@@ -1,4 +1,4 @@
-package sigmacorns.common.control.swerve
+package sigmacorns.common.swerve
 
 import net.unnamedrobotics.lib.control.controller.GeneralController
 import net.unnamedrobotics.lib.control.controller.PIDController
@@ -38,13 +38,7 @@ class ModuleController(
     val turnController: PIDController,
     override var position: ModuleState = 0.0,
     override var target: ModuleTarget = ModuleTarget(Vector2(),true)
-): GeneralController<ModuleState,ModuleInput,ModuleTarget>() {
-
-    //either -1 or 1
-    var reverseEncoders = 1.0
-    var drivePowerReversed = 1.0
-    var turnPowerReversed = 1.0
-
+): GeneralController<ModuleState, ModuleInput, ModuleTarget>() {
     override fun update(dt: Double): ModuleInput {
         //fetch current and desired position in radians
         var thetaRef = target.v.angleFromOrigin
@@ -53,12 +47,12 @@ class ModuleController(
         //find shortest distance to turn, flipping target and motor powers if > 90°
         var diff = normalizeRadians(thetaRef - cur)
         val flipped = diff.absoluteValue > PI/2.0
+
         if(flipped) thetaRef = normalizeRadians(thetaRef - PI)
         diff = normalizeRadians(thetaRef - cur)
 
         //drive direction ∈ [-1,0,1]
-        var driveDir = (if(flipped) -1 else 1)*drivePowerReversed
-        if (!target.powerDriveMotors) driveDir = 0.0
+        val driveDir = if(!target.powerDriveMotors) 0.0 else if(flipped) -1.0 else 1.0
 
         //convert radians back to ticks
         val targetTicks = position + diff/(2*PI) * TICKS_PER_REV
