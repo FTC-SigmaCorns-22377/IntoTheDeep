@@ -1,3 +1,5 @@
+import com.android.build.gradle.tasks.MergeSourceSetFolders
+
 //
 // build.gradle in TeamCode
 //
@@ -20,16 +22,42 @@ repositories {
     maven { url = 'https://jitpack.io' }
     mavenLocal()
 }
+
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
     packagingOptions {
         jniLibs.useLegacyPackaging true
     }
+
+    kotlinOptions {
+        freeCompilerArgs += "-Xcontext-receivers"
+    }
+
+    testOptions {
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_11
+            targetCompatibility JavaVersion.VERSION_11
+        }
+        kotlinOptions {
+            freeCompilerArgs += "-Xcontext-receivers"
+            jvmTarget = '11'
+        }
+    }
+}
+
+project.afterEvaluate {
+    tasks.withType(Test).configureEach {
+        it.systemProperty("java.library.path","C:\\Users\\chemi\\Documents\\dev\\library\\library\\build\\rustJniLibs\\desktop\\win32-x86-64")
+    }
 }
 
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation ("net.unnamedrobotics:library:1.0.21-rc")
+    implementation ("net.unnamedrobotics:library:1.0.23-rc@aar")
+    testImplementation 'junit:junit:4.13.2'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

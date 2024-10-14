@@ -1,14 +1,9 @@
 package sigmacorns.common.swerve
 
-import android.icu.text.DecimalFormat
-import com.qualcomm.hardware.digitalchickenlabs.OctoQuad
-import com.qualcomm.robotcore.hardware.CRServo
-import com.qualcomm.robotcore.hardware.DcMotor
-import com.qualcomm.robotcore.hardware.PIDCoefficients
-import net.unnamedrobotics.lib.control.controller.GeneralController
+import net.unnamedrobotics.lib.control.controller.Controller
 import net.unnamedrobotics.lib.control.controller.PIDController
+import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math.Vector2
-import org.firstinspires.ftc.robotcore.external.Telemetry
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 
@@ -16,7 +11,7 @@ typealias SwerveState = Array<Double>
 data class SwerveInput(var turnPowers: Array<Double>, var drivePowers: Array<Double>)
 data class SwerveTarget(var transform: Vector2, var turn: Double, var lockWheels: Boolean)
 
-class SwerveController: GeneralController<SwerveState,SwerveInput,SwerveTarget>() {
+class SwerveController: Controller<SwerveState, SwerveInput, SwerveTarget>() {
     private val turnPIDCoefficients = PIDCoefficients(0.00004,0.0,0.0)
 
     private val turnDirs = Array(4){ Vector2.fromAngle((7-it*2)/4.0* PI,1.0) }
@@ -36,6 +31,8 @@ class SwerveController: GeneralController<SwerveState,SwerveInput,SwerveTarget>(
     private var vs = List(4) { Vector2() }
     val moduleTargetVectors
         get() = vs
+    override var output: SwerveInput = SwerveInput(Array(4) { 0.0 }, Array(4) { 0.0 })
+
     override var position = arrayOf(0.0,0.0,0.0,0.0)
     override var target = SwerveTarget(Vector2(),0.0,false)
 
@@ -66,7 +63,7 @@ class SwerveController: GeneralController<SwerveState,SwerveInput,SwerveTarget>(
         }
     }
 
-    override fun copy(): GeneralController<SwerveState, SwerveInput, SwerveTarget> {
+    override fun copy(): Controller<SwerveState, SwerveInput, SwerveTarget> {
         return SwerveController()
     }
 }

@@ -1,6 +1,6 @@
 package sigmacorns.common.swerve
 
-import net.unnamedrobotics.lib.control.controller.GeneralController
+import net.unnamedrobotics.lib.control.controller.Controller
 import net.unnamedrobotics.lib.control.controller.PIDController
 import net.unnamedrobotics.lib.math.Vector2
 import kotlin.math.PI
@@ -37,8 +37,9 @@ data class ModuleTarget(var v: Vector2, var powerDriveMotors: Boolean)
 class ModuleController(
     val turnController: PIDController,
     override var position: ModuleState = 0.0,
-    override var target: ModuleTarget = ModuleTarget(Vector2(),true)
-): GeneralController<ModuleState, ModuleInput, ModuleTarget>() {
+    override var target: ModuleTarget = ModuleTarget(Vector2(),true),
+    override var output: ModuleInput = ModuleInput(0.0,0.0)
+): Controller<ModuleState, ModuleInput, ModuleTarget>() {
     override fun update(dt: Double): ModuleInput {
         //fetch current and desired position in radians
         var thetaRef = target.v.angleFromOrigin
