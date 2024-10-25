@@ -40,8 +40,8 @@ class TwoWheelOdo(val xEncoder: Encoder, val yEncoder: Encoder, val imu: IMU, va
     fun rerun(connection: RerunConnection) {
         if(window.size< LOG_WINDOW_LEN) window.add(pose) else window[windowPtr] = pose
         windowPtr = (windowPtr+1) % LOG_WINDOW_LEN
-        connection.log("localization/pos", window)
-        connection.log("localization/heading", pose.angle)
+//        connection.log("localization/pos", window)
+//        connection.log("localization/heading", pose.angle)
     }
 
     fun telemetry(telemetry: Telemetry) {
