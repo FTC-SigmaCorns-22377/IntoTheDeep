@@ -5,26 +5,28 @@ import net.unnamedrobotics.lib.control.controller.PIDController
 import net.unnamedrobotics.lib.math.Pose
 import net.unnamedrobotics.lib.math.Vector2
 
-typealias PointState = Pose
-typealias PointInput = SwerveTarget
-typealias PointTarget = Pose
+typealias PositionState = Pose
+typealias PositionInput = SwerveTarget
+typealias PositionTarget = Pose
 
-class PointController() : Controller<PointState, PointInput, PointTarget>() {
-    override var target: PointTarget = Pose(0, 0 , 0)
-    override var output: PointInput = SwerveTarget(Vector2(0, 0), 0.0, false)
-    override var position: PointState = Pose(0, 0, 0)
+class PositionController() : Controller<PositionState, PositionInput, PositionTarget>() {
+    override var target: PositionTarget = Pose(0, 0 , 0)
+    override var output: PositionInput = SwerveTarget(Vector2(0, 0), 0.0, false)
+    override var position: PositionState = Pose(0, 0, 0)
 
-    var pointPIDX: PIDController = PIDController(0, 0, 0)
-    var pointPIDY: PIDController = PIDController(0, 0, 0)
-    var pointPIDTheta: PIDController = PIDController(0, 0, 0)
+    var positionPIDX: PIDController = PIDController(0, 0, 0)
+    var positionPIDY: PIDController = PIDController(0, 0, 0)
+    var positionPIDAngle: PIDController = PIDController(0, 0, 0)
 
-
-
-    override fun copy(): Controller<PointState, PointInput, PointTarget> {
+    override fun copy(): Controller<PositionState, PositionInput, PositionTarget> {
         TODO("Not yet implemented")
     }
 
-    override fun update(deltaTime: Double): PointInput {
+    override fun update(deltaTime: Double): PositionInput {
+        var vX = positionPIDX.updateStateless(deltaTime, position.x, target.x)
+        var vY = positionPIDY.updateStateless(deltaTime, position.y, target.y)
+        var vAngle = positionPIDAngle.updateStateless(deltaTime, position.angle, target.angle)
+        return SwerveTarget(Vector2(vX, vY), vAngle, lockWheels = false)
         TODO("Not yet implemented")
     }
 
