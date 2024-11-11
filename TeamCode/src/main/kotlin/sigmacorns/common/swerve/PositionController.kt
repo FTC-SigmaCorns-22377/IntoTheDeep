@@ -23,11 +23,10 @@ class PositionController() : Controller<PositionState, PositionInput, PositionTa
     }
 
     override fun update(deltaTime: Double): PositionInput {
-        var vX = positionPIDX.updateStateless(deltaTime, position.x, target.x)
-        var vY = positionPIDY.updateStateless(deltaTime, position.y, target.y)
-        var vAngle = positionPIDAngle.updateStateless(deltaTime, position.angle, target.angle)
+        val vX = positionPIDX.updateStateless(deltaTime, position.x, target.x)
+        val vY = positionPIDY.updateStateless(deltaTime, position.y, target.y)
+        val vAngle = positionPIDAngle.updateStateless(deltaTime, position.angle, target.angle)
         return SwerveTarget(Vector2(vX, vY), vAngle, lockWheels = false)
-        TODO("Not yet implemented")
     }
 
 }

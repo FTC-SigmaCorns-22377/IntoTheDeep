@@ -11,9 +11,9 @@ typealias SwerveState = Array<Double>
 data class SwerveInput(var turnPowers: Array<Double>, var drivePowers: Array<Double>)
 data class SwerveTarget(var transform: Vector2, var turn: Double, var lockWheels: Boolean)
 
-class SwerveController: Controller<SwerveState, SwerveInput, SwerveTarget>() {
-    private val turnPIDCoefficients = PIDCoefficients(0.00004,0.0,0.0)
-
+class SwerveController(
+    turnPIDCoefficients: PIDCoefficients
+): Controller<SwerveState, SwerveInput, SwerveTarget>() {
     private val turnDirs = Array(4){ Vector2.fromAngle((7-it*2)/4.0* PI,1.0) }
 
     //set up module controllers
@@ -64,6 +64,7 @@ class SwerveController: Controller<SwerveState, SwerveInput, SwerveTarget>() {
     }
 
     override fun copy(): Controller<SwerveState, SwerveInput, SwerveTarget> {
-        return SwerveController()
+        TODO()
+//        return SwerveController()
     }
 }
