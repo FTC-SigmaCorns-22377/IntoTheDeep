@@ -8,8 +8,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
 
 class RobotHardware(hardwareMap: HardwareMap) {
-    
-    object:T  object::class: KClass<T>
     val drive1 = hardwareMap.get(DcMotor::class.java, "m1")
     val drive2 = hardwareMap.get(DcMotor::class.java, "m2")
     val drive3 = hardwareMap.get(DcMotor::class.java, "m3")
@@ -21,6 +19,10 @@ class RobotHardware(hardwareMap: HardwareMap) {
     val turn3 = hardwareMap.get(CRServo::class.java, "t2")
     val turn4 = hardwareMap.get(CRServo::class.java, "t4")
     val turns = listOf(drive1,drive2,drive3,drive4)
+
+    val diffyLeft = hardwareMap.get(CRServo::class.java, "dl")
+    val diffyRight = hardwareMap.get(CRServo::class.java, "dr")
+    val diffys = listOf(diffyLeft, diffyRight)
 
     val octo = hardwareMap.get(OctoQuad::class.java, "octo")
 
