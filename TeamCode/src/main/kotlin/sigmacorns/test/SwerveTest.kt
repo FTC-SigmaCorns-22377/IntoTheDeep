@@ -16,6 +16,7 @@ import net.unnamedrobotics.lib.control.circuit.controlGraph
 import net.unnamedrobotics.lib.control.circuit.portTIn
 import net.unnamedrobotics.lib.control.circuit.portUOut
 import net.unnamedrobotics.lib.control.circuit.portXIn
+import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math.Vector2
 import net.unnamedrobotics.lib.math.radians
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
@@ -40,7 +41,7 @@ class SwerveTest: LinearOpMode() {
 
         val octo = hardwareMap.get(OctoQuad::class.java, "octo")
 
-        val controller = SwerveController()
+        val controller = SwerveController(PIDCoefficients(0.0,0.0,0.0))
 
         val timer = ElapsedTime()
 
