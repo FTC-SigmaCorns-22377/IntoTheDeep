@@ -67,7 +67,6 @@ dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
     implementation ("net.unnamedrobotics:library:1.0.28-rc@aar")
-//    implementation("eu.sirotin.kotunil:kotunil-jvm:4.2.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
     implementation "org.joml:joml:1.10.8"
 
