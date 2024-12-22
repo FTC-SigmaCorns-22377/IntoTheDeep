@@ -18,9 +18,19 @@ apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 apply plugin: 'kotlin-android'
 
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
 repositories {
     maven { url = 'https://jitpack.io' }
-    mavenLocal()
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/FtC-SigmaCorns-22377/library")
+        credentials {
+            username = properties.getProperty('username')
+            password = properties.getProperty('apiKey')
+        }
+    }
 }
 
 android {
