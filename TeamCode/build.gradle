@@ -24,6 +24,17 @@ repositories {
 }
 
 android {
+
+    buildTypes {
+        release {
+
+            minifyEnabled true
+            shrinkResources true
+
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
+
+        }
+    }
     namespace = 'org.firstinspires.ftc.teamcode'
 
     packagingOptions {
@@ -55,7 +66,11 @@ project.afterEvaluate {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation ("net.unnamedrobotics:library:1.0.23-rc@aar")
+    implementation ("net.unnamedrobotics:library:1.0.28-rc@aar")
+//    implementation("eu.sirotin.kotunil:kotunil-jvm:4.2.2")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+    implementation "org.joml:joml:1.10.8"
+
     testImplementation 'junit:junit:4.13.2'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

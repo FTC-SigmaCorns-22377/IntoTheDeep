@@ -17,30 +17,22 @@ import net.unnamedrobotics.lib.control.circuit.portTIn
 import net.unnamedrobotics.lib.control.circuit.portUOut
 import net.unnamedrobotics.lib.control.circuit.portXIn
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
+import net.unnamedrobotics.lib.hardware.impl.CRServoImpl
+import net.unnamedrobotics.lib.hardware.impl.ServoImpl
+import net.unnamedrobotics.lib.hardware.interfaces.Servo
 import net.unnamedrobotics.lib.math.Vector2
 import net.unnamedrobotics.lib.math.radians
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
-import sigmacorns.common.swerve.SwerveController
-import sigmacorns.common.swerve.SwerveTarget
-import sigmacorns.common.swerve.tickToAngle
+import sigmacorns.common.io.RobotIO
+import sigmacorns.common.subsystems.swerve.SwerveController
+import sigmacorns.common.subsystems.swerve.SwerveTarget
+import sigmacorns.common.subsystems.swerve.tickToAngle
+import kotlin.math.PI
 
 @TeleOp
 class SwerveTest: LinearOpMode() {
     override fun runOpMode() {
-        val drive1 = hardwareMap.get(DcMotor::class.java, "m1")
-        val drive2 = hardwareMap.get(DcMotor::class.java, "m2")
-        val drive3 = hardwareMap.get(DcMotor::class.java, "m3")
-        val drive4 = hardwareMap.get(DcMotor::class.java, "m4")
-        val drives = arrayOf(drive1,drive2,drive3,drive4)
-
-        val turn1 = hardwareMap.get(CRServo::class.java, "t1")
-        val turn2 = hardwareMap.get(CRServo::class.java, "t3")
-        val turn3 = hardwareMap.get(CRServo::class.java, "t2")
-        val turn4 = hardwareMap.get(CRServo::class.java, "t4")
-        val turns = arrayOf(turn1,turn2,turn3,turn4)
-
-        val octo = hardwareMap.get(OctoQuad::class.java, "octo")
-
+        val io = RobotIO(hardwareMap)
         val controller = SwerveController(PIDCoefficients(0.0,0.0,0.0))
 
         val timer = ElapsedTime()
@@ -65,16 +57,16 @@ class SwerveTest: LinearOpMode() {
         var aPressed = false
         var bPressed = false
         val octoPosToModuleIs = arrayOf(1,3,2,0)
-        val encodersReversed = arrayOf(-1,1,-1,1)
-        val servosReversed = arrayOf(-1,-1,-1,-1)
-        val motorsReversed = arrayOf(-1,1,-1,-1)
+        val encodersReversed = arrayOf(1,1,1,1)
+        val servosReversed = arrayOf(1,1,1,1)
+        val motorsReversed = arrayOf(1,1,1,1)
         var moduleToConfigure = 0
 
-        turns.forEachIndexed { i,it ->
-            it.direction = if(servosReversed[i]==1) DcMotorSimple.Direction.FORWARD else DcMotorSimple.Direction.REVERSE
+        io.turns.forEachIndexed { i,it ->
+            it.reverse(servosReversed[i]==1)
         }
-        drives.forEachIndexed { i,it ->
-            it.direction = if(motorsReversed[i]==1) DcMotorSimple.Direction.FORWARD else DcMotorSimple.Direction.REVERSE
+        io.drives.forEachIndexed { i,it ->
+            it.reverse(motorsReversed[i]==1)
         }
 
 
@@ -83,57 +75,57 @@ class SwerveTest: LinearOpMode() {
 
         var fieldRelative = true
 
-        val swerveTarget = {
-            val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
-            SwerveTarget(
-                Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y).rotate(if(fieldRelative) -heading.radians else 0.0.radians),
-                (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
-                gamepad1.left_stick_button,
-            )
-        }
+//        val swerveTarget = {
+//            val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
+//            SwerveTarget(
+//                Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y).rotate(if(fieldRelative) -heading.radians else 0.0.radians),
+//                (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
+//                gamepad1.left_stick_button,
+//            )
+//        }
+//
+//        val modulePositions = {
+//            octo.readAllPositions()
+//                .run { octoPosToModuleIs.map { this[it]} }
+//                .mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
+//                .toTypedArray()
+//        }
 
-        val modulePositions = {
-            octo.readAllPositions()
-                .run { octoPosToModuleIs.map { this[it]} }
-                .mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
-                .toTypedArray()
-        }
+//        val baseControlGraph = controlGraph("baseControlGraph") {
+//            root(swerveTarget) connect controller.portTIn()
+//            modulePositions connect controller.portXIn()
+//            controller.portUOut() connect { it.turnPowers.zip(turns).map { it.second.power = it.first } }
+//            controller.portUOut() connect { it.drivePowers.zip(drives).map { it.second.power = it.first } }
+//        }
 
-        val baseControlGraph = controlGraph("baseControlGraph") {
-            root(swerveTarget) connect controller.portTIn()
-            modulePositions connect controller.portXIn()
-            controller.portUOut() connect { it.turnPowers.zip(turns).map { it.second.power = it.first } }
-            controller.portUOut() connect { it.drivePowers.zip(drives).map { it.second.power = it.first } }
-        }
-
-        val fsm = fsm {
-            state("Base") {
-                init { turns.forEach { it.controller.pwmEnable() } }
-                run {
-                    val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
-                    val positions = octo.readAllPositions().run { octoPosToModuleIs.map {
-                        this[it]
-                    } }.mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
-
-                    controller target SwerveTarget(
-                        Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y)
-                            .rotate(if(fieldRelative) -heading.radians else 0.0.radians),
-                        (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
-                        gamepad1.left_stick_button,
-                    )
-                    controller updatePosition positions.toTypedArray()
-                    controller.update(timer.seconds()).let {
-                        it.turnPowers.zip(turns).forEach { it.second.power = it.first }
-                        it.drivePowers.zip(drives).forEach { it.second.power = it.first }
-                    }
-                }
-                transition("Reset IMU") { gamepad1.a }
-            }
-            state("Reset IMU") {
-                run { imu.resetYaw() }
-                transition("Base") { true }
-            }
-        }
+//        val fsm = fsm {
+//            state("Base") {
+//                init { turns.forEach { it.controller.pwmEnable() } }
+//                run {
+//                    val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
+//                    val positions = octo.readAllPositions().run { octoPosToModuleIs.map {
+//                        this[it]
+//                    } }.mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
+//
+//                    controller target SwerveTarget(
+//                        Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y)
+//                            .rotate(if(fieldRelative) -heading.radians else 0.0.radians),
+//                        (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
+//                        gamepad1.left_stick_button,
+//                    )
+//                    controller updatePosition positions.toTypedArray()
+//                    controller.update(timer.seconds()).let {
+//                        it.turnPowers.zip(turns).forEach { it.second.power = it.first }
+//                        it.drivePowers.zip(drives).forEach { it.second.power = it.first }
+//                    }
+//                }
+//                transition("Reset IMU") { gamepad1.a }
+//            }
+//            state("Reset IMU") {
+//                run { imu.resetYaw() }
+//                transition("Base") { true }
+//            }
+//        }
 
         waitForStart()
 
@@ -141,28 +133,29 @@ class SwerveTest: LinearOpMode() {
             if(gamepad1.back && !backPressed && !stack.isEmpty()) stack.removeLast()
             backPressed = gamepad1.back
 
-            val positions = octo.readAllPositions().run { octoPosToModuleIs.map {
-                this[it]
-            } }.mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
+//            val positions = octo.readAllPositions().run { octoPosToModuleIs.map {
+//                this[it]
+//            } }.mapIndexed { i,it -> it*encodersReversed[i].toDouble() }
+
+            val positions = io.turnEncoders.map { (it.voltage/3.3)* PI*2 }
 
             val telemetry = dashTelemetry
 
             //base case: drive regularly
             if(stack.isEmpty()) {
                 //whether pwm is enabled is cached so minimum lynxcommands sent.
-                turns.forEach { it.controller.pwmEnable() }
                 val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
 
-                controller target SwerveTarget(
+                controller.target = SwerveTarget(
                     Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y)
                         .rotate(if(fieldRelative) -heading.radians else 0.0.radians),
                     (gamepad1.right_trigger-gamepad1.left_trigger).toDouble(),
                     gamepad1.left_stick_button,
                 )
-                controller updatePosition positions.toTypedArray()
+                controller.position = positions
                 controller.update(timer.seconds()).let {
-                    it.turnPowers.zip(turns).forEach { it.second.power = it.first }
-                    it.drivePowers.zip(drives).forEach { it.second.power = it.first }
+                    it.drivePowers.zip(io.drives).map { it.second.power = it.first }
+                    it.turnPowers.zip(io.turns).map { it.second.power = it.first }
                 }
 
                 telemetry.addData("(A) ", "reset IMU")
@@ -190,10 +183,7 @@ class SwerveTest: LinearOpMode() {
             } else when(stack.last()) {
                 "Servos off" -> {
                     telemetry.addData("Servos are off. ","press back to return")
-                    turns.forEach {
-                        it.controller.pwmDisable()
-                    }
-                    if(gamepad1.dpad_down) octo.resetMultiplePositions(*octoPosToModuleIs.toIntArray())
+//                    if(gamepad1.dpad_down) octo.resetMultiplePositions(*octoPosToModuleIs.toIntArray())
                 }
                 "Test powers" -> {
                     telemetry.addData("Testing powers. ","press back to return")
@@ -212,21 +202,21 @@ class SwerveTest: LinearOpMode() {
                     telemetry.addData("turn = ", v.x)
                     telemetry.addData("drive = ", v.y)
                     if(v.magnitude>0.01) {
-                        drives.forEach { it.power = v.y }
-                        turns.forEach { it.power = v.x }
+                        io.drives.forEach { it.power = v.y }
+                        io.turns.forEach { it.power = v.x }
                     } else {
-                        drives.zip(arrayOf(gamepad1.a,gamepad1.b,gamepad1.x,gamepad1.y)).forEach {
+                        io.drives.zip(arrayOf(gamepad1.a,gamepad1.b,gamepad1.x,gamepad1.y)).forEach {
                             it.first.power = if(it.second) 1.0-gamepad1.right_trigger else 0.0
                         }
-                        turns.zip(arrayOf(gamepad1.dpad_up,gamepad1.dpad_down,gamepad1.dpad_left,gamepad1.dpad_right)).forEach {
+                        io.turns.zip(arrayOf(gamepad1.dpad_up,gamepad1.dpad_down,gamepad1.dpad_left,gamepad1.dpad_right)).forEach {
                             it.first.power = if(it.second) 1.0-gamepad1.right_trigger else 0.0
                         }
                     }
                 }
                 "Configure hardware" -> {
                     telemetry.addData("Configuring hardware. ","press back to return")
-                    telemetry.addData("drive directions: ", drives.map { it.direction }.joinToString(prefix= "[", postfix = "]"))
-                    telemetry.addData("turn directions: ", turns.map { it.direction }.joinToString(prefix= "[", postfix = "]"))
+                    telemetry.addData("drive directions: ", io.drives.map { it.getReversed() }.joinToString(prefix= "[", postfix = "]"))
+//                    telemetry.addData("turn directions: ", io.turns.map { it. }.joinToString(prefix= "[", postfix = "]"))
                     telemetry.addData("module indices", octoPosToModuleIs.joinToString(prefix= "[", postfix = "]"))
                     telemetry.addData("configuring module ", moduleToConfigure+1)
                     telemetry.addData("(⯅) ","module++")
@@ -242,15 +232,15 @@ class SwerveTest: LinearOpMode() {
                     if(gamepad1.dpad_down && !dpadDownPressed) moduleToConfigure = (moduleToConfigure-1).mod(4)
                     if(gamepad1.dpad_right && !dpadRightPressed) octoPosToModuleIs[moduleToConfigure] = (octoPosToModuleIs[moduleToConfigure]+1).mod(8)
                     if(gamepad1.dpad_left && !dpadLeftPressed) octoPosToModuleIs[moduleToConfigure] = (octoPosToModuleIs[moduleToConfigure]-1).mod(8)
-                    if(gamepad1.a && !aPressed) drives[moduleToConfigure].direction = drives[moduleToConfigure].direction.inverted()
-                    if(gamepad1.b && !bPressed) turns[moduleToConfigure].direction = turns[moduleToConfigure].direction.inverted()
+                    if(gamepad1.a && !aPressed) io.drives[moduleToConfigure].reverse(!io.drives[moduleToConfigure].getReversed())
+                    if(gamepad1.b && !bPressed) io.turns[moduleToConfigure].reverse((io.turns[moduleToConfigure] as CRServoImpl).device.direction.inverted() == DcMotorSimple.Direction.FORWARD)
                     if(gamepad1.y && !yPressed) encodersReversed[moduleToConfigure] = -1*encodersReversed[moduleToConfigure]
                     val v = Vector2(gamepad1.left_stick_x,-gamepad1.left_stick_y)
                     telemetry.addData("turn = ", v.x)
                     telemetry.addData("drive = ", v.y)
                     if(v.magnitude>0.01) {
-                        drives.forEach { it.power = v.y }
-                        turns.forEach { it.power = v.x }
+                        io.drives.forEach { it.power = v.y }
+                        io.turns.forEach { it.power = v.x }
                     }
 
                     dpadDownPressed = gamepad1.dpad_down
@@ -268,7 +258,7 @@ class SwerveTest: LinearOpMode() {
                 val caption = "Wheel " + (i+1) + ": "
                 telemetry.addData(caption + "target angle = ", fmt.format(module.target.v.angleFromOrigin))
                 telemetry.addData(caption + "pos = ", fmt.format(positions[i]))
-                telemetry.addData(caption + "power = ",  fmt.format(turns[i].power))
+                telemetry.addData(caption + "power = ",  fmt.format(io.turns[i].power))
                 telemetry.addData(caption + "angle = ", fmt.format(tickToAngle(positions[i].toInt())))
                 telemetry.addData("vs [$i]",controller.moduleTargetVectors[i])
             }

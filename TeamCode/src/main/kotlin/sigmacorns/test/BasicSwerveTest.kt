@@ -1,7 +1,6 @@
 package sigmacorns.test
 
 import com.acmerobotics.dashboard.FtcDashboard
-import com.qualcomm.hardware.digitalchickenlabs.OctoQuad
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
@@ -15,8 +14,8 @@ import net.unnamedrobotics.lib.math.Vector2
 import net.unnamedrobotics.lib.math.radians
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
-import sigmacorns.common.swerve.TICKS_PER_REV
-import sigmacorns.common.swerve.tickToAngle
+import sigmacorns.common.subsystems.swerve.TICKS_PER_REV
+import sigmacorns.common.subsystems.swerve.tickToAngle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 
@@ -27,8 +26,6 @@ class BasicSwerveTest: LinearOpMode() {
         val drive2 = hardwareMap.get(DcMotor::class.java, "m2")
         val drive3 = hardwareMap.get(DcMotor::class.java, "m3")
         val drive4 = hardwareMap.get(DcMotor::class.java, "m4")
-
-        val octo = hardwareMap.get(OctoQuad::class.java, "octo")
 
         val turn1Encoder = hardwareMap.get(DcMotor::class.java, "m8")
         val turn2Encoder = hardwareMap.get(DcMotor::class.java, "m4")

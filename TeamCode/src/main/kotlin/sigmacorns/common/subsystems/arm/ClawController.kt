@@ -1,4 +1,4 @@
-package sigmacorns.common.swerve
+package sigmacorns.common.subsystems.arm
 
 import net.unnamedrobotics.lib.control.controller.Controller
 import net.unnamedrobotics.lib.math.Angle
