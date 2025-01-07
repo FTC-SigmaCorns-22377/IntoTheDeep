@@ -1,5 +1,6 @@
 package sigmacorns.common
 
+import com.acmerobotics.dashboard.config.Config
 import eu.sirotin.kotunil.base.A
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.centimetre
@@ -13,6 +14,7 @@ import eu.sirotin.kotunil.derived.N
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.rad
 import eu.sirotin.kotunil.derived.Ω
+import eu.sirotin.kotunil.specialunits.g
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.Vector3
@@ -62,7 +64,7 @@ object Constants {
     /**
      * Length between the pivot axis of the claw and the ideal gripped sample position
      */
-    val CLAW_LENGTH = 0.m
+    val CLAW_LENGTH = 5.5.inches
 
     val ARM_MOTOR_GEAR_RATIO = (((1+(46/11))) * (1+(46/11))).rad / rad
 
@@ -97,7 +99,7 @@ object Constants {
     val ARM_EXTENSION_RATIO = (ARM_PIVOT_RATIO * ( ARM_DIFFY_RATIO * ARM_SPOOL_RADIUS*revolution / revolution) * 2.m/m).cast(m/tick)
 
     val ARM_MOMENT_RATIO =
-        ((78321.89077 * (kg*mm*mm) - 20598.01367 * (kg*mm*mm))
+        ((78321.89077 * (g*mm*mm) - 20598.01367 * (g*mm*mm))
                 / (871.58165.mm - 369.90937.mm))
         .cast(kg*m*m / m)
     val ARM_COM_DIST_TO_PIVOT = hypot(68.58108,18.61353).mm
@@ -145,8 +147,8 @@ object Constants {
 
 
     /*-----BOUNDS-----*/
-    val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds(10.degrees,90.degrees)
-    val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,871.58165.mm)
+    val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds((-39).degrees,110.degrees)
+    val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
     val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
     val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
 
@@ -170,24 +172,48 @@ object Constants {
     /**
      * The maximum power to apply to the extension when it is under [ARM_SAFE_EXTENSION_THRESH]
      */
-    val ARM_SAFE_EXTENSION_POWER = 1.V
+    val ARM_SAFE_EXTENSION_POWER = 3.V
 
     /**
      * The maximum power to apply to the pivot when it is under [ARM_SAFE_PIVOT_THRESH]
      */
-    val ARM_SAFE_PIVOT_POWER = 2.V
+    val ARM_SAFE_PIVOT_POWER = 4.V
 
     /**
      * The maximum power to apply to an individual arm motor.
      */
     val ARM_MAX_MOTOR_POWER = 12.V
 
-    val CLAW_CLOSED = 1.0
-    val CLAW_OPEN = 0.0
+    val CLAW_CLOSED = 0.6
+    val CLAW_OPEN = 0.3
+
+    val ENCODER_OFFSETS = arrayOf(
+        3.948886765784988.rad,
+        5.99948997058269.rad,
+        (3.021640934089092).rad,
+        (0.9615177515532398).rad
+    ).map { 180.degrees + it }
 }
 
 object Tuning {
-    val ARM_PIVOT_PID = PIDCoefficients(0.001,0.0,0.00)
-    val ARM_EXTENSION_PID = PIDCoefficients(0.0,0.0,0.0)
-    val SWERVE_MODULE_PID = PIDCoefficients(0.00004,0.0,0.0)
+    val ARM_G = (-3.5).V
+//    val ARM_PIVOT_PID = PIDCoefficients(9.0,0.000000,-0.9)
+    val ARM_PIVOT_PID =PIDCoefficients(7.0,0.0,1300.0)
+//        get() = tunePID()
+    val ARM_EXTENSION_PID = PIDCoefficients(40.0,0.0,0.0)
+//        get() = tunePID()
+    val SWERVE_MODULE_PID = PIDCoefficients(1.5,0.0,0.0)
 }
+
+
+@Config
+object PIDTune {
+    @JvmField
+    var P = 1.0
+    @JvmField
+    var I = 0.0
+    @JvmField
+    var D = 0.0
+}
+
+fun tunePID(): PIDCoefficients = PIDCoefficients(PIDTune.P, PIDTune.I,PIDTune.D)

@@ -43,7 +43,7 @@ class ModuleController(
     override fun update(dt: Double): ModuleInput {
         //fetch current and desired position in radians
         var thetaRef = target.v.angleFromOrigin
-        val cur = tickToAngle(position.toInt())
+        val cur = position
 
         //find shortest distance to turn, flipping target and motor powers if > 90°
         var diff = normalizeRadians(thetaRef - cur)
@@ -56,7 +56,7 @@ class ModuleController(
         val driveDir = if(!target.powerDriveMotors) 0.0 else if(flipped) -1.0 else 1.0
 
         //convert radians back to ticks
-        val targetTicks = position + diff/(2*PI) * TICKS_PER_REV
+        val targetTicks = cur + diff/(2*PI)
 
         //update turn controller with target
         val turnPow = turnController.updateStateless(dt,position,targetTicks)

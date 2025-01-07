@@ -6,20 +6,20 @@ import eu.sirotin.kotunil.core.pow
 import eu.sirotin.kotunil.core.unaryMinus
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.rad
-import net.unnamedrobotics.lib.math2.plus
-import net.unnamedrobotics.lib.math2.minus
+import eu.sirotin.kotunil.core.*
 import net.unnamedrobotics.lib.math2.Dim2
 import net.unnamedrobotics.lib.math2.Dim3
 import net.unnamedrobotics.lib.math2.Vector
 import net.unnamedrobotics.lib.math2.Vector3
+import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
-import net.unnamedrobotics.lib.math2.metre
-import net.unnamedrobotics.lib.math2.rad
+import net.unnamedrobotics.lib.math2.normalizeRadian
 import net.unnamedrobotics.lib.math2.rotateZ
 import net.unnamedrobotics.lib.math2.spherical
 import net.unnamedrobotics.lib.math2.withZ
 import net.unnamedrobotics.lib.physics.Kinematics
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians
 import sigmacorns.common.Constants
 import kotlin.math.absoluteValue
 import kotlin.math.asin
@@ -68,15 +68,15 @@ object ScoringKinematics: Kinematics<ArmPose, ScoringTarget> {
         val robotRelSamplePos = x.samplePos - x.robotPos.withZ(0.m)
 
         var theta = robotRelSamplePos.theta()
-        val flipped = (x.robotHeading-theta).map { it.absoluteValue } > 90.degrees
-        if(flipped) theta += 180.degrees
+        val flipped = normalizeRadians(x.robotHeading.value-theta.value).rad.map { it.absoluteValue } > 90.degrees
+        if(flipped) theta = (theta + 180.degrees).cast(rad)
         val axleRelativeSamplePos = x.samplePos - (x.robotPos.withZ(0.m) + Constants.AXLE_CENTER.rotateZ(theta))
-        val armEndPos = axleRelativeSamplePos - spherical(-Constants.CLAW_LENGTH,theta,x.pitch)
+        val armEndPos = axleRelativeSamplePos + spherical(-Constants.CLAW_LENGTH,theta,x.pitch)
 
         val a = asin(Constants.ARM_OFFSET.value/robotRelSamplePos.magnitude().value).rad
-        val pivot = armEndPos.phi().plus(if(flipped) a else -a).rad()
+        val pivot = armEndPos.phi().plus(if(flipped) a else -a).cast(rad)
 
-        val extension = Constants.ARM_OFFSET.pow(2).minus(robotRelSamplePos.sqrMagnitude()).pow(0.5).metre()
+        val extension = (robotRelSamplePos.sqrMagnitude().minus(Constants.ARM_OFFSET.pow(2))).pow(0.5).cast(m)
 
         return ArmPose(
             x.robotPos,
@@ -84,7 +84,7 @@ object ScoringKinematics: Kinematics<ArmPose, ScoringTarget> {
             extension,
             pivot,
             x.roll,
-            (x.pitch - pivot).rad()
+            (x.pitch - pivot).cast(rad)
         )
     }
 }

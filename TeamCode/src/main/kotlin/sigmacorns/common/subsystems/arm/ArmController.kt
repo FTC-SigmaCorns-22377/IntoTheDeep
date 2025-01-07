@@ -16,11 +16,14 @@ import net.unnamedrobotics.lib.math.RGBA
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.math2.cos
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.mapRanges
+import net.unnamedrobotics.lib.math2.sin
 import net.unnamedrobotics.lib.math2.spherical
 import net.unnamedrobotics.lib.math2.vec3
+import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.Rerunable
@@ -32,19 +35,21 @@ import sigmacorns.common.Constants
 import sigmacorns.common.Tuning
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
 typealias ArmMotorPowers = List<Volt>
 
 data class ArmState(val motorPos: DiffyInputPose)
 data class ArmInput(val motors: ArmMotorPowers, val servoTarget: List<Number>)
-data class ArmTarget(val pivot: Radian, val extension: Metre, val pitch: Radian, val roll: Radian)
+data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian)
 
 class ArmController()
     : Controller<ArmState,ArmInput,ArmTarget>(), Rerunable {
     override lateinit var position: ArmState
     override lateinit var target: ArmTarget
-    private val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
-    private val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
+    val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
+    val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
 
     private val armDiffyController = pidDiffyController(boxTubeKinematics,Tuning.ARM_PIVOT_PID,Tuning.ARM_EXTENSION_PID)
 
@@ -128,6 +133,9 @@ class ArmController()
         val pid2 = PIDController(axis2PIDCoefficients)
 
         return transfer { dt: Double, x: DiffyInputPose, t: DiffyOutputPose ->
+            pid1.coefficients = Tuning.ARM_PIVOT_PID
+            pid2.coefficients = Tuning.ARM_EXTENSION_PID
+
             val tBounded = DiffyOutputPose(
                 Constants.ARM_PIVOT_BOUNDS.apply(t.axis1.cast(rad)),
                 Constants.ARM_EXTENSION_BOUNDS.apply(t.axis2.cast(m))
@@ -155,15 +163,17 @@ class ArmController()
                     if(extensionOverMax) Constants.ARM_SAFE_EXTENSION_POWER else Double.MAX_VALUE.V
                 )
 
-                pivot = pivotPowerBounds.apply(pivot)
+                val g = sin(it.axis1.value)*Tuning.ARM_G*it.axis2.value
+                pivot = pivotPowerBounds.apply((pivot + g).cast(V))
                 extension = extensionPowerBounds.apply(extension)
+
 
                 lastBoundedPivotPower = pivot
                 lastBoundedExtensionPower = extension
 
                 val powers = listOf(pivot+extension,pivot-extension)
 
-                val scalar =  max(1.0,Constants.ARM_MAX_MOTOR_POWER.value/powers.maxOfOrNull { abs(it.value) }!! )
+                val scalar = min(1.0,Constants.ARM_MAX_MOTOR_POWER.value/powers.maxOfOrNull { abs(it.value) }!! )
                 powers.map { p -> (p*scalar).cast(V) }
             }
 

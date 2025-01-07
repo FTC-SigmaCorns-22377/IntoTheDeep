@@ -1,12 +1,9 @@
 package sigmacorns.common
 
 import eu.sirotin.kotunil.core.div
-import eu.sirotin.kotunil.core.times
+import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.Volt
-import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Tick
-import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.revolution
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.Rerunable
@@ -15,9 +12,13 @@ import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.subsystems.arm.ArmController
 import sigmacorns.common.subsystems.arm.ArmState
 import sigmacorns.common.subsystems.arm.ArmTarget
+import sigmacorns.common.subsystems.arm.ClawController
+import sigmacorns.common.subsystems.arm.ClawInput
+import sigmacorns.common.subsystems.arm.ClawTarget
 import sigmacorns.common.subsystems.arm.DiffyInputPose
 import sigmacorns.common.subsystems.swerve.SwerveController
 import sigmacorns.common.subsystems.swerve.SwerveTarget
+import kotlin.math.PI
 
 data class RobotTickI(
     val state: ControllerState,
@@ -45,10 +46,12 @@ data class RobotTickI(
 }
 
 data class RobotTickO(
-    val nextState: ControllerState,
-    val turnPowers: Array<Double>,
-    val drivePowers: Array<Double>,
-    val armPowers: List<Double>,
+    var nextState: ControllerState,
+    var turnPowers: Array<Double>,
+    var drivePowers: Array<Double>,
+    var armPowers: List<Double>,
+    var diffyClawPos: ClawInput,
+    var claw: Double
 ): Rerunable {
     context(RerunPrefix, RerunConnection) override fun log(name: String) {
         prefix("swerve") {
@@ -72,11 +75,16 @@ data class ControllerState(
     val lastT: Double,
     val swerveController: SwerveController,
     val armController: ArmController,
-)
+    val clawController: ClawController
+) {
+    constructor(): this(0.0, SwerveController(), ArmController(), ClawController())
+}
 
 data class RobotTarget(
-    val swerveTarget: SwerveTarget,
-    val armTarget: ArmTarget
+    var swerveTarget: SwerveTarget,
+    var armTarget: ArmTarget,
+    var clawTarget: ClawTarget,
+    var clawClosed: Boolean
 )
 
 /**
@@ -93,29 +101,39 @@ fun pureTick(
 ): RobotTickO {
     val dt = input.t-input.state.lastT
     val swerveState = input.turnEncodersPos
-        .map { (it/Constants.ANALOG_MAX*revolution).cast(rad).value }
+        .map { (it/Constants.ANALOG_MAX)* PI *2 }.zip(Constants.ENCODER_OFFSETS).map { (it.first-it.second).value }
 
     val armPos = ArmState(DiffyInputPose(input.armMotor1Pos, input.armMotor2Pos))
 
     val swerveO = input.state.swerveController.updateStateless(dt,swerveState,target.swerveTarget)
     val armO = input.state.armController.updateStateless(dt,armPos,target.armTarget)
+    val clawO = input.state.clawController.updateStateless(dt,Unit,target.clawTarget)
 
     return RobotTickO(
         turnPowers = swerveO.turnPowers,
         drivePowers = swerveO.drivePowers,
         armPowers = armO.motors.map { (it/input.v).value },
+        diffyClawPos = clawO,
+        claw = if(target.clawClosed) Constants.CLAW_CLOSED else Constants.CLAW_OPEN,
         nextState = ControllerState(
             lastT = input.t,
             input.state.swerveController,
-            input.state.armController
+            input.state.armController,
+            input.state.clawController
         )
     )
 }
 
+var TICK_NUMBER = 0
+const val RERUN_RES = 10
+
 fun nextState(io: SigmaIO, cur: RobotTickI, target: RobotTarget): RobotTickI {
+    TICK_NUMBER += 1
     val o = pureTick(cur,target)
 
-    rerun(io.rerunConnection) {
+//    o.armPowers = o.armPowers.map { it.clampMagnitude(0.3) }
+
+    if(TICK_NUMBER% RERUN_RES == 0) rerun(io.rerunConnection) {
         log("cur") { cur }
         log("swerve") { cur.state.swerveController }
         log("arm") { cur.state.armController }

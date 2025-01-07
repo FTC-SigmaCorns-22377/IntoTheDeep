@@ -3,15 +3,16 @@ package sigmacorns.common.subsystems.swerve
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.core.div
 import eu.sirotin.kotunil.derived.rad
+import eu.sirotin.kotunil.core.*
 import net.unnamedrobotics.lib.control.controller.Controller
 import net.unnamedrobotics.lib.control.controller.PIDController
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math.Vector2
+import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.polar
 import net.unnamedrobotics.lib.math2.vec3
 import net.unnamedrobotics.lib.math2.withZ
-import net.unnamedrobotics.lib.math2.plus
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.Rerunable
@@ -71,20 +72,9 @@ class SwerveController(
         }
     }
 
-    fun resetEncoders() {
-        modules.forEach {
-            it.target = ModuleTarget(v=Vector2(0,0), powerDriveMotors = false)
-            it.position=0.0
-        }
-    }
-
     override fun copy(): Controller<SwerveState, SwerveInput, SwerveTarget> {
         TODO()
 //        return SwerveController()
-    }
-
-    fun logRerun(connection: RerunConnection) {
-//        rerun(connection) {
     }
 
     context(RerunPrefix, RerunConnection) override fun log(name: String) {
@@ -125,7 +115,7 @@ class SwerveController(
             log("turn powers") {
                 Arrows3D(
                     vecs = List(4) {
-                        polar(output.turnPowers[it].m/moduleRadius,position[it].rad+90.degrees).withZ(0.m)
+                        polar(output.turnPowers[it].m/moduleRadius,(position[it].rad+90.degrees).cast(rad)).withZ(0.m)
                     },
                     origins = moduleCenters.zip(positionsVecs).map { it.first+it.second }
                 )

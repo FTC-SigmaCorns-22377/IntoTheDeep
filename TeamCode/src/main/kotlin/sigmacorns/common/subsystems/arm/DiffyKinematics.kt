@@ -3,8 +3,6 @@ package sigmacorns.common.subsystems.arm
 import eu.sirotin.kotunil.core.Expression
 import net.unnamedrobotics.lib.physics.Kinematics
 import eu.sirotin.kotunil.core.*
-import net.unnamedrobotics.lib.math2.Ratio
-import net.unnamedrobotics.lib.math2.cast
 
 data class DiffyOutputPose(var axis1: Expression, var axis2: Expression)
 data class DiffyInputPose(var axis1: Expression, var axis2: Expression)
