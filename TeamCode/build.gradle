@@ -23,6 +23,7 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 
 repositories {
     maven { url = 'https://jitpack.io' }
+    mavenLocal()
     maven {
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/FtC-SigmaCorns-22377/library")
@@ -76,7 +77,8 @@ project.afterEvaluate {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation ("net.unnamedrobotics:library:1.0.28-rc@aar")
+    implementation ("net.unnamedrobotics:library:1.0.29e@aar")
+    implementation 'dev.nullrobotics:choreolib:0.04'
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
     implementation "org.joml:joml:1.10.8"
 
