@@ -6,7 +6,7 @@
  * The code is commented out since there are a lot of errors (for placeholders) which is annoying.
  */
 
-package sigmacorns.common.subsystems.swerve
+package sigmacorns.common.subsystems.localization
 
 class PositionEstimatorUKF {
 
