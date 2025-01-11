@@ -181,15 +181,3 @@ class ArmController()
         }
     }
 }
-
-//fun pidDiffyController1(kinematics: DiffyKinematics, coefficients:PIDCoefficients): Controller<DiffyInputPose, DiffyInputPose, DiffyOutputPose> {
-//    val pidl = PIDController(coefficients)
-//    val pidr = pidl.copy()
-//
-//    return transfer { dt: Double, x: DiffyInputPose, t: DiffyOutputPose -> kinematics.inverse(t).let {
-//        DiffyInputPose(
-//            pidl.updateStateless(dt,it.axis1,t.axis1),
-//            pidr.updateStateless(dt,it.axis2,t.axis2)
-//        )
-//    } }
-//}
