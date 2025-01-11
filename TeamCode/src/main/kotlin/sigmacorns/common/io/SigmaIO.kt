@@ -1,15 +1,38 @@
 package sigmacorns.common.io
 
+import eu.sirotin.kotunil.base.Second
+import eu.sirotin.kotunil.derived.Volt
+import net.unnamedrobotics.lib.driver.gobilda.GoBildaPose2D
+import net.unnamedrobotics.lib.math2.Tick
+import net.unnamedrobotics.lib.math2.Transform2D
+import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.rerun.RerunConnection
-import sigmacorns.common.RobotTickI
-import sigmacorns.common.RobotTickO
 import java.io.Closeable
 
-interface SigmaIO: Closeable {
-    val rerunConnection: RerunConnection
-    fun update(o: RobotTickO): RobotTickI
-
+abstract class SigmaIO: Closeable, BaseIO<SigmaIO>() {
     override fun close() {
         rerunConnection.close()
     }
+
+    abstract fun clearBulkCache()
+
+    context(ControlLoopContext<*,*,*,SigmaIO,*>)
+    abstract fun armPositions(): List<Tick>
+
+    context(ControlLoopContext<*,*,*,SigmaIO,*>)
+    abstract fun turnVoltages(): List<Volt>
+
+    context(ControlLoopContext<*,*,*,SigmaIO,*>)
+    abstract fun position(): Transform2D
+
+    context(ControlLoopContext<*,*,*,SigmaIO,*>)
+    abstract fun velocity(): Twist2D
+
+    abstract val armMotorPowers: List<Actuator<Double>>
+    abstract val drivePowers: List<Actuator<Double>>
+    abstract val turnPowers: List<Actuator<Double>>
+    abstract val clawPos: Actuator<Double>
+    abstract val diffyPos: List<Actuator<Double>>
+
+    abstract fun time(): Second
 }

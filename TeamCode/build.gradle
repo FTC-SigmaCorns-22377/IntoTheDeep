@@ -80,6 +80,7 @@ dependencies {
     implementation ("net.unnamedrobotics:library:1.0.29e@aar")
     implementation 'dev.nullrobotics:choreolib:0.04'
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9'
     implementation "org.joml:joml:1.10.8"
 
     testImplementation 'junit:junit:4.13.2'

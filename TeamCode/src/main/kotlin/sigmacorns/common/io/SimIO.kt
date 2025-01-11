@@ -5,6 +5,7 @@ import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.kg
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.Expression
@@ -19,105 +20,75 @@ import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
-import net.unnamedrobotics.lib.math2.Vector2
+import net.unnamedrobotics.lib.math2.Tick
+import net.unnamedrobotics.lib.math2.Transform2D
+import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.math2.inches
 import net.unnamedrobotics.lib.math2.map
-import net.unnamedrobotics.lib.math2.normalizeRadian
-import net.unnamedrobotics.lib.math2.orthogonal
-import net.unnamedrobotics.lib.math2.polar
+import net.unnamedrobotics.lib.math2.revolution
 import net.unnamedrobotics.lib.math2.tick
-import net.unnamedrobotics.lib.math2.vec2
-import net.unnamedrobotics.lib.physics.MotorState
+import net.unnamedrobotics.lib.math2.unitless
+import net.unnamedrobotics.lib.physics.LinearTireModel
 import net.unnamedrobotics.lib.physics.RK45Integrator
 import net.unnamedrobotics.lib.physics.State
+import net.unnamedrobotics.lib.physics.SwerveDrivebase
+import net.unnamedrobotics.lib.physics.SwerveInput
+import net.unnamedrobotics.lib.physics.SwerveState
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.rerun
-import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.Constants
-import sigmacorns.common.ControllerState
-import sigmacorns.common.RobotTickI
-import sigmacorns.common.RobotTickO
+import sigmacorns.common.SimIOTimes
 import sigmacorns.common.subsystems.arm.ArmPose
 import sigmacorns.common.subsystems.arm.DiffyKinematics
 import sigmacorns.common.subsystems.arm.DiffyOutputPose
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
+import kotlin.random.Random
 
 class SimIO(
     val updateTime: Second = 10.ms,
     val simV: Volt = 12.V,
-    var armState: SimArmState,
-    val initialArmPose: ArmPose? = null
-): SigmaIO {
+    initialPos: Transform2D,
+    initialArmPose: ArmPose,
+    val log: Boolean = false,
+): SigmaIO() {
     override val rerunConnection = RerunConnection("lambda","127.0.0.1")
 
+    init {
+        rerunConnection.setTimeSeconds("sim",0.s)
+        rerunConnection.field()
+    }
+
     private val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
-    private val integrator: RK45Integrator<SimArmState, List<Volt>> = RK45Integrator(
-        tolerance = 1e-8,
-        minStep = 1e-7
+
+    private val armIntegrator: RK45Integrator<SimArmState, List<Volt>> = RK45Integrator(
+        minStep = 0.002, tolerance = 0.005
     )
 
-    fun initial(): RobotTickI {
-        val controllerState = ControllerState()
-        var armOffset1 = 0.tick
-        var armOffset2 = 0.tick
-        if (initialArmPose!=null) {
-            val zeros = controllerState.armController.boxTubeKinematics.inverse(DiffyOutputPose(initialArmPose.pivot,initialArmPose.extension))
+    private var armState: SimArmState = SimArmState(initialArmPose.pivot,initialArmPose.extension)
 
-            armOffset1 = zeros.axis1.cast(tick)
-            armOffset2 = zeros.axis2.cast(tick)
-        }
+    val drivebase = SwerveDrivebase(
+        0.048.m,
+        18.inches,
+        18.inches,
+        20.kg,
+        31.5.kg* mm * mm *15,
+        18.5.kg* mm * mm,
+        turnMotor = goBildaMotorConstants(6000.0/435.0),
+        driveMotor = goBildaMotorConstants(6000.0/435.0),
+        tireModel = LinearTireModel(10.0,1.0,1.0,30.N,30.N,3.N*m)
+    )
 
-        return RobotTickI(
-            controllerState,
-            t = Clock.milliseconds,
-            v = simV,
-            turnEncodersPos = List(4) { 0.V },
-            armMotor1Pos = armOffset1,
-            armMotor2Pos = armOffset2
-        )
-    }
-
-    override fun update(o: RobotTickO): RobotTickI {
-        val dx = { _: Double, x: SimArmState, u: List<Volt> -> this.simArm(x,u) }
-
-        val lastT = o.nextState.lastT
-        val nextT = lastT + updateTime.value
-        val u = o.armPowers.map { (it*simV).cast(V) }
-
-        val steps = integrator.integrate(dx,lastT,nextT,armState,u)
-        armState = steps.second.last()
-
-        simArm(armState,u,true)
-
-        val armMotorPos = boxTubeKinematics.inverse(DiffyOutputPose(armState.pivot, armState.extension))
-
-        rerun(rerunConnection) {
-            prefix("sim") {
-                scalar("pivot",armState.pivot.value)
-                scalar("extend",armState.extension.value)
-                scalar("vPivot",armState.vPivot.value)
-                scalar("vExtend",armState.vExtend.value)
-                scalar("i1",armState.i1.value)
-                scalar("i2",armState.i2.value)
-            }
-        }
-
-        return RobotTickI(
-            state = o.nextState,
-            t = nextT,
-            v = simV,
-            turnEncodersPos = List(4) { 0.V },
-            armMotor1Pos = armMotorPos.axis1.cast(tick),
-            armMotor2Pos = armMotorPos.axis2.cast(tick)
-        )
-    }
+    val swerveIntegrator = drivebase.model.newStateIntegrator(SwerveState(initialPos),RK45Integrator(
+        minStep = 0.002, tolerance = 0.005
+    ))
 
     private val pivotRatio = (Constants.ARM_PULLEY_RATIO.pow(-1) * Constants.ARM_MOTOR_GEAR_RATIO).cast(rad/rad)
     private val extendRatio = ((1.m/2.m) / Constants.ARM_SPOOL_RADIUS / Constants.ARM_DIFFY_RATIO * pivotRatio)
-    fun simArm(x: SimArmState, u: List<Volt>, log: Boolean = false): SimArmState {
+    private fun simArm(x: SimArmState, u: List<Volt>): SimArmState {
         val Kt = Constants.MOTOR_TORQUE_CONSTANT
         val inductance = Constants.MOTOR_INDUCTANCE
         val R = Constants.MOTOR_RESISTANCE
@@ -165,6 +136,7 @@ class SimIO(
                 scalar("gravityForce", fGravity.value)
             }
         }
+
         //validates units
         di1.cast(A/s)
         di2.cast(A/s)
@@ -174,20 +146,78 @@ class SimIO(
         return SimArmState(di1,di2,dw,dv,x.vPivot,x.vExtend)
     }
 
-    private val wheelMoment = 1.0 * kg*m*m
-    private val wheelRadius = 0.5.m
-    val servoDriveMotorModel = goBildaMotorConstants(1.0).constantLoadSystem(wheelMoment)
-//    fun simSwerve(x: SimSwerveState, turnUs: List<Volt>, driveUs: List<Volt>, log: Boolean = false): SimSwerveState {
-//        for (i in 0..4) {
-//            val vDir = x.vel.normalized()
-//            val vWheel = x.drives[i].velocity*wheelRadius
-//
-//            val vLongitudinal = x.vel dot polar(1.m,x.turns[i].position.cast(rad))
-//            val slipRatio = (vLongitudinal-vWheel)/vWheel.map { max(it,vLongitudinal.value) }
-//            val slipAngle = vDir.theta()-x.turns[i].position.normalizeRadian()
-//
-//        }
-//    }
+    var simTime: Second = 0.s
+    fun stepSim(dt: Second) {
+        fun actuatorToPower(actuator: Actuator<Double>) = ((actuator as SimActuator).u ?: 0.0).unitless()
+
+        armState = armIntegrator.integrate(
+            { _,x,u -> simArm(x, u) },
+            simTime.value,(simTime+dt).value,armState,
+            armMotorPowers.map { (actuatorToPower(it)*simV).cast(V) }
+        ).second.last()
+
+        swerveIntegrator.integrate(dt, SwerveInput(
+            turnPowers.map { actuatorToPower(it) },
+            drivePowers.map { actuatorToPower(it) },
+        ))
+
+        simTime = (simTime+dt).cast(s)
+    }
+
+    override fun clearBulkCache() = stepSim(randomizeIOTime(SimIOTimes.bulkRead))
+
+    /* IO OBJECTS */
+
+    private val armPosSensor = sensor(bulkReadable = true, name = "armPos") {
+        val armPos = boxTubeKinematics.inverse(DiffyOutputPose(armState.pivot,armState.extension))
+        listOf(armPos.axis1.cast(tick), armPos.axis2.cast(tick))
+    }
+
+    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun armPositions(): List<Tick> = armPosSensor.get()
+
+    private val turnVoltageSensor = sensor(bulkReadable = true, name = "turnVoltage") {
+        swerveIntegrator.state.turns.map { x ->
+            ((x.position/revolution).map { it.mod(1.0) }*3.3.V).cast(V)
+        }
+    }
+
+    context(ControlLoopContext<*, *, *, SigmaIO,*>)
+    override fun turnVoltages(): List<Volt> = turnVoltageSensor.get()
+
+    private val posSensor = sensor(name = "pos") {
+        stepSim(randomizeIOTime(SimIOTimes.pinpointFetch))
+        swerveIntegrator.state.pos
+    }
+
+    private val velSensor = sensor(name = "vel") {
+        stepSim(randomizeIOTime(SimIOTimes.pinpointFetch))
+        swerveIntegrator.state.vel
+    }
+
+    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun position() = posSensor.get()
+    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun velocity() = velSensor.get()
+
+    fun randomizeIOTime(t: Second): Second
+        = t.map { max(it + it*Random.nextDouble(-SimIOTimes.uncertainty,SimIOTimes.uncertainty),0.5.ms.value) }
+
+    private class SimActuator<T : Any>(val stepTime: Expression? = null, val io: SimIO): Actuator<T> {
+        var u: T? = null
+        override fun write(u: T) {
+            this.u = u
+            if(stepTime != null) io.stepSim(io.randomizeIOTime(stepTime.cast(s)))
+        }
+    }
+
+    override val armMotorPowers: List<Actuator<Double>> = List(2) { SimActuator(SimIOTimes.motorWrite,this) }
+    override val drivePowers: List<Actuator<Double>> = List(4) { SimActuator(SimIOTimes.motorWrite,this) }
+    override val turnPowers: List<Actuator<Double>> = List(4) { SimActuator(SimIOTimes.servoWrite,this) }
+    override val clawPos: Actuator<Double> = SimActuator(SimIOTimes.servoWrite,this)
+    override val diffyPos: List<Actuator<Double>> = List(2) { SimActuator(SimIOTimes.servoWrite,this) }
+    override fun time(): Second {
+        simTime = (simTime + SimIOTimes.base).cast(s)
+        rerunConnection.setTimeSeconds("sim",simTime)
+        return simTime
+    }
 }
 
 class SimArmState(
@@ -209,27 +239,4 @@ class SimArmState(
     override fun toComponents() = listOf(
         i1.value,i2.value,vPivot.value,vExtend.value,pivot.value,extension.value
     )
-}
-
-class SimSwerveState(
-    val turns: List<MotorState>,
-    val drives: List<MotorState>,
-    val vel: Vector2,
-    val pos: Vector2,
-): State<SimSwerveState> {
-    override var x: SimSwerveState = this
-
-    override fun toComponents() =
-        (turns.map { it.toComponents() } + drives.map { it.toComponents() }).flatten() +
-                vel.components.map { it.value } +
-                pos.components.map { it.value }
-
-    override fun fromComponents(cs: List<Number>): SimSwerveState {
-        val motorStateSize = 3
-        val motorStates = cs.chunked(motorStateSize)
-        val turns = motorStates.subList(0,4).map { turns[0].fromComponents(it) }
-        val drives = motorStates.subList(4,8).map { drives[0].fromComponents(it) }
-
-        return SimSwerveState(turns,drives, vec2(cs[8].m/s,cs[9].m/s), vec2(cs[10].m,cs[11].m))
-    }
 }

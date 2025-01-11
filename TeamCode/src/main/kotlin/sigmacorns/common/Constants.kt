@@ -7,9 +7,12 @@ import eu.sirotin.kotunil.base.centimetre
 import eu.sirotin.kotunil.base.kg
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
+import eu.sirotin.kotunil.base.ms
+import eu.sirotin.kotunil.base.ns
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.H
+import eu.sirotin.kotunil.derived.Hz
 import eu.sirotin.kotunil.derived.N
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.rad
@@ -17,7 +20,6 @@ import eu.sirotin.kotunil.derived.Ω
 import eu.sirotin.kotunil.specialunits.g
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Bounds
-import net.unnamedrobotics.lib.math2.Vector3
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.inches
@@ -198,13 +200,38 @@ object Constants {
 object Tuning {
     val ARM_G = (-3.5).V
 //    val ARM_PIVOT_PID = PIDCoefficients(9.0,0.000000,-0.9)
-    val ARM_PIVOT_PID =PIDCoefficients(7.0,0.0,1300.0)
+    val ARM_PIVOT_PID = PIDCoefficients(7.0,0.0,1300.0)
 //        get() = tunePID()
     val ARM_EXTENSION_PID = PIDCoefficients(40.0,0.0,0.0)
 //        get() = tunePID()
     val SWERVE_MODULE_PID = PIDCoefficients(1.5,0.0,0.0)
 }
 
+object LoopTimes {
+    val SWERVE = 500.Hz
+    val ARM = 100.Hz
+    val CHOREO = 100.Hz
+
+    const val DRIVE_UPDATE_THRESHOLD = 0.05
+    const val TURN_UPDATE_THRESHOLD = 0.02
+    const val ARM_UPDATE_THRESHOLD = 0.02
+    const val DIFFY_UPDATE_THRESHOLD = 0.005
+}
+
+object SimIOTimes {
+    const val uncertainty = 0.2
+    val bulkRead = 20.ms
+    val motorWrite = 3.ms
+    val servoWrite = 3.ms
+    val pinpointFetch = 5.ms
+    val base = 10.ns
+}
+
+object LOGGING {
+    val LOG_IO: Boolean = true
+    val RERUN_SWERVE: Boolean = true
+    val RERUN_CHOREO: Boolean = true
+}
 
 @Config
 object PIDTune {
