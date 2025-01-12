@@ -32,6 +32,8 @@ import net.unnamedrobotics.lib.rerun.archetypes.FillMode
 import org.joml.AxisAngle4d
 import org.joml.Quaterniond
 import sigmacorns.common.Constants
+import sigmacorns.common.Constants.CLAW_CLOSED
+import sigmacorns.common.Constants.CLAW_OPEN
 import sigmacorns.common.Tuning
 import kotlin.math.abs
 import kotlin.math.max
@@ -41,8 +43,8 @@ import kotlin.math.sin
 typealias ArmMotorPowers = List<Volt>
 
 data class ArmState(val motorPos: DiffyInputPose)
-data class ArmInput(val motors: ArmMotorPowers, val servoTarget: List<Number>)
-data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian)
+data class ArmInput(val motors: ArmMotorPowers, val servoTarget: List<Number>, val clawTarget: Double)
+data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian, val isOpen: Boolean)
 
 class ArmController()
     : Controller<ArmState,ArmInput,ArmTarget>(), Rerunable {
@@ -57,6 +59,9 @@ class ArmController()
 
     override fun copy() = ArmController()
 
+    val mapServo1 = mapRanges(Constants.CLAW_SERVO_1_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)
+    val mapServo2 = mapRanges(Constants.CLAW_SERVO_2_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)
+
     override fun update(deltaTime: Double): ArmInput {
         val pivot = Constants.ARM_PIVOT_BOUNDS.apply(target.pivot)
         val extension = Constants.ARM_EXTENSION_BOUNDS.apply(target.extension)
@@ -65,10 +70,12 @@ class ArmController()
 
         val servoPos = clawKinematics.inverse(DiffyOutputPose(target.pivot,target.roll))
 
-        val servo1 = mapRanges(Constants.CLAW_SERVO_1_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)(servoPos.axis1.value)
-        val servo2 = mapRanges(Constants.CLAW_SERVO_2_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)(servoPos.axis2.value)
+        val servo1 = (mapServo1)(servoPos.axis1.value)
+        val servo2 = (mapServo2)(servoPos.axis2.value)
 
-        return ArmInput(motorPowers, listOf(servo1,servo2))
+        val clawServo = if (target.isOpen) CLAW_OPEN else CLAW_CLOSED
+
+        return ArmInput(motorPowers, listOf(servo1,servo2), clawServo)
     }
 
     context(RerunPrefix, RerunConnection) override fun log(name: String) { prefix(name) {

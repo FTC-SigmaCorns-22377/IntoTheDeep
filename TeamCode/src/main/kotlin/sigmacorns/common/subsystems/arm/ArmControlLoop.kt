@@ -12,5 +12,6 @@ fun armControlLoop() = ControlLoopContext(
     { u: ArmInput, io: SigmaIO ->
         io.armMotorPowers.zip(u.motors).forEach { it.first.write(it.second.checkedUnitless()) }
         io.diffyPos.zip(u.servoTarget).forEach { it.first.write(it.second.toDouble()) }
+        io.clawPos.write(u.clawTarget);
     }
 )
