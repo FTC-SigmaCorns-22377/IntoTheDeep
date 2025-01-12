@@ -24,6 +24,7 @@ import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.math2.clampMagnitude
 import net.unnamedrobotics.lib.math2.inches
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.revolution
@@ -79,11 +80,12 @@ class SimIO(
         18.5.kg* mm * mm,
         turnMotor = goBildaMotorConstants(6000.0/435.0),
         driveMotor = goBildaMotorConstants(6000.0/435.0),
-        tireModel = LinearTireModel(10.0,1.0,1.0,30.N,30.N,3.N*m)
+        tireModel = LinearTireModel(10.0,1.0,1.0,30.N,30.N,3.N*m),
+//        viscousFriction = 0.0
     )
 
     val swerveIntegrator = drivebase.model.newStateIntegrator(SwerveState(initialPos),RK45Integrator(
-        minStep = 0.002, tolerance = 0.005
+        minStep = 0.004, tolerance = 0.005
     ))
 
     private val pivotRatio = (Constants.ARM_PULLEY_RATIO.pow(-1) * Constants.ARM_MOTOR_GEAR_RATIO).cast(rad/rad)
@@ -148,7 +150,10 @@ class SimIO(
 
     var simTime: Second = 0.s
     fun stepSim(dt: Second) {
-        fun actuatorToPower(actuator: Actuator<Double>) = ((actuator as SimActuator).u ?: 0.0).unitless()
+        fun actuatorToPower(actuator: Actuator<Double>) =
+            ((actuator as SimActuator).u
+                ?.clampMagnitude(1.0)
+                ?: 0.0).unitless()
 
         armState = armIntegrator.integrate(
             { _,x,u -> simArm(x, u) },
@@ -177,7 +182,7 @@ class SimIO(
 
     private val turnVoltageSensor = sensor(bulkReadable = true, name = "turnVoltage") {
         swerveIntegrator.state.turns.map { x ->
-            ((x.position/revolution).map { it.mod(1.0) }*3.3.V).cast(V)
+            ((x.position/revolution)*3.3.V).cast(V)
         }
     }
 

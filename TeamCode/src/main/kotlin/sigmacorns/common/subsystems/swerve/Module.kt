@@ -5,6 +5,7 @@ import eu.sirotin.kotunil.derived.Radian
 import net.unnamedrobotics.lib.control.controller.Controller
 import net.unnamedrobotics.lib.control.controller.PIDController
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
+import net.unnamedrobotics.lib.math2.clampMagnitude
 import net.unnamedrobotics.lib.math2.cos
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
@@ -67,7 +68,8 @@ class ModuleController(
 
         //update turn controller with target
         val turnPow = turnController.updateStateless(dt,position.value,turnTarget.value)
-        val drivePow = target.drivePower * driveDir * diff.cos()
+
+        val drivePow = target.drivePower.clampMagnitude(1.0) * driveDir * diff.cos()
 
         return ModuleInput(turnPow, drivePow)
     }

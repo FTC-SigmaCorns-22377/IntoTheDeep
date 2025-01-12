@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.withLock
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
-import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.LOGGING
 import kotlin.math.absoluteValue
 
@@ -28,9 +27,6 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
     var enabled: Boolean = true,
     val name: String = "unnamed"
 ) {
-    @Volatile
-    lateinit var target: T
-
     val lock = Mutex()
 
     constructor(
@@ -73,6 +69,10 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
     suspend fun target(t: T) = lock.withLock {
         if(LOGGING.LOG_IO) println("Target set for $name control loop.")
         controller.target = t
+    }
+
+    fun mapTarget(f: (C) -> T) = runBlocking {
+        lock.withLock { controller.target = f(controller) }
     }
 }
 
@@ -132,8 +132,10 @@ abstract class BaseIO<Self: BaseIO<Self>>(
 
                     it.lock.withLock {
                         if(LOGGING.LOG_IO) println("Running ${it.name} control loop")
-                        it.controller.updateStateless(dt.value, x, it.controller.target)
+                        it.controller.output = it.controller.updateStateless(dt.value, x, it.controller.target)
                     }
+
+                    // TODO: make rerun log here in the thread instead. need to make RerunConnection thread safe.
 
                     it.status = ControlLoopContext.Status.DONE
                 }

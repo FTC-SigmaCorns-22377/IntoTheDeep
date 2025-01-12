@@ -1,7 +1,5 @@
 package sigmacorns.common
 
-
-import android.os.Environment
 import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
 import dev.nullrobotics.trajectory.Trajectory
@@ -16,30 +14,29 @@ import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
-import net.unnamedrobotics.lib.rerun.rerun
 import org.junit.Test
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import sigmacorns.common.io.SimIO
 import sigmacorns.common.subsystems.arm.ArmPose
+import sigmacorns.common.subsystems.path.ChoreoAccController
 import sigmacorns.common.subsystems.path.ChoreoController
+import sigmacorns.common.subsystems.path.choreoAccControllerLoop
 import sigmacorns.common.subsystems.path.choreoControllerLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
+import sigmacorns.common.subsystems.swerve.SwerveAccelerationController
 import sigmacorns.common.subsystems.swerve.SwerveController
+import sigmacorns.common.subsystems.swerve.swerveAccelerationControllerLoop
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
 import java.io.File
 
-class ChoreoTest {
-
+class ChoreoAccTest {
     @Test
     fun test() {
         Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
             it.isAccessible = true
-            it.set(null,File("C:\\Users\\chemi\\Documents\\choreo"))
+            it.set(null, File("C:\\Users\\chemi\\Documents\\choreo"))
         }
 
-
-        val traj = (Choreo::loadTrajectory)("uhh").get() as Trajectory<SwerveSample>
+        val traj = (Choreo::loadTrajectory)("New Path").get() as Trajectory<SwerveSample>
 
         val pos = traj.initialSample.let { Transform2D(it.x.m,it.y.m,it.heading.rad) }
 
@@ -50,17 +47,16 @@ class ChoreoTest {
 
         val robot = Robot(io)
 
-        val swerveController = SwerveController(ModuleController(
-            Tuning.SWERVE_MODULE_PID
-        ),robot.drivebase)
-        val choreoController = ChoreoController(
-            PIDCoefficients(12.0,0.4,4.0),
-            PIDCoefficients(0.3,0.0,0.1),
-            vec2(robot.drivebase.width,robot.drivebase.length),3
+        val swerveController = SwerveAccelerationController(robot.drivebase)
+        val choreoController = ChoreoAccController(
+            0.4,
+            PIDCoefficients(2.0,0.0,20.0),
+            PIDCoefficients(0.1,0.0,0.05),
+            20.cm, 10.degrees, vec2(robot.drivebase.width,robot.drivebase.length),3
         )
 
-        val swerveLoop = swerveControlLoop(swerveController)
-        val choreoLoop = choreoControllerLoop(choreoController,swerveLoop)
+        val swerveLoop = swerveAccelerationControllerLoop(swerveController)
+        val choreoLoop = choreoAccControllerLoop(choreoController,swerveLoop)
         io.addLoop(swerveLoop)
         io.addLoop(choreoLoop)
 
