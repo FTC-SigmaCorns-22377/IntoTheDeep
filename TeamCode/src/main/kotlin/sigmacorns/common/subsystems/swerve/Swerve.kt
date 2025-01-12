@@ -55,6 +55,7 @@ class SwerveController(
         val twist = target.vel.log()
 
         if (!keepOrientation) swerveInput = drivebase.kinematics.inverse(twist)
+
         if (target.lockWheels) {
             val x = drivebase.kinematics.inverse(Twist2D(0.m/s,0.m/s,1.rad/s))
             swerveInput = SwerveInput(x.modulePos.map { (it + 90.degrees).cast(rad) },List(4) { 0.rad/s })
@@ -64,10 +65,12 @@ class SwerveController(
 
         val drivePowers = swerveInput.drives.map { if(powerDriveMotors) drivebase.driveMotor.velToPower(it) else 0.0 }
 
-        moduleControllers.mapIndexed { i,it ->
+        moduleControllers.forEachIndexed { i,it ->
             it.target = ModuleTarget(swerveInput.modulePos[i].cast(rad), drivePowers[i])
             it.position = position.modulePos[i]
-            it.update(deltaTime)
+
+            // TODO: update lib to autoassign to output
+            it.output = it.update(deltaTime)
         }
 
         return Input(
@@ -81,17 +84,17 @@ class SwerveController(
             vec3(it.first * drivebase.length / 2.0, it.second * drivebase.width / 2.0,0.m)
         }
 
-        val moduleRadius = drivebase.moduleVizRadius
+        val twistResolution = 10
+        val twistTime = 0.5.s
+        drivebase.visualize(SwerveState(
+            List(4) { MotorState(0.A,0.rad/s, position.modulePos[it]) },
+            List(4) { MotorState(0.A, drivebase.driveMotor.topSpeed(output.drivePowers[it]), 0.rad) },
+            logVelocity,
+            logPosition
+        ),twistResolution)
 
-        prefix(name) {
-            val twistResolution = 10
-            val twistTime = 0.5.s
-            drivebase.visualize(SwerveState(
-                List(4) { MotorState(0.A,0.rad/s, position.modulePos[it]) },
-                List(4) { MotorState(0.A, drivebase.driveMotor.topSpeed(output.drivePowers[it]), 0.rad) },
-                logVelocity,
-                logPosition
-            ),twistResolution)
+        val moduleRadius = drivebase.moduleVizRadius
+        prefix("$name/swerve") {
 
             log("targetTwist") {
                 val locations = (0..twistResolution).map { (target.vel.log()*(it/twistTime/twistResolution.toFloat())).exp().vector().withZ(0.m) }
@@ -129,9 +132,18 @@ class SwerveController(
                         polar(moduleRadius,moduleControllers[it].target.angle).withZ(0.m)
                     },
                     origins = moduleCenters,
-                    colors = List(4) { RGBA(1.0,0.0,0.0,0.0) }
+                    colors = List(4) { RGBA(1.0,0.0,0.0,1.0) }
                 )
             }
+
+            scalar("vel/vx",logVelocity.dx.value)
+            scalar("vel/vy",logVelocity.dy.value)
+            scalar("vel/vAngle",logVelocity.dAngle.value)
+
+
+            scalar("desVel/vx",target.vel.x.value)
+            scalar("desVel/vy",target.vel.y.value)
+            scalar("desVel/vAngle",target.vel.angle.value)
         }
     }
 }

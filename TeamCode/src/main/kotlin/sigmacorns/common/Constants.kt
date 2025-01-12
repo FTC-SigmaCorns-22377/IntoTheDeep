@@ -211,6 +211,7 @@ object LoopTimes {
     val SWERVE = 500.Hz
     val ARM = 100.Hz
     val CHOREO = 100.Hz
+    val SWERVE_POS_UPDATE = 50.Hz
 
     const val DRIVE_UPDATE_THRESHOLD = 0.05
     const val TURN_UPDATE_THRESHOLD = 0.02
@@ -220,17 +221,17 @@ object LoopTimes {
 
 object SimIOTimes {
     const val uncertainty = 0.2
-    val bulkRead = 20.ms
-    val motorWrite = 3.ms
-    val servoWrite = 3.ms
-    val pinpointFetch = 5.ms
+    val bulkRead = 1.ms
+    val motorWrite = 1.ms
+    val servoWrite = 1.ms
+    val pinpointFetch = 2.ms
     val base = 10.ns
 }
 
 object LOGGING {
-    val LOG_IO: Boolean = true
-    val RERUN_SWERVE: Boolean = true
-    val RERUN_CHOREO: Boolean = true
+    const val LOG_IO: Boolean = false
+    const val RERUN_SWERVE: Boolean = true
+    const val RERUN_CHOREO: Boolean = true
 }
 
 @Config
