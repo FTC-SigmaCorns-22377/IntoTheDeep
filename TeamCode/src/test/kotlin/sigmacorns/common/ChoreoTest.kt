@@ -1,11 +1,9 @@
 package sigmacorns.common
 
 
-import android.os.Environment
 import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
 import dev.nullrobotics.trajectory.Trajectory
-import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.s
@@ -14,14 +12,10 @@ import kotlinx.coroutines.runBlocking
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
-import net.unnamedrobotics.lib.rerun.rerun
 import org.junit.Test
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import sigmacorns.common.io.SimIO
-import sigmacorns.common.subsystems.arm.ArmPose
+import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.path.ChoreoController
 import sigmacorns.common.subsystems.path.choreoControllerLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
@@ -30,7 +24,6 @@ import sigmacorns.common.subsystems.swerve.swerveControlLoop
 import java.io.File
 
 class ChoreoTest {
-
     @Test
     fun test() {
         Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
@@ -38,14 +31,13 @@ class ChoreoTest {
             it.set(null,File("C:\\Users\\chemi\\Documents\\choreo"))
         }
 
-
-        val traj = (Choreo::loadTrajectory)("uhh").get() as Trajectory<SwerveSample>
+        val traj = (Choreo::loadTrajectory)("autoish").get() as Trajectory<SwerveSample>
 
         val pos = traj.initialSample.let { Transform2D(it.x.m,it.y.m,it.heading.rad) }
 
         val io = SimIO(
             initialPos = pos,
-            initialArmPose = ArmPose(pos.vector(),pos.angle.cast(rad),400.mm,0.rad,0.rad,0.rad)
+            initialScoringPose = ScoringPose(pos.vector(),pos.angle.cast(rad),400.mm,0.rad,0.rad,0.rad)
         )
 
         val robot = Robot(io)
@@ -55,7 +47,7 @@ class ChoreoTest {
         ),robot.drivebase)
         val choreoController = ChoreoController(
             PIDCoefficients(12.0,0.4,4.0),
-            PIDCoefficients(0.3,0.0,0.1),
+            PIDCoefficients(12.0,0.3,2.0),
             vec2(robot.drivebase.width,robot.drivebase.length),3
         )
 
@@ -64,13 +56,10 @@ class ChoreoTest {
         io.addLoop(swerveLoop)
         io.addLoop(choreoLoop)
 
-
         runBlocking { choreoLoop.target(traj) }
 
         runBlocking {
             robot.ioLoop { it > 10.s }
         }
-
-//        runBlocking { robot.ioLoop?.join() }
     }
 }

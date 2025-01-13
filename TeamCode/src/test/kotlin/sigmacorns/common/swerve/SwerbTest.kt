@@ -12,7 +12,7 @@ import org.junit.Test
 import sigmacorns.common.Robot
 import sigmacorns.common.Tuning
 import sigmacorns.common.io.SimIO
-import sigmacorns.common.subsystems.arm.ArmPose
+import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.swerve.ModuleController
 import sigmacorns.common.subsystems.swerve.SwerveController
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
@@ -26,7 +26,7 @@ class SwerbTest {
 
         val io = SimIO(
             initialPos = pos,
-            initialArmPose = ArmPose(pos.vector(),pos.angle.cast(rad),400.mm,0.rad,0.rad,0.rad)
+            initialScoringPose = ScoringPose(pos.vector(),pos.angle.cast(rad),400.mm,0.rad,0.rad,0.rad)
         )
 
         val robot = Robot(io)

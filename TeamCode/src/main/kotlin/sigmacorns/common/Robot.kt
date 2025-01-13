@@ -18,11 +18,14 @@ import net.unnamedrobotics.lib.physics.SwerveDrivebase
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import net.unnamedrobotics.lib.rerun.rerun
 import net.unnamedrobotics.lib.util.Clock
+import sigmacorns.common.io.ControlLoopContext
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.subsystems.arm.armControlLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
 import sigmacorns.common.subsystems.swerve.SwerveController
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
+import sigmacorns.common.subsystems.swerve.swerveLogPosControlLoop
+import sigmacorns.common.subsystems.swerve.swerveLogVelControlLoop
 import java.io.Closeable
 
 class Robot(val io: SigmaIO): Closeable {
@@ -40,10 +43,13 @@ class Robot(val io: SigmaIO): Closeable {
 
     var ioLoop: Job? = null
 
-//    init {
-//        io.addLoop(armControlLoop())
-//        io.addLoop(swerveControlLoop(SwerveController(ModuleController(Tuning.SWERVE_MODULE_PID),drivebase)))
-//    }
+    val armControlLoop = armControlLoop()
+    val swerveControlLoop = swerveControlLoop(SwerveController(
+        ModuleController(Tuning.SWERVE_MODULE_PID),
+        drivebase)
+    )
+    val swerveLogPosControlLoop = swerveLogPosControlLoop(swerveControlLoop)
+    val swerveLogVelControlLoop = swerveLogVelControlLoop(swerveControlLoop)
 
     context(LinearOpMode)
     fun launchIOLoop() {
@@ -52,6 +58,10 @@ class Robot(val io: SigmaIO): Closeable {
 
     fun launchIOLoop(done: (Second) -> Boolean) {
         ioLoop = CoroutineScope(Dispatchers.IO).launch { ioLoop(done)  }
+    }
+
+    fun addLoop(controlLoopContext: ControlLoopContext<*,*,*,SigmaIO,*>) {
+        io.addLoop(controlLoopContext)
     }
 
     suspend fun ioLoop(done: (Second) -> Boolean) {
@@ -64,5 +74,6 @@ class Robot(val io: SigmaIO): Closeable {
 
     override fun close() {
         ioLoop?.cancel()
+        io.rerunConnection.close()
     }
 }

@@ -12,10 +12,8 @@ import net.unnamedrobotics.lib.math2.Dim3
 import net.unnamedrobotics.lib.math2.Vector
 import net.unnamedrobotics.lib.math2.Vector3
 import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.checkedUnitless
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
-import net.unnamedrobotics.lib.math2.normalizeRadian
 import net.unnamedrobotics.lib.math2.rotateZ
 import net.unnamedrobotics.lib.math2.spherical
 import net.unnamedrobotics.lib.math2.withZ
@@ -39,7 +37,7 @@ data class ScoringTarget(
     val roll: Radian
 )
 
-data class ArmPose(
+data class ScoringPose(
     val robotPos: Vector<Dim2>,
     val theta: Radian,
     val extension: Metre,
@@ -48,8 +46,8 @@ data class ArmPose(
     val pitch: Radian
 )
 
-object ScoringKinematics: Kinematics<ArmPose, ScoringTarget> {
-    override fun forward(x: ArmPose): ScoringTarget {
+object ScoringKinematics: Kinematics<ScoringPose, ScoringTarget> {
+    override fun forward(x: ScoringPose): ScoringTarget {
         TODO()
 //        val pitch = (x.pivot + x.pitch).rad()
 //
@@ -65,7 +63,7 @@ object ScoringKinematics: Kinematics<ArmPose, ScoringTarget> {
 //        )
     }
 
-    override fun inverse(x: ScoringTarget): ArmPose {
+    override fun inverse(x: ScoringTarget): ScoringPose {
         val robotRelSamplePos = x.samplePos - x.robotPos.withZ(0.m)
 
         var theta = robotRelSamplePos.theta()
@@ -80,7 +78,7 @@ object ScoringKinematics: Kinematics<ArmPose, ScoringTarget> {
 
         val extension = (robotRelSamplePos.sqrMagnitude().minus(Constants.ARM_OFFSET.pow(2))).pow(0.5).cast(m)
 
-        return ArmPose(
+        return ScoringPose(
             x.robotPos,
             theta,
             extension,

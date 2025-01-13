@@ -228,10 +228,13 @@ object SimIOTimes {
     val base = 10.ns
 }
 
+@Suppress("SimplifyBooleanWithConstants", "MemberVisibilityCanBePrivate", "KotlinConstantConditions" )
 object LOGGING {
-    const val LOG_IO: Boolean = false
-    const val RERUN_SWERVE: Boolean = true
-    const val RERUN_CHOREO: Boolean = true
+    const val ALL_LOG: Boolean = true
+    const val LOG_IO: Boolean = false && ALL_LOG
+    const val RERUN_SWERVE: Boolean = true && ALL_LOG
+    const val RERUN_CHOREO: Boolean = true && ALL_LOG
+    const val RERUN_ARM: Boolean = true && ALL_LOG
 }
 
 @Config
