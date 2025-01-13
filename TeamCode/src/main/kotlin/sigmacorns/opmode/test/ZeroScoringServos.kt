@@ -9,8 +9,8 @@ class ZeroScoringServos : LinearOpMode() {
     override fun runOpMode() {
         val io = RobotIO(hardwareMap)
 
-        io.diffyServos.forEach { it.position = 0.0 }
+        io.diffyServos?.forEach { it.position = 0.0 }
 
-        io.clawServo.position = 0.0
+        io.clawServo?.position = 0.0
     }
 }

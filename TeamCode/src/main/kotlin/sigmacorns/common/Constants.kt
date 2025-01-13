@@ -87,6 +87,8 @@ object Constants {
     val MOTOR_INDUCTANCE = 0.01*H
     val MOTOR_RESISTANCE = 1.15674*Ω
 
+    val MODULE_OFFSET: List<Radian> = listOf(3.844167010665329.rad, 0.12375971059596155.rad, 0.27988734550163613.rad, 1.0319655868155564.rad)
+
     /**
      * arm pulley ratio = 16:36
      * gearing between pulley and spool = 80:36,
@@ -189,6 +191,8 @@ object Constants {
 
     val CLAW_CLOSED = 0.6
     val CLAW_OPEN = 0.3
+
+
 
     val ENCODER_OFFSETS = arrayOf(
         3.948886765784988.rad,

@@ -7,6 +7,7 @@ import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.V
 import net.unnamedrobotics.lib.hardware.impl.HardwareManagerImpl
+import net.unnamedrobotics.lib.hardware.interfaces.Servo
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
@@ -28,21 +29,23 @@ class RobotIO(
     val drives = wheels.map { hardwareManager.motor("drive$it") }
     val turns = wheels.map { hardwareManager.crservo("servo$it")}
     val turnEncoders = wheels.map { hardwareMap.get(AnalogInput::class.java,"encoder$it") }
-    val diffyServos = listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
+    val diffyServos: List<Servo>? = null // listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
     val armMotors = listOf(hardwareManager.motor("diffyMotorL"),hardwareManager.motor("diffyMotorR"))
     val armEncoders = armMotors.map { it.encoder }
-    val clawServo = hardwareManager.servo("clawServo")
+    val clawServo: Servo? = null //hardwareManager.servo("clawServo")
 
     override val drivePowers = drives.map { drive ->
         cachedActuator(LoopTimes.DRIVE_UPDATE_THRESHOLD) { drive.power = it }
     }
     override val turnPowers = turns.map { turn -> Actuator { power: Double -> turn.power = power } }
     override val armMotorPowers = armMotors.map { Actuator<Double> { power -> it.power = power } }
-    override val diffyPos = diffyServos.map { Actuator<Double> { u -> it.position = u } }
+    override val diffyPos =
+        diffyServos?.map { Actuator<Double> { u -> it.position = u } }
+            ?: List(4) { Actuator<Double> { } }
 
     override fun time(): Second = Clock.seconds.s
 
-    override val clawPos = Actuator<Double> { clawServo.position = it }
+    override val clawPos = Actuator<Double> { clawServo?.position = it }
 
     private val armEncoderSensor = sensor(bulkReadable = true) { armEncoders.map { it.getCounts().tick } }
     context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun armPositions() = armEncoderSensor.get()

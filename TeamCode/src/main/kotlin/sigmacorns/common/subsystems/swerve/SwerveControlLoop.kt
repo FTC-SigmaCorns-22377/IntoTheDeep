@@ -9,6 +9,7 @@ import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.revolution
+import sigmacorns.common.Constants.MODULE_OFFSET
 import sigmacorns.common.LOGGING
 import sigmacorns.common.LoopTimes
 import sigmacorns.common.io.ControlLoopContext
@@ -18,7 +19,12 @@ fun swerveControlLoop(controller: SwerveController) = ControlLoopContext(
     LoopTimes.SWERVE,
     controller,
     { io: SigmaIO ->
-        SwerveController.State(io.turnVoltages().map { (it/(3.3.V)* revolution).cast(rad) })
+        SwerveController.State(
+            io.turnVoltages()
+                .map { (it/(3.3.V)* revolution) }
+                .zip(MODULE_OFFSET)
+                .map { (it.first - it.second).cast(rad) }
+        )
     },
     { u: SwerveController.Input, io: SigmaIO ->
         io.drivePowers.zip(u.drivePowers).forEach { it.first.write(it.second) }

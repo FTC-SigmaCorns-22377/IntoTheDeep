@@ -57,7 +57,7 @@ class Teleop: LinearOpMode() {
 
         val gm2 = GamepadEx(gamepad2)
         val armLoop = armControlLoop()
-        io.addLoop(armLoop)
+        //io.addLoop(armLoop)
 
         var lastTime = Clock.seconds
 
@@ -95,13 +95,13 @@ class Teleop: LinearOpMode() {
                 if(gm2.x.isJustPressed) isArmSlowMode = !isArmSlowMode
                 armSpeedCoefficient = if(isArmSlowMode) 1.0 else 0.5
 
-                pivot = (pivot + (gm2.leftStick.yAxis * armSpeedCoefficient *  PI/2).rad).cast(rad)
+                pivot = (pivot + (gm2.leftStick.yAxis * dt * armSpeedCoefficient * PI/2).rad).cast(rad)
                 pivot = Constants.ARM_PIVOT_BOUNDS.apply(pivot)
 
                 extension = if (gm2.a.isPressed) (extension + (dt * armSpeedCoefficient * 0.8).m).cast(m) else if (gm2.b.isPressed) (extension - (dt * 0.8).m).cast(m) else extension
                 extension = Constants.ARM_EXTENSION_BOUNDS.apply(extension)
 
-                pitch = (pitch + (-gm2.rightStick.yAxis * armSpeedCoefficient *  PI/2).rad).cast(rad)
+                pitch = (pitch + (-gm2.rightStick.yAxis * armSpeedCoefficient * dt * PI/2).rad).cast(rad)
 
                 roll = if (gm2.leftBumper.isPressed) (roll + (dt * armSpeedCoefficient * 0.1).rad).cast(rad) else if (gm2.rightBumper.isPressed) (roll + (dt * 0.1).rad).cast(rad) else roll
 
