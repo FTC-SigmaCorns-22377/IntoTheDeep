@@ -22,7 +22,6 @@ import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.Transform2D
-import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.clampMagnitude
 import net.unnamedrobotics.lib.math2.inches
@@ -41,7 +40,7 @@ import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.Constants
 import sigmacorns.common.SimIOTimes
-import sigmacorns.common.subsystems.arm.ArmPose
+import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.arm.DiffyKinematics
 import sigmacorns.common.subsystems.arm.DiffyOutputPose
 import kotlin.math.cos
@@ -50,13 +49,22 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class SimIO(
-    val updateTime: Second = 10.ms,
     val simV: Volt = 12.V,
     initialPos: Transform2D,
-    initialArmPose: ArmPose,
+    initialScoringPose: ScoringPose,
     val log: Boolean = false,
 ): SigmaIO() {
     override val rerunConnection = RerunConnection("lambda","127.0.0.1")
+
+    constructor(
+        simV: Volt = 12.V,
+        initialPos: Transform2D,
+        initialPivot: Radian,
+        initialExtension: Metre,
+        initialPitch: Radian = 0.rad,
+        initialRoll: Radian = 0.rad,
+        log: Boolean = false,
+    ): this(simV, initialPos, ScoringPose(initialPos.vector(),initialPos.angle.cast(rad),initialExtension,initialPivot,initialRoll,initialPitch))
 
     init {
         rerunConnection.setTimeSeconds("sim",0.s)
@@ -69,7 +77,7 @@ class SimIO(
         minStep = 0.002, tolerance = 0.005
     )
 
-    private var armState: SimArmState = SimArmState(initialArmPose.pivot,initialArmPose.extension)
+    private var armState: SimArmState = SimArmState(initialScoringPose.pivot,initialScoringPose.extension)
 
     val drivebase = SwerveDrivebase(
         0.048.m,
@@ -218,11 +226,14 @@ class SimIO(
     override val turnPowers: List<Actuator<Double>> = List(4) { SimActuator(SimIOTimes.servoWrite,this) }
     override val clawPos: Actuator<Double> = SimActuator(SimIOTimes.servoWrite,this)
     override val diffyPos: List<Actuator<Double>> = List(2) { SimActuator(SimIOTimes.servoWrite,this) }
+
     override fun time(): Second {
         simTime = (simTime + SimIOTimes.base).cast(s)
         rerunConnection.setTimeSeconds("sim",simTime)
         return simTime
     }
+
+    override fun voltage() = simV
 }
 
 class SimArmState(

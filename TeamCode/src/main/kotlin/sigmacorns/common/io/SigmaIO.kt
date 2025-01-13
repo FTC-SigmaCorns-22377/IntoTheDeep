@@ -34,5 +34,6 @@ abstract class SigmaIO: Closeable, BaseIO<SigmaIO>() {
     abstract val clawPos: Actuator<Double>
     abstract val diffyPos: List<Actuator<Double>>
 
+    abstract fun voltage(): Volt
     abstract fun time(): Second
 }

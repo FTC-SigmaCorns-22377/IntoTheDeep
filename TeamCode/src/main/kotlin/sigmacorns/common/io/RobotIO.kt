@@ -4,16 +4,22 @@ import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.HardwareMap
 import eu.sirotin.kotunil.base.Second
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.V
 import net.unnamedrobotics.lib.hardware.impl.HardwareManagerImpl
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.LoopTimes
-import sigmacorns.common.subsystems.arm.ArmPose
+import sigmacorns.common.subsystems.arm.ScoringPose
 
-class RobotIO(hardwareMap: HardwareMap, io: String = "127.0.0.1", private val initialArmPose: ArmPose? = null): SigmaIO() {
+class RobotIO(
+    hardwareMap: HardwareMap,
+    io: String = "127.0.0.1",
+    private val initialScoringPose: ScoringPose? = null
+): SigmaIO() {
     val hardwareManager = HardwareManagerImpl(hardwareMap)
     val hubs: List<LynxModule>
 
@@ -33,9 +39,8 @@ class RobotIO(hardwareMap: HardwareMap, io: String = "127.0.0.1", private val in
     override val turnPowers = turns.map { turn -> Actuator { power: Double -> turn.power = power } }
     override val armMotorPowers = armMotors.map { Actuator<Double> { power -> it.power = power } }
     override val diffyPos = diffyServos.map { Actuator<Double> { u -> it.position = u } }
-    override fun time(): Second {
-        TODO("Not yet implemented")
-    }
+
+    override fun time(): Second = Clock.seconds.s
 
     override val clawPos = Actuator<Double> { clawServo.position = it }
 
@@ -44,6 +49,7 @@ class RobotIO(hardwareMap: HardwareMap, io: String = "127.0.0.1", private val in
 
     private val turnEncoderSensor = sensor(bulkReadable = true) { turnEncoders.map { it.voltage.V } }
     context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun turnVoltages() = turnEncoderSensor.get()
+
     context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun position(): Transform2D {
         TODO("Not yet implemented")
     }
@@ -73,7 +79,7 @@ class RobotIO(hardwareMap: HardwareMap, io: String = "127.0.0.1", private val in
         }
     }
 
-    fun voltage() = hardwareManager.voltage().V
+    override fun voltage() = hardwareManager.voltage().V
 
     override val rerunConnection = RerunConnection("lambda",io)
 }
