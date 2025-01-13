@@ -86,15 +86,20 @@ class SwerveController(
 
         val twistResolution = 10
         val twistTime = 0.5.s
-        drivebase.visualize(SwerveState(
-            List(4) { MotorState(0.A,0.rad/s, position.modulePos[it]) },
-            List(4) { MotorState(0.A, drivebase.driveMotor.topSpeed(output.drivePowers[it]), 0.rad) },
-            logVelocity,
-            logPosition
-        ),twistResolution)
 
+        // TODO: make this accept a name in library and implement rerunnable. also customizable colors :)
         val moduleRadius = drivebase.moduleVizRadius
-        prefix("$name/swerve") {
+        prefix("$name/visual") {
+            drivebase.visualize(SwerveState(
+                List(4) { MotorState(0.A,0.rad/s, position.modulePos[it]) },
+                List(4) { MotorState(0.A, drivebase.driveMotor.topSpeed(output.drivePowers[it]), 0.rad) },
+                logVelocity,
+                logPosition
+            ),twistResolution)
+
+            val positionsVecs = List(4) {
+                polar(moduleRadius,position.modulePos[it]).withZ(0.m)
+            };
 
             log("targetTwist") {
                 val locations = (0..twistResolution).map { (target.vel.log()*(it/twistTime/twistResolution.toFloat())).exp().vector().withZ(0.m) }
@@ -108,17 +113,10 @@ class SwerveController(
                 )
             }
 
-            val positionsVecs = List(4) {
-                polar(moduleRadius,position.modulePos[it]).withZ(0.m)
-            };
-
-            output.drivePowers.forEachIndexed { i,it -> scalar("drivePowers/drivePower$i",it) }
-            output.turnPowers.forEachIndexed { i,it -> scalar("turnPowers/turnPower$i",it) }
-
             log("turnPowerArrows") {
                 Arrows3D(
                     vecs = List(4) {
-                        polar(output.turnPowers[it].m/moduleRadius,(position.modulePos[it]+90.degrees).cast(
+                        polar(output.turnPowers[it].m*moduleRadius,(position.modulePos[it]+90.degrees).cast(
                             rad
                         )).withZ(0.m)
                     },
@@ -135,11 +133,17 @@ class SwerveController(
                     colors = List(4) { RGBA(1.0,0.0,0.0,1.0) }
                 )
             }
+        }
+
+        prefix(name) {
+            output.drivePowers.forEachIndexed { i,it -> scalar("drivePowers/drivePower$i",it) }
+            output.turnPowers.forEachIndexed { i,it -> scalar("turnPowers/turnPower$i",it) }
+
+            position.modulePos.forEachIndexed { i, it -> scalar("modulePositions/$i", it.value) }
 
             scalar("vel/vx",logVelocity.dx.value)
             scalar("vel/vy",logVelocity.dy.value)
             scalar("vel/vAngle",logVelocity.dAngle.value)
-
 
             scalar("desVel/vx",target.vel.x.value)
             scalar("desVel/vy",target.vel.y.value)
