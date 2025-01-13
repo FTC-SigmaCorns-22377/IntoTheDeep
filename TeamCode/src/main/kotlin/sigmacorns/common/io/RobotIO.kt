@@ -18,13 +18,14 @@ import sigmacorns.common.subsystems.arm.ScoringPose
 
 class RobotIO(
     hardwareMap: HardwareMap,
-    io: String = "127.0.0.1",
+    io: String = "192.168.43.122",
+    rerunName: String = "unnamed",
     private val initialScoringPose: ScoringPose? = null
 ): SigmaIO() {
     val hardwareManager = HardwareManagerImpl(hardwareMap)
     val hubs: List<LynxModule>
 
-    private val wheels = listOf("FL","FR","BR","BL")
+    private val wheels = listOf("FL","FR","BL","BR")
 
     val drives = wheels.map { hardwareManager.motor("drive$it") }
     val turns = wheels.map { hardwareManager.crservo("servo$it")}
@@ -37,10 +38,10 @@ class RobotIO(
     override val drivePowers = drives.map { drive ->
         cachedActuator(LoopTimes.DRIVE_UPDATE_THRESHOLD) { drive.power = it }
     }
-    override val turnPowers = turns.map { turn -> Actuator { power: Double -> turn.power = power } }
-    override val armMotorPowers = armMotors.map { Actuator<Double> { power -> it.power = power } }
+    override val turnPowers = turns.map { turn -> cachedActuator(LoopTimes.TURN_UPDATE_THRESHOLD) { power: Double -> turn.power = power } }
+    override val armMotorPowers = armMotors.map { cachedActuator(LoopTimes.ARM_UPDATE_THRESHOLD) { power -> it.power = power } }
     override val diffyPos =
-        diffyServos?.map { Actuator<Double> { u -> it.position = u } }
+        diffyServos?.map { cachedActuator(LoopTimes.DIFFY_UPDATE_THRESHOLD) { u -> it.position = u } }
             ?: List(4) { Actuator<Double> { } }
 
     override fun time(): Second = Clock.seconds.s
@@ -82,7 +83,7 @@ class RobotIO(
         }
     }
 
-    override fun voltage() = hardwareManager.voltage().V
+    override fun voltage() = 12.V
 
-    override val rerunConnection = RerunConnection("lambda",io)
+    override val rerunConnection = RerunConnection(rerunName,io)
 }

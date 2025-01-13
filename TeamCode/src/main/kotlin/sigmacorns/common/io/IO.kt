@@ -12,6 +12,7 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import sigmacorns.common.LOGGING
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.absoluteValue
 
 /**
@@ -25,6 +26,7 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
     private val fWrite: suspend context(ControlLoopContext<X,U,T, IO,C>) (U,IO) -> Unit,
     private val fLog: suspend context(RerunPrefix, RerunConnection) (C) -> Unit = {},
     var enabled: Boolean = true,
+    var write: AtomicBoolean = AtomicBoolean(true),
     val name: String = "unnamed"
 ) {
     val lock = Mutex()
@@ -36,8 +38,9 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
         fWrite: suspend context(ControlLoopContext<X, U, T, IO,C>) (U, IO) -> Unit,
         fLog: context(RerunPrefix, RerunConnection) (C) -> Unit = {},
         enabled: Boolean = true,
+        write: AtomicBoolean = AtomicBoolean(true),
         name: String = "unnamed"
-    ): this(hz.pow(-1).cast(s), controller, fRead, fWrite, fLog,enabled,name)
+    ): this(hz.pow(-1).cast(s), controller, fRead, fWrite, fLog,enabled,write,name)
 
     @Volatile
     var status: Status = Status.INIT
@@ -55,7 +58,7 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
     }
     internal suspend fun write(io: IO) = lock.withLock {
         if(LOGGING.LOG_IO) println("IO written for $name control loop.")
-        fWrite(this,controller.output,io)
+        if(write.get()) fWrite(this,controller.output,io)
     }
     internal suspend fun log(connection: RerunConnection) = lock.withLock {
         if(LOGGING.LOG_IO) println("Logged $name control loop.")
@@ -83,13 +86,10 @@ abstract class BaseIO<Self: BaseIO<Self>>(
     private val IOLock = Mutex()
 
     abstract val rerunConnection: RerunConnection
+    abstract fun clearBulkCache()
 
     fun addLoop(it: ControlLoopContext<*,*,*,Self,*>) {
         loops += it
-    }
-
-    fun loopEnabled(loop: ControlLoopContext<*, *, *, Self,*>, enabled: Boolean)  {
-        loop.enabled = enabled
     }
 
     suspend fun run(t: Second) = coroutineScope {
@@ -112,11 +112,13 @@ abstract class BaseIO<Self: BaseIO<Self>>(
 
         sensorToUpdate?.let { sensor ->
             sensor.update(t)
-            if(sensor.bulkReadable)
+            if(sensor.bulkReadable) {
+                clearBulkCache()
                 loops
                     .filter { it.enabled }
                     .flatMap { it.neededForUpdate.filter { it.bulkReadable } }
                     .forEach { if(it!=sensor) it.update(t) }
+            }
         }
 
         loops.filter { loopShouldUpdate(it) && it.enabled }
@@ -227,7 +229,7 @@ abstract class CachedActuator: Actuator<Double> {
         } != false) {
             cachedWrite(u)
             last = u
-        } else if (u.absoluteValue < 0.005 && last?.let { it != 0.0 } != false) {
+        } else if (u.absoluteValue < updateThreshold*2 && last?.let { it != 0.0 } != false) {
             cachedWrite(0.0)
             last = 0.0
         }

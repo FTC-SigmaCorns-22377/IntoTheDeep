@@ -14,8 +14,6 @@ abstract class SigmaIO: Closeable, BaseIO<SigmaIO>() {
         rerunConnection.close()
     }
 
-    abstract fun clearBulkCache()
-
     context(ControlLoopContext<*,*,*,SigmaIO,*>)
     abstract fun armPositions(): List<Tick>
 
