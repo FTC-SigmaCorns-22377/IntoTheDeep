@@ -47,13 +47,13 @@ data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian,
 class ArmController()
     : Controller<ArmState,ArmInput,ArmTarget>(), Rerunable {
     override lateinit var position: ArmState
-    override lateinit var target: ArmTarget
+    override var target: ArmTarget = ArmTarget(0.rad,400.mm,0.rad,0.rad)
     val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
     val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
 
     private val armDiffyController = pidDiffyController(boxTubeKinematics,Tuning.ARM_PIVOT_PID,Tuning.ARM_EXTENSION_PID)
 
-    override lateinit var output: ArmInput
+    override var output: ArmInput = ArmInput(List(4) { 0.V }, List(2) { 0.0 })
 
     override fun copy() = ArmController()
 
