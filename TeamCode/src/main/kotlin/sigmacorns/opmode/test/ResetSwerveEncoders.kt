@@ -1,4 +1,4 @@
-package sigmacorns.test
+package sigmacorns.opmode.test
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp

@@ -153,6 +153,7 @@ object Constants {
     val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
     val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
     val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
+    val CLAW_SERVO_3_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees) //for open/close servo
 
     /**-----SAFETY-----*/
 
