@@ -23,7 +23,6 @@ import sigmacorns.common.Tuning
 import sigmacorns.common.io.RobotIO
 import sigmacorns.common.io.SimIO
 import sigmacorns.common.subsystems.arm.ArmController
-import sigmacorns.common.subsystems.arm.ArmPose
 import sigmacorns.common.subsystems.arm.ArmTarget
 import sigmacorns.common.subsystems.arm.ClawTarget
 import sigmacorns.common.subsystems.arm.armControlLoop
