@@ -51,9 +51,9 @@ class ChoreoController(
 
     override fun update(deltaTime: Double): SwerveController.Target {
         t += deltaTime
-        sample = target.getClosestSample(position.pos.toPose2d())
-        sample = target.sampleAt(sample.t + 1.ms.value)
-//        sample = target.sampleAt(t)
+//        sample = target.getClosestSample(position.pos.toPose2d())
+//        sample = target.sampleAt(sample.t + 1.ms.value)
+        sample = target.sampleAt(t)
         val endSample = target.finalSample.pose
 
 //        if((sample.pose.toTransform2d() - endSample.toTransform2d()).vector().magnitude() < 5.cm)
@@ -118,7 +118,7 @@ fun choreoControllerLoop(
     { u: SwerveController.Target, io: SigmaIO ->
 
 //        println("U = (${u.vel.x.value}, ${u.vel.y.value})")
-        swerveLoop.lock.withLock {
+        swerveLoop.withLock {
             swerveLoop.controller.target = u
             swerveLoop.controller.logPosition = choreoController.position.pos
             swerveLoop.controller.logVelocity = choreoController.position.vel
