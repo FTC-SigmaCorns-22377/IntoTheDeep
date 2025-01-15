@@ -41,7 +41,7 @@ data class ModuleTarget(var angle: Radian, var drivePower: Double)
  */
 
 class ModuleController(
-    val turnCoefficients: PIDCoefficients,
+    var turnCoefficients: PIDCoefficients,
 ): Controller<ModuleState, ModuleInput, ModuleTarget>() {
     val turnController = PIDController(turnCoefficients)
 

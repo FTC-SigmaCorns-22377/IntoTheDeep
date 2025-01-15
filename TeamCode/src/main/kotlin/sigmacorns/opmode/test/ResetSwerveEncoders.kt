@@ -10,7 +10,15 @@ class ResetSwerveEncoders: LinearOpMode() {
     override fun runOpMode() {
         val io = RobotIO(hardwareMap)
 
-        io.turnEncoders.forEachIndexed { i,it -> println("encoder$i" + "${(it.voltage/3.3)* PI*2}") }
+        println(
+            io.turnEncoders
+                .mapIndexed { i,it -> println("encoder$i = " + "${(it.voltage/3.3)* PI*2}") }
+                .fold("arrayOf(") { acc, unit -> "$acc$unit.rad, " }
+                    + ")"
+        )
+
+
+
         telemetry.update()
         waitForStart()
 

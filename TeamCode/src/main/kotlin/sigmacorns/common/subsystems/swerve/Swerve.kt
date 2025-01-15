@@ -14,6 +14,7 @@ import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.orthogonal
 import net.unnamedrobotics.lib.math2.polar
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
@@ -54,7 +55,17 @@ class SwerveController(
 
         val twist = target.vel.log()
 
-        if (!keepOrientation) swerveInput = drivebase.kinematics.inverse(twist)
+        if (!keepOrientation) swerveInput = drivebase.let { s ->
+            val vs = s.wheels.map { wheel ->
+                twist.vector() - wheel.position.orthogonal().normalized()*wheel.position.magnitude() * twist.dAngle
+            }
+
+            SwerveInput(
+                vs.map { it.theta() },
+                vs.map { it.magnitude()/drivebase.radius }
+            )
+//            drivebase.kinematics.inverse(twist)
+        }
 
         if (target.lockWheels) {
             val x = drivebase.kinematics.inverse(Twist2D(0.m/s,0.m/s,1.rad/s))

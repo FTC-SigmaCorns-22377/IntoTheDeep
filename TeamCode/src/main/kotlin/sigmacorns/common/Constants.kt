@@ -87,8 +87,6 @@ object Constants {
     val MOTOR_INDUCTANCE = 0.01*H
     val MOTOR_RESISTANCE = 1.15674*Ω
 
-    val MODULE_OFFSET: List<Radian> = listOf(3.844167010665329.rad, 0.12375971059596155.rad, 0.27988734550163613.rad, 1.0319655868155564.rad)
-
     /**
      * arm pulley ratio = 16:36
      * gearing between pulley and spool = 80:36,
@@ -194,12 +192,12 @@ object Constants {
 
 
 
-    val ENCODER_OFFSETS = arrayOf(
-        3.948886765784988.rad,
-        5.99948997058269.rad,
-        (3.021640934089092).rad,
-        (0.9615177515532398).rad
-    ).map { 180.degrees + it }
+    val MODULE_OFFSET = arrayOf(
+        0.7197103170042072.rad,
+        3.4881198432584855.rad,
+        4.188790204786391.rad,
+        3.383400088138826.rad,
+    )
 }
 
 object Tuning {

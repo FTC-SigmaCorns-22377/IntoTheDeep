@@ -27,9 +27,10 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
     private val fLog: suspend context(RerunPrefix, RerunConnection) (C) -> Unit = {},
     var enabled: Boolean = true,
     var write: AtomicBoolean = AtomicBoolean(true),
-    val name: String = "unnamed"
+    val name: String = "unnamed",
+    val async: Boolean = false
 ) {
-    val lock = Mutex()
+    private val lock = Mutex()
 
     constructor(
         hz: Hertz,
@@ -39,8 +40,9 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
         fLog: context(RerunPrefix, RerunConnection) (C) -> Unit = {},
         enabled: Boolean = true,
         write: AtomicBoolean = AtomicBoolean(true),
-        name: String = "unnamed"
-    ): this(hz.pow(-1).cast(s), controller, fRead, fWrite, fLog,enabled,write,name)
+        name: String = "unnamed",
+        async: Boolean = false
+    ): this(hz.pow(-1).cast(s), controller, fRead, fWrite, fLog,enabled,write,name,async)
 
     @Volatile
     var status: Status = Status.INIT
@@ -50,32 +52,35 @@ data class ControlLoopContext<X,U,T: Any,IO: BaseIO<IO>, C: Controller<X,U,T>>(
 
     enum class Status { INIT, IDLE, COMPUTING, DONE, LOGGING }
 
-    internal suspend fun read(io: IO): X = lock.withLock {
+    suspend fun <T> withLock(f: suspend () -> T): T = if(async) lock.withLock { f() } else f()
+
+    internal suspend fun read(io: IO): X = withLock {
         if(LOGGING.LOG_IO) println("IO read for $name control loop.")
         val x = fRead(this,io)
         if(LOGGING.LOG_IO) println("Loop $name needs ${neededForUpdate.map { it.name }} to update")
-        return x
+        x
     }
-    internal suspend fun write(io: IO) = lock.withLock {
+
+    internal suspend fun write(io: IO) = withLock {
         if(LOGGING.LOG_IO) println("IO written for $name control loop.")
         if(write.get()) fWrite(this,controller.output,io)
     }
-    internal suspend fun log(connection: RerunConnection) = lock.withLock {
-        if(LOGGING.LOG_IO) println("Logged $name control loop.")
 
+    internal suspend fun log(connection: RerunConnection) = withLock {
+        if(LOGGING.LOG_IO) println("Logged $name control loop.")
             fLog(object: RerunPrefix {
                 override val path: String = "controlLoops"
                 context(RerunPrefix, RerunConnection) override fun log(name: String) {}
             }, connection, controller)
     }
 
-    suspend fun target(t: T) = lock.withLock {
+    suspend fun target(t: T) = withLock {
         if(LOGGING.LOG_IO) println("Target set for $name control loop.")
         controller.target = t
     }
 
     fun mapTarget(f: (C) -> T) = runBlocking {
-        lock.withLock { controller.target = f(controller) }
+        withLock { controller.target = f(controller) }
     }
 }
 
@@ -128,11 +133,11 @@ abstract class BaseIO<Self: BaseIO<Self>>(
                 val x = it.read(this@BaseIO as Self)
                 it.lastUpdate = t
 
-                launch(Dispatchers.Default) {
+                val f = suspend {
                     @Suppress("UNCHECKED_CAST")
                     it as ControlLoopContext<Any?,Any?,Any, Self,Controller<Any?,Any?,Any>>
 
-                    it.lock.withLock {
+                    it.withLock {
                         if(LOGGING.LOG_IO) println("Running ${it.name} control loop")
                         it.controller.output = it.controller.updateStateless(dt.value, x, it.controller.target)
                     }
@@ -141,9 +146,11 @@ abstract class BaseIO<Self: BaseIO<Self>>(
 
                     it.status = ControlLoopContext.Status.DONE
                 }
+
+                if(it.async) launch(Dispatchers.Default) { f() } else f()
             }
 
-        if(sensorToUpdate == null) yield()
+//        if(sensorToUpdate == null) yield()
     }
 
     private fun sensorShouldUpdate(t: Second, sensor: Sensor<*>, loop: ControlLoopContext<*,*,*, Self,*>): Boolean {
@@ -224,14 +231,15 @@ abstract class CachedActuator: Actuator<Double> {
     private var last: Double? = null
 
     override fun write(u: Double) {
-        if(last?.let {
-            (it-u).absoluteValue > updateThreshold
-        } != false) {
-            cachedWrite(u)
-            last = u
-        } else if (u.absoluteValue < updateThreshold*2 && last?.let { it != 0.0 } != false) {
-            cachedWrite(0.0)
-            last = 0.0
-        }
+        cachedWrite(u)
+//        if(last?.let {
+//            (it-u).absoluteValue > updateThreshold
+//        } != false) {
+//            cachedWrite(u)
+//            last = u
+//        } else if (u.absoluteValue < updateThreshold*2 && last?.let { it != 0.0 } != false) {
+//            cachedWrite(0.0)
+//            last = 0.0
+//        }
     }
 }

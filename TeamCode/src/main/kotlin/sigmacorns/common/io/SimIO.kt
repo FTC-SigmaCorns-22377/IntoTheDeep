@@ -20,6 +20,7 @@ import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
+import eu.sirotin.kotunil.specialunits.g
 import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
@@ -45,6 +46,7 @@ import sigmacorns.common.subsystems.arm.DiffyKinematics
 import sigmacorns.common.subsystems.arm.DiffyOutputPose
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -53,8 +55,9 @@ class SimIO(
     initialPos: Transform2D,
     initialScoringPose: ScoringPose,
     val log: Boolean = false,
+    val rerunName: String = "unnamed"
 ): SigmaIO() {
-    override val rerunConnection = RerunConnection("lambda","127.0.0.1")
+    override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
 
     constructor(
         simV: Volt = 12.V,
@@ -96,6 +99,8 @@ class SimIO(
         minStep = 0.004, tolerance = 0.005
     ))
 
+    val armReversed = listOf(1,1)
+
     private val pivotRatio = (Constants.ARM_PULLEY_RATIO.pow(-1) * Constants.ARM_MOTOR_GEAR_RATIO).cast(rad/rad)
     private val extendRatio = ((1.m/2.m) / Constants.ARM_SPOOL_RADIUS / Constants.ARM_DIFFY_RATIO * pivotRatio)
     private fun simArm(x: SimArmState, u: List<Volt>): SimArmState {
@@ -115,7 +120,7 @@ class SimIO(
         val t1 = (Kt*x.i1).cast(N*m)
         val t2 = (Kt*x.i2).cast(N*m)
 
-        val armMoment = x.extension * Constants.ARM_MOMENT_RATIO
+        val armMoment = (x.extension * Constants.ARM_MOMENT_RATIO).let { it + (if(it.value >0) 1 else -1)*500*g*mm*mm }
 
         val g = (-9.8).m/s/s
 
@@ -166,7 +171,7 @@ class SimIO(
         armState = armIntegrator.integrate(
             { _,x,u -> simArm(x, u) },
             simTime.value,(simTime+dt).value,armState,
-            armMotorPowers.map { (actuatorToPower(it)*simV).cast(V) }
+            armMotorPowers.zip(armReversed).map { (actuatorToPower(it.first)*simV*it.second).cast(V) }
         ).second.last()
 
         swerveIntegrator.integrate(dt, SwerveInput(
@@ -183,7 +188,7 @@ class SimIO(
 
     private val armPosSensor = sensor(bulkReadable = true, name = "armPos") {
         val armPos = boxTubeKinematics.inverse(DiffyOutputPose(armState.pivot,armState.extension))
-        listOf(armPos.axis1.cast(tick), armPos.axis2.cast(tick))
+        listOf(armPos.axis1, armPos.axis2).zip(armReversed).map { (it.first*it.second).cast(tick) }
     }
 
     context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun armPositions(): List<Tick> = armPosSensor.get()

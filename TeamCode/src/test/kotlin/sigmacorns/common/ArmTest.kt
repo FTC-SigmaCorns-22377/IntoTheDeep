@@ -16,7 +16,6 @@ import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
 import net.unnamedrobotics.lib.rerun.rerun
 import org.junit.Test
-import sigmacorns.common.io.SimArmState
 import sigmacorns.common.io.SimIO
 import sigmacorns.common.subsystems.arm.ArmTarget
 import sigmacorns.common.subsystems.arm.ScoringKinematics
@@ -30,7 +29,7 @@ class ArmTest {
         val robot = Robot(SimIO(12.V,
             Transform2D(0.m,0.m,0.rad),
             initialArmPivot,
-            initialArmExtension
+            initialArmExtension,
         ))
 
         robot.addLoop(robot.armControlLoop)
@@ -44,7 +43,7 @@ class ArmTest {
 
                     robot.armControlLoop.target(ScoringKinematics.inverse(ScoringTarget(
                         vec2(0.m,0.m), 0.rad, vec3(30.cm,0.m,30.cm),0.rad,0.rad
-                    )).let { ArmTarget(it.pivot,it.extension,it.pitch,it.roll) })
+                    )).let { ArmTarget(it.pivot,it.extension,it.pitch,it.roll,true) })
 
                     if(t > 10.s) break
                 }

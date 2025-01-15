@@ -1,8 +1,10 @@
 package sigmacorns.common.subsystems.arm
 
 import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.V
@@ -27,6 +29,7 @@ import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.Rerunable
+import net.unnamedrobotics.lib.rerun.archetypes.Arrows3D
 import net.unnamedrobotics.lib.rerun.archetypes.Boxes3D
 import net.unnamedrobotics.lib.rerun.archetypes.FillMode
 import org.joml.AxisAngle4d
@@ -36,8 +39,10 @@ import sigmacorns.common.Constants.CLAW_CLOSED
 import sigmacorns.common.Constants.CLAW_OPEN
 import sigmacorns.common.Tuning
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sign
 import kotlin.math.sin
 
 typealias ArmMotorPowers = List<Volt>
@@ -46,25 +51,44 @@ data class ArmState(val motorPos: DiffyInputPose)
 data class ArmInput(val motors: ArmMotorPowers, val servoTarget: List<Number>, val clawTarget: Double)
 data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian, val isOpen: Boolean)
 
+val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
+val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
+
 class ArmController()
     : Controller<ArmState,ArmInput,ArmTarget>(), Rerunable {
     override lateinit var position: ArmState
-    override var target: ArmTarget = ArmTarget(0.rad,400.mm,0.rad,0.rad)
-    val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
-    val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
 
-    private val armDiffyController = pidDiffyController(boxTubeKinematics,Tuning.ARM_PIVOT_PID,Tuning.ARM_EXTENSION_PID)
+    override var target: ArmTarget = ArmTarget(0.rad,400.mm,0.rad,0.rad,false)
 
-    override var output: ArmInput = ArmInput(List(4) { 0.V }, List(2) { 0.0 })
+    var armDiffyController = pidDiffyController(boxTubeKinematics,Tuning.ARM_PIVOT_PID,Tuning.ARM_EXTENSION_PID)
+
+    override var output: ArmInput = ArmInput(List(4) { 0.V }, List(2) { 0.0 }, Constants.CLAW_OPEN)
 
     override fun copy() = ArmController()
 
     val mapServo1 = mapRanges(Constants.CLAW_SERVO_1_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)
     val mapServo2 = mapRanges(Constants.CLAW_SERVO_2_BOUNDS.let { it.min.value..it.max.value },0.0..1.0)
 
+    var profileT = 0.s
+    var profile: ((Second) -> Expression)? = null
+
     override fun update(deltaTime: Double): ArmInput {
-        val pivot = Constants.ARM_PIVOT_BOUNDS.apply(target.pivot)
-        val extension = Constants.ARM_EXTENSION_BOUNDS.apply(target.extension)
+        var pivot = Constants.ARM_PIVOT_BOUNDS.apply(target.pivot)
+        var extension = Constants.ARM_EXTENSION_BOUNDS.apply(target.extension)
+
+        val pos = boxTubeKinematics.forward(position.motorPos)
+        val useProfile = (pos.axis1.value - pivot.value).absoluteValue > Tuning.ARM_PROFILE_DIST.value
+
+        if(!useProfile) profile = null
+        if(useProfile && profile==null) {
+            profile = Tuning.ARM_PIVOT_PROFILE.new(pos.axis1,target.pivot)
+            profileT = 0.s
+        }
+
+        if(useProfile) {
+            pivot = (profile!!)(profileT).cast(rad)
+            profileT = (profileT + deltaTime.s).cast(s)
+        }
 
         val motorPowers = armDiffyController.updateStateless(deltaTime,position.motorPos,DiffyOutputPose(pivot,extension))
 
@@ -120,7 +144,12 @@ class ArmController()
         val curPos = boxTubeKinematics.forward(position.motorPos)
 
         logBoxtube("position",curPos.axis1.cast(rad),curPos.axis2.cast(m), RGBA(0.7,0.7,0.7,1.0), FillMode.MajorWireframe)
-        logBoxtube("target",target.pivot,target.extension, RGBA(0.0,1.0,0.0,1.0), FillMode.MajorWireframe)
+        logBoxtube("target",target.pivot,target.extension, RGBA(0.0,255.0,0.0,255.0), FillMode.MajorWireframe)
+
+//        log("profiledTarget") {
+//            Arrows3D()
+//        }
+//        logBoxtube("profiledTarget",target.pivot,target.extension, RGBA(255.0,0.0,255.0,255.0), FillMode.MajorWireframe)
 
         scalar("rawPivotPower", lastRawPivotPower.value)
         scalar("rawExtensionPower", lastRawExtensionPower.value)
@@ -134,7 +163,7 @@ class ArmController()
     private var lastBoundedPivotPower = 0.0.V
     private var lastBoundedExtensionPower = 0.0.V
 
-    private fun pidDiffyController(kinematics: DiffyKinematics, axis1PIDCoefficients: PIDCoefficients, axis2PIDCoefficients: PIDCoefficients)
+    fun pidDiffyController(kinematics: DiffyKinematics, axis1PIDCoefficients: PIDCoefficients, axis2PIDCoefficients: PIDCoefficients)
             : Controller<DiffyInputPose,ArmMotorPowers,DiffyOutputPose> {
         val pid1 = PIDController(axis1PIDCoefficients)
         val pid2 = PIDController(axis2PIDCoefficients)
@@ -151,6 +180,9 @@ class ArmController()
             val powers = kinematics.forward(x).let {
                 var pivot = pid1.updateStateless(dt,it.axis1.value,tBounded.axis1.value).V
                 var extension = pid2.updateStateless(dt,it.axis2.value,tBounded.axis2.value).V
+
+                if((it.axis1.value-target.pivot.value).absoluteValue < Tuning.ARM_PIVOT_SATIC_THRESH)
+                    pivot = pivot.map { it + it.sign*Tuning.ARM_PIVOT_STATIC }
 
                 lastRawPivotPower = pivot
                 lastRawExtensionPower = extension

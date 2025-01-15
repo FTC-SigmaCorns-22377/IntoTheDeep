@@ -49,15 +49,16 @@ fun swerveLogPosControlLoop(loop: ControlLoopContext<*,*,*,*,SwerveController>) 
     LoopTimes.SWERVE_POS_UPDATE,
     idController(),
     { io: SigmaIO -> io.position() },
-    { u: Transform2D, io -> loop.lock.withLock {
+    { u: Transform2D, io -> loop.withLock {
         loop.controller.logPosition = u
     }},
+    name = "swerveLogPos"
 )
 fun swerveLogVelControlLoop(loop: ControlLoopContext<*,*,*,*,SwerveController>) = ControlLoopContext(
     LoopTimes.SWERVE_POS_UPDATE,
     idController(),
     { io: SigmaIO -> io.velocity() },
-    { u: Twist2D, io -> loop.lock.withLock {
+    { u: Twist2D, io -> loop.withLock {
         loop.controller.logVelocity = u
     } },
 )
@@ -79,7 +80,7 @@ fun swerveAccLogPosControlLoop(loop: ControlLoopContext<*,*,*,*,SwerveAccelerati
     LoopTimes.SWERVE_POS_UPDATE,
     idController(),
     { io: SigmaIO -> io.position() },
-    { u: Transform2D, io -> loop.lock.withLock {
+    { u: Transform2D, io -> loop.withLock {
         loop.controller.logPosition = u
     }},
 )

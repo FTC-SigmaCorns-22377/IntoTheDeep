@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.HardwareMap
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.s
+import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
 import net.unnamedrobotics.lib.hardware.impl.HardwareManagerImpl
 import net.unnamedrobotics.lib.hardware.interfaces.Servo
@@ -14,7 +15,9 @@ import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.LoopTimes
+import sigmacorns.common.subsystems.arm.DiffyOutputPose
 import sigmacorns.common.subsystems.arm.ScoringPose
+import sigmacorns.common.subsystems.arm.boxTubeKinematics
 
 class RobotIO(
     hardwareMap: HardwareMap,
@@ -38,6 +41,7 @@ class RobotIO(
     override val drivePowers = drives.map { drive ->
         cachedActuator(LoopTimes.DRIVE_UPDATE_THRESHOLD) { drive.power = it }
     }
+
     override val turnPowers = turns.map { turn -> cachedActuator(LoopTimes.TURN_UPDATE_THRESHOLD) { power: Double -> turn.power = power } }
     override val armMotorPowers = armMotors.map { cachedActuator(LoopTimes.ARM_UPDATE_THRESHOLD) { power -> it.power = power } }
     override val diffyPos =
@@ -48,7 +52,12 @@ class RobotIO(
 
     override val clawPos = Actuator<Double> { clawServo?.position = it }
 
-    private val armEncoderSensor = sensor(bulkReadable = true) { armEncoders.map { it.getCounts().tick } }
+    var armEncoderOffsets = listOf(0,0)
+    private val armEncoderSensor = sensor(bulkReadable = true) {
+        armEncoders
+            .zip(armEncoderOffsets)
+            .map { (it.first.getCounts() + it.second).tick }
+    }
     context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun armPositions() = armEncoderSensor.get()
 
     private val turnEncoderSensor = sensor(bulkReadable = true) { turnEncoders.map { it.voltage.V } }
@@ -75,6 +84,20 @@ class RobotIO(
 
         armMotors[1].reverse(true)
         armEncoders[1].reverse(true)
+
+        if(initialScoringPose!=null) {
+            val cur = boxTubeKinematics.inverse(
+                DiffyOutputPose(initialScoringPose.pivot,initialScoringPose.extension)
+            )
+
+            val offset1 = -armEncoders[0].getCounts().tick + cur.axis1
+            val offset2 = -armEncoders[1].getCounts().tick + cur.axis2
+
+            armEncoderOffsets = listOf(
+                offset1.value.toInt(),
+                offset2.value.toInt()
+            )
+        }
 
         hubs = hardwareMap.getAll(LynxModule::class.java)
 

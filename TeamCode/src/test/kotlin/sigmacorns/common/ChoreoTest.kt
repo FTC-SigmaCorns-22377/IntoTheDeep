@@ -21,6 +21,7 @@ import sigmacorns.common.subsystems.path.choreoControllerLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
 import sigmacorns.common.subsystems.swerve.SwerveController
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
+import sigmacorns.common.subsystems.swerve.swerveLogPosControlLoop
 import java.io.File
 
 class ChoreoTest {
@@ -31,7 +32,7 @@ class ChoreoTest {
             it.set(null,File("C:\\Users\\chemi\\Documents\\choreo"))
         }
 
-        val traj = (Choreo::loadTrajectory)("autoish").get() as Trajectory<SwerveSample>
+        val traj = (Choreo::loadTrajectory)("New Path").get() as Trajectory<SwerveSample>
 
         val pos = traj.initialSample.let { Transform2D(it.x.m,it.y.m,it.heading.rad) }
 
@@ -51,10 +52,11 @@ class ChoreoTest {
             vec2(robot.drivebase.width,robot.drivebase.length),3
         )
 
-        val swerveLoop = swerveControlLoop(swerveController)
-        val choreoLoop = choreoControllerLoop(choreoController,swerveLoop)
-        io.addLoop(swerveLoop)
+        val choreoLoop = choreoControllerLoop(choreoController,robot.swerveControlLoop)
+
+        io.addLoop(robot.swerveControlLoop)
         io.addLoop(choreoLoop)
+        io.addLoop(swerveLogPosControlLoop(robot.swerveControlLoop))
 
         runBlocking { choreoLoop.target(traj) }
 
