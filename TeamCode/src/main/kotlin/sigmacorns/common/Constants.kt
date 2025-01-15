@@ -9,6 +9,7 @@ import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.ns
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.H
@@ -28,7 +29,9 @@ import net.unnamedrobotics.lib.math2.revolutions
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
+import sigmacorns.common.subsystems.arm.TrapezoidalProfile
 import kotlin.math.hypot
+import kotlin.reflect.KProperty
 
 object Constants {
 
@@ -149,7 +152,7 @@ object Constants {
 
 
     /*-----BOUNDS-----*/
-    val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds((-39).degrees,110.degrees)
+    val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds((-30).degrees,90.degrees)
     val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
     val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
     val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
@@ -190,8 +193,6 @@ object Constants {
     val CLAW_CLOSED = 0.6
     val CLAW_OPEN = 0.3
 
-
-
     val MODULE_OFFSET = arrayOf(
         0.7197103170042072.rad,
         3.4881198432584855.rad,
@@ -200,14 +201,25 @@ object Constants {
     )
 }
 
+@Config
 object Tuning {
     val ARM_G = (-3.5).V
 //    val ARM_PIVOT_PID = PIDCoefficients(9.0,0.000000,-0.9)
-    val ARM_PIVOT_PID = PIDCoefficients(7.0,0.0,1300.0)
+
+    val ARM_PIVOT_PROFILE = TrapezoidalProfile(2.rad/s,2.rad/s/s)
+    val ARM_PROFILE_DIST = 10.degrees
+
+    @JvmField
+    var ARM_PIVOT_STATIC = 0.0
+    @JvmField
+    var ARM_PIVOT_SATIC_THRESH = 0.08
+
+    val ARM_PIVOT_PID
+        get() = tunePID()
+    val ARM_EXTENSION_PID = PIDCoefficients(24.0,0.0,0.0)
 //        get() = tunePID()
-    val ARM_EXTENSION_PID = PIDCoefficients(40.0,0.0,0.0)
+    val SWERVE_MODULE_PID = PIDCoefficients(1.0,0.0,0.0)
 //        get() = tunePID()
-    val SWERVE_MODULE_PID = PIDCoefficients(1.5,0.0,0.0)
 }
 
 object LoopTimes {
@@ -216,7 +228,7 @@ object LoopTimes {
     val CHOREO = 100.Hz
     val SWERVE_POS_UPDATE = 50.Hz
 
-    const val DRIVE_UPDATE_THRESHOLD = 0.05
+    const val DRIVE_UPDATE_THRESHOLD = 0.01
     const val TURN_UPDATE_THRESHOLD = 0.02
     const val ARM_UPDATE_THRESHOLD = 0.02
     const val DIFFY_UPDATE_THRESHOLD = 0.005
@@ -243,7 +255,7 @@ object LOGGING {
 @Config
 object PIDTune {
     @JvmField
-    var P = 1.0
+    var P = 20.0
     @JvmField
     var I = 0.0
     @JvmField
