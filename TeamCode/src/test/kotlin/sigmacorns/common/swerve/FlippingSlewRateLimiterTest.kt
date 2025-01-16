@@ -15,7 +15,7 @@ class FlippingSlewRateLimiterTest {
     @Test
     fun test() {
         val rr = RerunConnection("FlippingSlewRateLimiterTest","127.0.0.1")
-        val controller = FlippingSlewRateLimiter(0.3,0.0)
+        val controller = FlippingSlewRateLimiter(0.3)
         val n = 1000
 
         for(o in 0..n) {
