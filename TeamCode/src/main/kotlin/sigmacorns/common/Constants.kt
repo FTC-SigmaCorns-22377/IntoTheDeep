@@ -225,8 +225,8 @@ object Tuning {
         get() = PIDCoefficients(12.0,0.0,0.0)
     val ARM_EXTENSION_PID = PIDCoefficients(24.0,0.0,0.0)
 //        get() = tunePID()
-    val SWERVE_MODULE_PID //= PIDCoefficients(0.6,0.0,0.03)
-        get() = tunePID()
+    val SWERVE_MODULE_PID = PIDCoefficients(1.0,0.0,0.00)
+//        get() = tunePID()
 
     @JvmField
     val SWERVE_MAX_SLEW_RATE = 1.0
@@ -238,7 +238,8 @@ object Tuning {
     val TELEOP_TARGET_HEADING_MAX_DIFF = 0.25
 
 
-    val TELEOP_HEADING_PID = PIDCoefficients(12.0,0.0,-0.02)
+    val TELEOP_HEADING_PID = PIDCoefficients(8.0,0.0,0.0)
+//        get() = tunePID()
 }
 
 object LoopTimes {
