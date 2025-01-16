@@ -56,7 +56,6 @@ class RobotIO(
         diffyServos
             .zip(diffyServosReversed)
             .map { cachedActuator(LoopTimes.DIFFY_UPDATE_THRESHOLD) { u ->
-                println("SERVO ${it.second} = ${if(it.second) (1-u) else u} w")
                 it.first.position = (if(it.second) 1-u else u)
             } }
 
