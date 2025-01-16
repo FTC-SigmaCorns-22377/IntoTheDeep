@@ -72,7 +72,7 @@ class SimIO(
     ): this(
         simV,
         initialPos,
-        ScoringPose(initialPos.vector(),initialPos.angle.cast(rad),initialExtension,initialPivot,initialRoll,initialPitch),
+        ScoringPose(initialPos.vector(),initialPos.angle.cast(rad),initialExtension,initialPivot,initialPitch,initialRoll),
         log,
         rerunName
     )

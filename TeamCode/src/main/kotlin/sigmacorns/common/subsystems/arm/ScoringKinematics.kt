@@ -17,6 +17,7 @@ import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.rotateZ
 import net.unnamedrobotics.lib.math2.spherical
+import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.withZ
 import net.unnamedrobotics.lib.math2.xy
 import net.unnamedrobotics.lib.math2.z
@@ -27,21 +28,23 @@ import kotlin.math.absoluteValue
 import kotlin.math.asin
 
 data class ScoringTarget(
-    val robotPos: Vector<Dim2>,
-    val robotHeading: Radian,
-    val samplePos: Vector<Dim3>,
-    val pitch: Radian,
-    val roll: Radian
+    var robotPos: Vector<Dim2>,
+    var robotHeading: Radian,
+    var samplePos: Vector<Dim3>,
+    var pitch: Radian,
+    var roll: Radian
 )
 
 data class ScoringPose(
-    val robotPos: Vector<Dim2>,
-    val theta: Radian,
-    val extension: Metre,
-    val pivot: Radian,
-    val roll: Radian,
-    val pitch: Radian
+    var robotPos: Vector<Dim2>,
+    var theta: Radian,
+    var extension: Metre,
+    var pivot: Radian,
+    var pitch: Radian,
+    var roll: Radian
 ) {
+    constructor(armTarget: ArmTarget): this(vec2(0.m,0.m),0.rad,armTarget.extension,armTarget.pivot,armTarget.pitch,armTarget.roll)
+
     fun armTarget(openClaw: Boolean) = ArmTarget(pivot,extension,pitch,roll,openClaw)
     val poseTarget: Transform2D
         get() = Transform2D(robotPos,theta)
@@ -54,9 +57,10 @@ object ScoringKinematics: Kinematics<ScoringPose, ScoringTarget> {
                 spherical(Constants.ARM_OFFSET,x.theta,(x.pivot+90.degrees).cast(rad))
         val armEndPos = offsetPos +
                 spherical(x.extension, x.theta, x.pivot)
+        val pitch = (x.pitch+x.pivot).cast(rad)
         val clawEndPos = armEndPos +
-                spherical(Constants.CLAW_LENGTH,x.theta,(x.pivot+x.pitch).cast(rad))
-        TODO()
+                spherical(Constants.CLAW_LENGTH,x.theta,pitch)
+        return ScoringTarget(x.robotPos,x.theta,clawEndPos,pitch, x.roll)
     }
 
     lateinit var lastAxleRelative: Vector3
@@ -84,8 +88,8 @@ object ScoringKinematics: Kinematics<ScoringPose, ScoringTarget> {
             theta,
             extension,
             pivot,
-            x.roll,
-            (x.pitch - pivot).cast(rad)
+            (x.pitch - pivot).cast(rad),
+            x.roll
         )
     }
 }

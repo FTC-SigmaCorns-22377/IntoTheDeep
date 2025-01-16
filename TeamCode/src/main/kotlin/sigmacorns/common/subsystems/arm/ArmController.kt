@@ -50,7 +50,7 @@ typealias ArmMotorPowers = List<Volt>
 
 data class ArmState(val motorPos: DiffyInputPose)
 data class ArmInput(val motors: ArmMotorPowers, val servoTarget: List<Number>, val clawTarget: Double)
-data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian, val isOpen: Boolean)
+data class ArmTarget(var pivot: Radian, var extension: Metre, var pitch: Radian, var roll: Radian, var isOpen: Boolean)
 
 val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
 val clawKinematics = DiffyKinematics(Constants.CLAW_PITCH_RATIO,Constants.CLAW_ROLL_RATIO)
