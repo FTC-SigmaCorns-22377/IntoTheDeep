@@ -10,8 +10,10 @@ import net.unnamedrobotics.lib.math2.cos
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.normalizeRadian
+import sigmacorns.common.Tuning
 import kotlin.math.PI
 import kotlin.math.absoluteValue
+import kotlin.math.sign
 
 const val TICKS_PER_REV: Double = 20480.0
 
@@ -50,6 +52,7 @@ class ModuleController(
     override var output: ModuleInput = ModuleInput(0.0,0.0)
 
     override fun update(dt: Double): ModuleInput {
+        turnController.coefficients = Tuning.SWERVE_MODULE_PID
         //fetch current and desired position in radians
         var thetaRef = target.angle
 
@@ -67,7 +70,8 @@ class ModuleController(
         val turnTarget = position + diff/(2*PI)
 
         //update turn controller with target
-        val turnPow = turnController.updateStateless(dt,position.value,turnTarget.value)
+        var turnPow = turnController.updateStateless(dt,position.value,turnTarget.value)
+        if(turnPow.absoluteValue<0.02) turnPow += 0.02*turnPow.sign
 
         val drivePow = target.drivePower.clampMagnitude(1.0) * driveDir * diff.cos()
 
