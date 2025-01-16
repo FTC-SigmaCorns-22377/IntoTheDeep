@@ -44,6 +44,7 @@ import sigmacorns.common.SimIOTimes
 import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.arm.DiffyKinematics
 import sigmacorns.common.subsystems.arm.DiffyOutputPose
+import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sign
@@ -67,11 +68,20 @@ class SimIO(
         initialPitch: Radian = 0.rad,
         initialRoll: Radian = 0.rad,
         log: Boolean = false,
-    ): this(simV, initialPos, ScoringPose(initialPos.vector(),initialPos.angle.cast(rad),initialExtension,initialPivot,initialRoll,initialPitch))
+        rerunName: String = "unnamed"
+    ): this(
+        simV,
+        initialPos,
+        ScoringPose(initialPos.vector(),initialPos.angle.cast(rad),initialExtension,initialPivot,initialRoll,initialPitch),
+        log,
+        rerunName
+    )
 
     init {
         rerunConnection.setTimeSeconds("sim",0.s)
-        rerunConnection.field()
+
+        val dir = System.getProperty("user.dir")
+        rerunConnection.field("$dir/src/test/resources/field_image.png")
     }
 
     private val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
@@ -120,7 +130,7 @@ class SimIO(
         val t1 = (Kt*x.i1).cast(N*m)
         val t2 = (Kt*x.i2).cast(N*m)
 
-        val armMoment = (x.extension * Constants.ARM_MOMENT_RATIO).let { it + (if(it.value >0) 1 else -1)*500*g*mm*mm }
+        val armMoment = x.extension.map { it.absoluteValue } * Constants.ARM_MOMENT_RATIO + 10000.g*mm*mm
 
         val g = (-9.8).m/s/s
 
