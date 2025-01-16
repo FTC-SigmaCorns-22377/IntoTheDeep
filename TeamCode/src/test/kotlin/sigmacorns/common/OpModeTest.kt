@@ -19,7 +19,7 @@ class OpModeTest {
     fun test() {
         SIM = true
 
-        val opMode: SimOrHardwareOpMode = ArmTest()
+        val opMode: SimOrHardwareOpMode = Teleop()
         val maxTime = 10.s
 
         opMode.gamepad1 = Gamepad()
