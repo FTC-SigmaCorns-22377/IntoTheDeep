@@ -70,6 +70,7 @@ android {
 
 project.afterEvaluate {
     tasks.withType(Test).configureEach {
+        //TODO: FIX THIS TO BE RELATIVE
         it.systemProperty("java.library.path","C:\\Users\\chemi\\Documents\\dev\\library\\library\\build\\rustJniLibs\\desktop\\win32-x86-64")
     }
 }

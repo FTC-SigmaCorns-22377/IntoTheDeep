@@ -28,6 +28,7 @@ import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.subsystems.arm.armControlLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
 import sigmacorns.common.subsystems.swerve.SwerveController
+import sigmacorns.common.subsystems.swerve.idController
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
 import sigmacorns.common.subsystems.swerve.swerveLogPosControlLoop
 import sigmacorns.common.subsystems.swerve.swerveLogVelControlLoop
@@ -66,19 +67,17 @@ class Robot(val io: SigmaIO): Closeable {
 
     context(LinearOpMode)
     fun inputLoop(f: (Second) -> Unit) {
-        try {
-            use {
-                while (opModeIsActive()) {
-                    val t = io.time()
-                    val dt = (t-lastT).cast(s)
-                    lastT = t
-                    f(dt)
-                    if(SIM) Thread.sleep(50)
-                }
+        use {
+            while (opModeIsActive()) {
+                val t = io.time()
+                val dt = (t-lastT).cast(s)
+                lastT = t
+                f(dt)
+                if(SIM)
+                    Thread.sleep(50)
+                else
+                    Thread.sleep(20)
             }
-        } catch (e: Exception) {
-            runBlocking { ioLoop?.cancelAndJoin() }
-            throw e
         }
     }
 
@@ -100,6 +99,7 @@ class Robot(val io: SigmaIO): Closeable {
 
     override fun close() {
         ioLoop?.cancel()
+        ioLoop = null
         io.rerunConnection.close()
     }
 
