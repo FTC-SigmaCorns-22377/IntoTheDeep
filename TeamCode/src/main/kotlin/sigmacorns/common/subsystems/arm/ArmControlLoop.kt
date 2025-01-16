@@ -15,8 +15,8 @@ fun armControlLoop() = ControlLoopContext(
     { io: SigmaIO -> ArmState(io.armPositions().let { DiffyInputPose(it[0],it[1]) }) },
     { u: ArmInput, io: SigmaIO ->
         io.armMotorPowers.zip(u.motors).forEach { it.first.write((it.second.map { it.clampMagnitude(6) }/io.voltage()).checkedUnitless()) }
-//        io.diffyPos.zip(u.servoTarget).forEach { it.first.write(it.second.toDouble()) }
-//        io.clawPos.write(u.clawTarget);
+        io.diffyPos.zip(u.servoTarget).forEach { it.first.write(it.second.toDouble()) }
+        io.clawPos.write(u.clawTarget);
     },
     { if(RERUN_ARM) it.log("arm") },
     async = true,

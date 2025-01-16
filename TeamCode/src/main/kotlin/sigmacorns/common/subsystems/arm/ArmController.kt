@@ -18,10 +18,11 @@ import net.unnamedrobotics.lib.math.RGBA
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.math2.clampMagnitude
 import net.unnamedrobotics.lib.math2.cos
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.lerp
 import net.unnamedrobotics.lib.math2.map
-import net.unnamedrobotics.lib.math2.mapRanges
 import net.unnamedrobotics.lib.math2.sin
 import net.unnamedrobotics.lib.math2.spherical
 import net.unnamedrobotics.lib.math2.vec3
@@ -80,8 +81,14 @@ class ArmController()
         val useProfile = (pos.axis1.value - pivot.value).absoluteValue > Tuning.ARM_PROFILE_DIST.value
 
         if(!useProfile) profile = null
-        if(useProfile && profile==null) {
-            profile = Tuning.ARM_PIVOT_PROFILE.new(pos.axis1,target.pivot)
+        if(useProfile && (profile==null  || ((profile!!)(1000.s) - target.pivot).value.absoluteValue > Tuning.ARM_PROFILE_DIST.value.absoluteValue)) {
+            profile =
+                (
+                    if(pivot.map { it.absoluteValue } > pos.axis1.map { it.absoluteValue })
+                        Tuning.ARM_PIVOT_PROFILE_DOWN
+                    else
+                        Tuning.ARM_PIVOT_PROFILE_UP
+                ).new(pos.axis1,target.pivot)
             profileT = 0.s
         }
 
@@ -92,7 +99,10 @@ class ArmController()
 
         val motorPowers = armDiffyController.updateStateless(deltaTime,position.motorPos,DiffyOutputPose(pivot,extension))
 
-        val servoPos = clawKinematics.inverse(DiffyOutputPose(target.pivot,target.roll))
+        val servoPos = clawKinematics.inverse(DiffyOutputPose(
+            Constants.CLAW_PITCH_BOUNDS.apply(target.pitch),
+            Constants.CLAW_ROLL_BOUNDS.apply(target.roll)
+        ))
 
         val servo1 = (mapServo1)(servoPos.axis1.value)
         val servo2 = (mapServo2)(servoPos.axis2.value)
@@ -118,7 +128,7 @@ class ArmController()
         val logBoxtube = { name: String, pivot: Radian, extension: Metre, color: RGBA, fillMode: FillMode -> log(name) {
             val extensions = listOf(0,1.0/2.0,1).map {
                 val extensionPastTopOfFirst = extension - (Constants.BOXTUBE_SECTION_LENGTH - Constants.BOXTUBE_1_VISUAL_OFFSET)
-                Constants.BOXTUBE_SECTION_LENGTH/2 - Constants.BOXTUBE_1_VISUAL_OFFSET + it*extensionPastTopOfFirst }
+                - Constants.BOXTUBE_1_VISUAL_OFFSET + it*extensionPastTopOfFirst }
 
             val centers = extensions.map {
                 Constants.AXLE_CENTER +
@@ -146,10 +156,17 @@ class ArmController()
         logBoxtube("position",curPos.axis1.cast(rad),curPos.axis2.cast(m), RGBA(0.7,0.7,0.7,1.0), FillMode.MajorWireframe)
         logBoxtube("target",target.pivot,target.extension, RGBA(0.0,255.0,0.0,255.0), FillMode.MajorWireframe)
 
-//        log("profiledTarget") {
-//            Arrows3D()
-//        }
-//        logBoxtube("profiledTarget",target.pivot,target.extension, RGBA(255.0,0.0,255.0,255.0), FillMode.MajorWireframe)
+        if (profile != null ) {
+            val phi = (profile!!)(profileT)
+            log("profiledTarget") {
+                Arrows3D(
+                    vecs = listOf(spherical(curPos.axis2, 0.rad, phi.cast(rad))),
+                    origins = listOf(Constants.AXLE_CENTER + spherical(Constants.ARM_OFFSET,0.rad, (phi + 90.degrees).cast(rad)))
+                )
+            }
+
+            scalar("targetProfiled",phi.value)
+        }
 
         scalar("rawPivotPower", lastRawPivotPower.value)
         scalar("rawExtensionPower", lastRawExtensionPower.value)
@@ -202,7 +219,15 @@ class ArmController()
                     if(extensionOverMax) Constants.ARM_SAFE_EXTENSION_POWER else Double.MAX_VALUE.V
                 )
 
-                val g = sin(it.axis1.value)*Tuning.ARM_G*it.axis2.value
+                val t = Constants.ARM_EXTENSION_BOUNDS.let { b ->
+                    (it.axis2.value-b.min.value)/(b.max.value-b.min.value)
+                }
+
+                val gE = (Tuning.ARM_G_MIN..Tuning.ARM_G_MAX).lerp(t.clampMagnitude(1.0))
+
+                var g = sin(it.axis1.value)*gE.V*it.axis2.value
+
+//                if(it.axis1.value.absoluteValue < target.pivot.value.absoluteValue) g = 0.V
                 pivot = pivotPowerBounds.apply((pivot + g).cast(V))
                 extension = extensionPowerBounds.apply(extension)
 
@@ -219,4 +244,13 @@ class ArmController()
             powers
         }
     }
+}
+
+fun <T> ClosedRange<T>.inverseLerp(res: Number) where T: Comparable<T>, T: Number
+        = (res.toDouble()-start.toDouble())/(endInclusive.toDouble()-start.toDouble())
+
+
+fun <T> mapRanges(from: ClosedRange<T>, to: ClosedRange<T>): (Number)->Number
+        where T : Comparable<T>, T: Number = {
+    to.lerp(from.inverseLerp(it.toDouble()))
 }

@@ -156,7 +156,8 @@ object Constants {
     val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
     val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
     val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
-    val CLAW_SERVO_3_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees) //for open/close servo
+    val CLAW_PITCH_BOUNDS = Bounds((-90).degrees,90.degrees)
+    val CLAW_ROLL_BOUNDS = Bounds((-180).degrees,(180).degrees)
 
     /**-----SAFETY-----*/
 
@@ -190,8 +191,8 @@ object Constants {
      */
     val ARM_MAX_MOTOR_POWER = 12.V
 
-    val CLAW_CLOSED = 0.6
-    val CLAW_OPEN = 0.3
+    val CLAW_CLOSED = 0.23
+    val CLAW_OPEN = 0.75
 
     val MODULE_OFFSET = arrayOf(
         0.7197103170042072.rad,
@@ -203,10 +204,15 @@ object Constants {
 
 @Config
 object Tuning {
-    val ARM_G = (-3.5).V
+    @JvmField
+    var ARM_G_MIN = -1.0
+
+    @JvmField
+    var ARM_G_MAX = -3.0
 //    val ARM_PIVOT_PID = PIDCoefficients(9.0,0.000000,-0.9)
 
-    val ARM_PIVOT_PROFILE = TrapezoidalProfile(2.rad/s,2.rad/s/s)
+    val ARM_PIVOT_PROFILE_DOWN = TrapezoidalProfile(3.5.rad/s,4.5.rad/s/s)
+    val ARM_PIVOT_PROFILE_UP = TrapezoidalProfile(2.rad/s,2.3.rad/s/s)
     val ARM_PROFILE_DIST = 10.degrees
 
     @JvmField

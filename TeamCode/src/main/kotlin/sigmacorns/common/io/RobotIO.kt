@@ -37,7 +37,8 @@ class RobotIO(
     val drives = wheels.map { hardwareManager.motor("drive$it") }
     val turns = wheels.map { hardwareManager.crservo("servo$it")}
     val turnEncoders = wheels.map { hardwareMap.get(AnalogInput::class.java,"encoder$it") }
-    val diffyServos: List<Servo>? = null // listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
+    val diffyServos: List<Servo> = listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
+    val diffyServosReversed = listOf(true,false)
     val armMotors = listOf(hardwareManager.motor("diffyMotorL"),hardwareManager.motor("diffyMotorR"))
     val armEncoders = armMotors.map { it.encoder }
     val clawServo: Servo? = hardwareManager.servo("clawServo")
@@ -52,8 +53,12 @@ class RobotIO(
     override val turnPowers = turns.map { turn -> cachedActuator(LoopTimes.TURN_UPDATE_THRESHOLD) { power: Double -> turn.power = power } }
     override val armMotorPowers = armMotors.map { cachedActuator(LoopTimes.ARM_UPDATE_THRESHOLD) { power -> it.power = power } }
     override val diffyPos =
-        diffyServos?.map { cachedActuator(LoopTimes.DIFFY_UPDATE_THRESHOLD) { u -> it.position = u } }
-            ?: List(4) { Actuator<Double> { } }
+        diffyServos
+            .zip(diffyServosReversed)
+            .map { cachedActuator(LoopTimes.DIFFY_UPDATE_THRESHOLD) { u ->
+                println("SERVO ${it.second} = ${if(it.second) (1-u) else u} w")
+                it.first.position = (if(it.second) 1-u else u)
+            } }
 
     override fun time(): Second = Clock.seconds.s
 
