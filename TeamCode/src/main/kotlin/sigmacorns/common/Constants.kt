@@ -1,6 +1,5 @@
 package sigmacorns.common
 
-import com.acmerobotics.dashboard.config.Config
 import eu.sirotin.kotunil.base.A
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.centimetre
@@ -9,7 +8,6 @@ import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.ns
-import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.H
@@ -19,7 +17,6 @@ import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.rad
 import eu.sirotin.kotunil.derived.Ω
 import eu.sirotin.kotunil.specialunits.g
-import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
@@ -29,10 +26,8 @@ import net.unnamedrobotics.lib.math2.revolutions
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
-import sigmacorns.common.subsystems.arm.TrapezoidalProfile
 import sigmacorns.opmode.SIM
 import kotlin.math.hypot
-import kotlin.reflect.KProperty
 
 object Constants {
 
@@ -70,7 +65,7 @@ object Constants {
     /**
      * Length between the pivot axis of the claw and the ideal gripped sample position
      */
-    val CLAW_LENGTH = 3.5.inches
+    val CLAW_LENGTH = 0.0.inches
 
     val ARM_MOTOR_GEAR_RATIO = (((1+(46/11))) * (1+(46/11))).rad / rad
 
@@ -155,8 +150,8 @@ object Constants {
     /*-----BOUNDS-----*/
     val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds((-30).degrees,90.degrees)
     val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
-    val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
-    val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-180).degrees, (-180+355.0).degrees)
+    val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-355.0/2.0).degrees, (355.0/2.0).degrees)
+    val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-355.0/2.0).degrees, (355.0/2.0).degrees)
     val CLAW_PITCH_BOUNDS = Bounds((-90).degrees,90.degrees)
     val CLAW_ROLL_BOUNDS = Bounds((-180).degrees,(180).degrees)
 
@@ -203,45 +198,6 @@ object Constants {
     )
 }
 
-@Config
-object Tuning {
-    @JvmField
-    var ARM_G_MIN = -1.0
-
-    @JvmField
-    var ARM_G_MAX = -3.0
-//    val ARM_PIVOT_PID = PIDCoefficients(9.0,0.000000,-0.9)
-
-    val ARM_PIVOT_PROFILE_DOWN = TrapezoidalProfile(3.5.rad/s,4.5.rad/s/s)
-    val ARM_PIVOT_PROFILE_UP = TrapezoidalProfile(2.rad/s,2.3.rad/s/s)
-    val ARM_PROFILE_DIST = 10.degrees
-
-    @JvmField
-    var ARM_PIVOT_STATIC = 0.0
-    @JvmField
-    var ARM_PIVOT_SATIC_THRESH = 0.08
-
-    val ARM_PIVOT_PID
-        get() = PIDCoefficients(12.0,0.0,0.0)
-    val ARM_EXTENSION_PID = PIDCoefficients(24.0,0.0,0.0)
-//        get() = tunePID()
-    val SWERVE_MODULE_PID = PIDCoefficients(1.0,0.0,0.00)
-//        get() = tunePID()
-
-    @JvmField
-    val SWERVE_MAX_SLEW_RATE = 1.0
-
-    @JvmField
-    val MIN_VEL_SLEW_LIMIT = 0.25
-
-    @JvmField
-    val TELEOP_TARGET_HEADING_MAX_DIFF = 0.25
-
-
-    val TELEOP_HEADING_PID = PIDCoefficients(8.0,0.0,0.0)
-//        get() = tunePID()
-}
-
 object LoopTimes {
     val SWERVE = 500.Hz
     val ARM = 300.Hz
@@ -265,21 +221,9 @@ object SimIOTimes {
 
 @Suppress("SimplifyBooleanWithConstants", "MemberVisibilityCanBePrivate", "KotlinConstantConditions" )
 object LOGGING {
-    const val ALL_LOG: Boolean = false
+    const val ALL_LOG: Boolean = true
     const val LOG_IO: Boolean = false && ALL_LOG
-    val RERUN_SWERVE: Boolean = (true && ALL_LOG) || SIM
-    val RERUN_CHOREO: Boolean = (true && ALL_LOG) || SIM
+    val RERUN_SWERVE: Boolean = (false && ALL_LOG) || SIM
+    val RERUN_CHOREO: Boolean = (false && ALL_LOG) || SIM
     val RERUN_ARM: Boolean = (true && ALL_LOG) || SIM
 }
-
-@Config
-object PIDTune {
-    @JvmField
-    var P = 1.0
-    @JvmField
-    var I = 0.0
-    @JvmField
-    var D = 0.0
-}
-
-fun tunePID(): PIDCoefficients = PIDCoefficients(PIDTune.P, PIDTune.I,PIDTune.D)

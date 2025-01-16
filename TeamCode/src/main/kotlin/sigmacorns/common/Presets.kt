@@ -27,14 +27,19 @@ object ScoringPresets {
     val SAMPLE_LOW = BUCKET_LOW + BUCKET_OFFSET
     val SAMPLE_HIGH = BUCKET_HIGH + BUCKET_OFFSET
 
-    val SAMPLE_PLACE_DISTANCE = 10.inches
+    val SAMPLE_PLACE_DISTANCE = (-7).inches
     val SAMPLE_PITCH = 30.degrees
     val SAMPLE_ROLL = 90.degrees
 
-    val SPECIMEN_PLACE_DISTANCE = (-7).inches
+    val SPECIMEN_PLACE_DISTANCE = (10).inches
     val SPECIMEN_PITCH = 0.rad
 
-//    val HOVER_HEIGHT =
+    val SUBMERSIBLE_TRANSITION_HEIGHT = 6.inches
+
+    val HOVER_HEIGHT = 2.inches
+    val HOVER_PITCH = 175.degrees
+
+    val GRAB_HEIGHT = 1.inches
 
     fun placeHeight(height: Expression, distance: Expression, pitch: Radian, roll: Radian = 0.rad): ScoringPose
         = ScoringKinematics.inverse(ScoringTarget(
@@ -49,4 +54,8 @@ object ScoringPresets {
     fun placeLowSample() = placeHeight(SAMPLE_LOW, SAMPLE_PLACE_DISTANCE, SAMPLE_PITCH, SAMPLE_ROLL)
     fun placeHighSpecimen() = placeHeight(SPECIMEN_HIGH, SPECIMEN_PLACE_DISTANCE, SPECIMEN_PITCH)
     fun placeLowSpecimen() = placeHeight(SPECIMEN_LOW, SPECIMEN_PLACE_DISTANCE, SPECIMEN_PITCH)
+
+    fun placeOverSample(distance: Metre) = placeHeight(HOVER_HEIGHT, distance, HOVER_PITCH)
+    fun placeOverSubmersible(distance: Metre) = placeHeight(SUBMERSIBLE_TRANSITION_HEIGHT,distance, HOVER_PITCH)
+    fun grabSamplePose(distance: Metre) = placeHeight(GRAB_HEIGHT,distance, HOVER_PITCH)
 }
