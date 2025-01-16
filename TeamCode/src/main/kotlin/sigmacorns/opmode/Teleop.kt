@@ -2,6 +2,7 @@ package sigmacorns.opmode
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.hardware.Gamepad
+import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.s
@@ -21,7 +22,9 @@ import net.unnamedrobotics.lib.math2.polar
 import net.unnamedrobotics.lib.math2.rotate
 import net.unnamedrobotics.lib.math2.unitless
 import net.unnamedrobotics.lib.math2.vec2
+import net.unnamedrobotics.lib.math2.vec3
 import net.unnamedrobotics.lib.math2.vector
+import net.unnamedrobotics.lib.math2.z
 import sigmacorns.common.Constants
 import sigmacorns.common.Robot
 import sigmacorns.common.ScoringPresets
@@ -29,6 +32,7 @@ import sigmacorns.common.Tuning
 import sigmacorns.common.io.RobotIO
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.subsystems.arm.ArmTarget
+import sigmacorns.common.subsystems.arm.ScoringKinematics
 import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.swerve.FlippingSlewRateLimiter
 import sigmacorns.common.subsystems.swerve.SwerveController
@@ -38,7 +42,7 @@ class Teleop: SimOrHardwareOpMode() {
     override val initialScoringPose = ScoringPose(
         vec2(0.m,0.m),
         0.degrees,
-        375.mm,
+        406.4.mm,
         90.degrees,
         0.rad,0.rad
     )
@@ -51,7 +55,8 @@ class Teleop: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
 
         //TODO: test why rerun dosent fully disable (some rogue call)`
-        io.rerunConnection.disabled = true
+//        io.rerunConnection.disabled = false
+
         val robot = Robot(io)
 
         runBlocking {
@@ -76,6 +81,8 @@ class Teleop: SimOrHardwareOpMode() {
         val armExtensionNormalSpeed = 1.0.m/s
         val armExtensionSlowSpeed = armExtensionNormalSpeed * 0.5
 
+        val armSpeed = 6.cm/s
+
         val clawRollSpeed = 2.rad/s
 
         gamepad1.type = Gamepad.Type.LOGITECH_F310
@@ -95,11 +102,11 @@ class Teleop: SimOrHardwareOpMode() {
         var isSlowMode = false
 
         var isArmSlowMode = false
-        var pivot = initialScoringPose.pivot
-        var extension = initialScoringPose.extension
-        var pitch = initialScoringPose.pitch
-        var roll = initialScoringPose.roll
-        var isClawOpen = true
+        var armTarget = initialScoringPose.armTarget(true)
+
+        val baseDistance = 400.mm
+
+        var wasAPressed = false
 
         waitForStart()
         robot.launchIOLoop()
@@ -110,6 +117,7 @@ class Teleop: SimOrHardwareOpMode() {
             runBlocking {
                 val pos = swerve.controller.logPosition
                 val vel = swerve.controller.logVelocity
+                val armPos = ScoringKinematics.forward(ScoringPose(armTarget))
 
                 slewRateLimiter.maxRate = Tuning.SWERVE_MAX_SLEW_RATE
                 headingController.coefficients = Tuning.TELEOP_HEADING_PID
@@ -138,14 +146,14 @@ class Teleop: SimOrHardwareOpMode() {
                 ).rad/s
 
                 var speed = vec2(xSpeed,ySpeed)
-                if(speed.magnitude().value > Tuning.MIN_VEL_SLEW_LIMIT) {
-                    val angle = slewRateLimiter.updateStateless(
-                        dt.value,
-                        (vel.vector().theta() - swerve.controller.logPosition.angle).value,
-                        speed.theta().value
-                    ).rad
-                    speed = polar(speed.magnitude(),angle)
-                }
+//                if(speed.magnitude().value > Tuning.MIN_VEL_SLEW_LIMIT) {
+//                    val angle = slewRateLimiter.updateStateless(
+//                        dt.value,
+//                        vel.vector().theta().value,
+//                        speed.theta().value
+//                    ).rad
+//                    speed = polar(speed.magnitude(),angle)
+//                }
 
                 // field relative wooo
                 swerve.mapTarget {
@@ -156,35 +164,48 @@ class Teleop: SimOrHardwareOpMode() {
                 if(gm1.start.isJustPressed)
                     if(!SIM) (io as RobotIO).pinpoint.reset()
 
-                //speed control
-                if(gm2.x.isJustPressed) isArmSlowMode = !isArmSlowMode
-                val armPivotSpeed = if(isArmSlowMode) armPivotSlowSpeed else armPivotNormalSpeed
-                val armExtensionSpeed = if(isArmSlowMode) armExtensionSlowSpeed else armExtensionNormalSpeed
+//                //speed control
+//                if(gm2.x.isJustPressed) isArmSlowMode = !isArmSlowMode
+//                val armPivotSpeed = if(isArmSlowMode) armPivotSlowSpeed else armPivotNormalSpeed
+//                val armExtensionSpeed = if(isArmSlowMode) armExtensionSlowSpeed else armExtensionNormalSpeed
+//
+//                //manual arm controls
+//                armTarget.pivot = (armTarget.pivot + (gm2.leftStick.yAxis * dt * armPivotSpeed)).cast(rad)
+//                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply(armTarget.pivot)
+//
+//                armTarget.extension = (armTarget.extension + (gm2.rightStick.yAxis * dt * armExtensionSpeed)).cast(m)
+//                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply(armTarget.extension)
 
-                //manual arm controls
-                pivot = (pivot + (gm2.leftStick.yAxis * dt * armPivotSpeed)).cast(rad)
-                pivot = Constants.ARM_PIVOT_BOUNDS.apply(pivot)
+                armTarget = ScoringKinematics.inverse(armPos.also {
+                    it.samplePos = vec3(
+                        it.samplePos.x + gm2.leftStick.xAxis*armSpeed*dt,
+                        it.samplePos.y,
+                        it.samplePos.z + gm2.leftStick.yAxis*armSpeed*dt
+                    )
+                }).armTarget(armTarget.isOpen)
 
-                extension = (extension + (gm2.rightStick.yAxis * dt * armExtensionSpeed)).cast(m)
-                extension = Constants.ARM_EXTENSION_BOUNDS.apply(extension)
+                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply(armTarget.extension)
+                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply(armTarget.pivot)
 
                 //roll
                 if(gm1.leftBumper.isPressed || gm2.leftBumper.isPressed)
-                    roll = Constants.CLAW_ROLL_BOUNDS.apply((roll - clawRollSpeed*dt).cast(rad))
+                    armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll - clawRollSpeed*dt).cast(rad))
                 if(gm1.rightBumper.isPressed || gm2.rightBumper.isPressed)
-                    roll = Constants.CLAW_ROLL_BOUNDS.apply((roll + clawRollSpeed*dt).cast(rad))
+                    armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll + clawRollSpeed*dt).cast(rad))
 
                 //claw
-                if(gm1.a.isJustPressed || gm2.a.isJustPressed)
-                    isClawOpen = !isClawOpen
+                if(gamepad1.a || gamepad2.b)
+                    armTarget.isOpen = !armTarget.isOpen
 
-                var armTarget = ArmTarget(pivot, extension, pitch, roll, isClawOpen)
+                if(gamepad1.b || gamepad2.b)
+                    armTarget = ScoringPresets.placeLowSpecimen().armTarget(armTarget.isOpen).also { println("SET LOW")}
 
-                if(gm1.b.isJustPressed || gm2.b.isJustPressed)
-                    armTarget = ScoringPresets.placeLowSample().armTarget(isClawOpen)
+                if(gamepad1.y || gamepad2.b)
+                    armTarget = ScoringPresets.placeHighSpecimen().armTarget(armTarget.isOpen).also { println("SET HIGH")}
+                if(gamepad2.x)
+                    armTarget = ScoringPresets.placeOverSubmersible(baseDistance).armTarget(armTarget.isOpen)
 
-                if(gm1.y.isJustPressed || gm2.y.isJustPressed)
-                    armTarget = ScoringPresets.placeHighSample().armTarget(isClawOpen)
+//                println("ARM TARGET: ${armTarget.pivot}, ${armTarget.extension}")
 
                 armLoop.target(armTarget)
             }
