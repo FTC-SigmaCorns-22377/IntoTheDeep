@@ -7,20 +7,24 @@ import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
+import net.unnamedrobotics.lib.driver.gobilda.GoBildaPinpointDriver
 import net.unnamedrobotics.lib.hardware.impl.HardwareManagerImpl
 import net.unnamedrobotics.lib.hardware.interfaces.Servo
-import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.rerun.rerun
 import net.unnamedrobotics.lib.util.Clock
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 import sigmacorns.common.LoopTimes
 import sigmacorns.common.subsystems.arm.DiffyOutputPose
 import sigmacorns.common.subsystems.arm.ScoringPose
 import sigmacorns.common.subsystems.arm.boxTubeKinematics
 
 class RobotIO(
-    hardwareMap: HardwareMap,
+    val hardwareMap: HardwareMap,
     io: String = "192.168.43.122",
     rerunName: String = "unnamed",
     private val initialScoringPose: ScoringPose? = null
@@ -36,7 +40,10 @@ class RobotIO(
     val diffyServos: List<Servo>? = null // listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
     val armMotors = listOf(hardwareManager.motor("diffyMotorL"),hardwareManager.motor("diffyMotorR"))
     val armEncoders = armMotors.map { it.encoder }
-    val clawServo: Servo? = null //hardwareManager.servo("clawServo")
+    val clawServo: Servo? = hardwareManager.servo("clawServo")
+    val pinpointDriver = hardwareMap.get(
+        GoBildaPinpointDriver::class.java,"pinpoint")
+    val pinpoint = PinpointLocalizer(pinpointDriver)
 
     override val drivePowers = drives.map { drive ->
         cachedActuator(LoopTimes.DRIVE_UPDATE_THRESHOLD) { drive.power = it }
@@ -63,15 +70,18 @@ class RobotIO(
     private val turnEncoderSensor = sensor(bulkReadable = true) { turnEncoders.map { it.voltage.V } }
     context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun turnVoltages() = turnEncoderSensor.get()
 
-    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun position(): Transform2D {
-        TODO("Not yet implemented")
+    private val posSensor = sensor {
+        pinpoint.update(true)
+        pinpoint.getTransform()
     }
+    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun position() = posSensor.get()
 
-    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun velocity(): Twist2D {
-        TODO("Not yet implemented")
-    }
+    private val velSensor = sensor { pinpoint.velocity }
+    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun velocity(): Twist2D = velSensor.get()
 
     override fun clearBulkCache() = hubs.forEach { it.clearBulkCache() }
+
+    override val rerunConnection = RerunConnection(rerunName,io)
 
     init {
         turns.forEach {
@@ -99,6 +109,21 @@ class RobotIO(
             )
         }
 
+        pinpointDriver.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
+        if(initialScoringPose!=null) pinpointDriver.setPosition(initialScoringPose.robotPos.let {
+            Pose2D(
+                DistanceUnit.METER,
+                it.x.value,it.y.value,
+                AngleUnit.RADIANS,
+                initialScoringPose.theta.value
+            )
+        })
+        pinpointDriver.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,GoBildaPinpointDriver.EncoderDirection.REVERSED)
+
+        rerun(rerunConnection) {
+            field(hardwareMap.appContext)
+        }
+
         hubs = hardwareMap.getAll(LynxModule::class.java)
 
         hubs.forEach {
@@ -108,5 +133,4 @@ class RobotIO(
 
     override fun voltage() = 12.V
 
-    override val rerunConnection = RerunConnection(rerunName,io)
 }
