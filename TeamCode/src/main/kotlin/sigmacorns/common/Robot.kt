@@ -74,9 +74,9 @@ class Robot(val io: SigmaIO): Closeable {
                 lastT = t
                 f(dt)
                 if(SIM)
-                    Thread.sleep(50)
+                   sleep(50)
                 else
-                    Thread.sleep(20)
+                    sleep(20)
             }
         }
     }
@@ -98,9 +98,11 @@ class Robot(val io: SigmaIO): Closeable {
     }
 
     override fun close() {
-        ioLoop?.cancel()
-        ioLoop = null
-        io.rerunConnection.close()
+        try {
+            ioLoop?.cancel()
+        } finally {
+            io.rerunConnection.close()
+        }
     }
 
     fun topSpeed(): Expression = drivebase.driveMotor.topSpeed(1.0)*drivebase.radius
