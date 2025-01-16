@@ -30,6 +30,7 @@ import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
 import sigmacorns.common.subsystems.arm.TrapezoidalProfile
+import sigmacorns.opmode.SIM
 import kotlin.math.hypot
 import kotlin.reflect.KProperty
 
@@ -69,7 +70,7 @@ object Constants {
     /**
      * Length between the pivot axis of the claw and the ideal gripped sample position
      */
-    val CLAW_LENGTH = 5.5.inches
+    val CLAW_LENGTH = 3.5.inches
 
     val ARM_MOTOR_GEAR_RATIO = (((1+(46/11))) * (1+(46/11))).rad / rad
 
@@ -114,7 +115,7 @@ object Constants {
      */
     val CLAW_PITCH_RATIO = 1.rad / 1.rad
 
-    val CLAW_ROLL_RATIO = 1.rad / 1.rad
+    val CLAW_ROLL_RATIO = 40.rad / 25.rad
 
     // -----Camera Calibration-----
     /**
@@ -195,10 +196,10 @@ object Constants {
     val CLAW_OPEN = 0.75
 
     val MODULE_OFFSET = arrayOf(
-        0.7197103170042072.rad,
-        3.4881198432584855.rad,
-        4.188790204786391.rad,
-        3.383400088138826.rad,
+        0.4779028824551746.rad,
+        1.4946365048896897.rad,
+        1.2566370614359172.rad,
+        4.415365674954382.rad
     )
 }
 
@@ -221,18 +222,30 @@ object Tuning {
     var ARM_PIVOT_SATIC_THRESH = 0.08
 
     val ARM_PIVOT_PID
-        get() = tunePID()
+        get() = PIDCoefficients(12.0,0.0,0.0)
     val ARM_EXTENSION_PID = PIDCoefficients(24.0,0.0,0.0)
 //        get() = tunePID()
-    val SWERVE_MODULE_PID = PIDCoefficients(1.0,0.0,0.0)
-//        get() = tunePID()
+    val SWERVE_MODULE_PID //= PIDCoefficients(0.6,0.0,0.03)
+        get() = tunePID()
+
+    @JvmField
+    val SWERVE_MAX_SLEW_RATE = 1.0
+
+    @JvmField
+    val MIN_VEL_SLEW_LIMIT = 0.25
+
+    @JvmField
+    val TELEOP_TARGET_HEADING_MAX_DIFF = 0.25
+
+
+    val TELEOP_HEADING_PID = PIDCoefficients(12.0,0.0,-0.02)
 }
 
 object LoopTimes {
     val SWERVE = 500.Hz
-    val ARM = 100.Hz
+    val ARM = 300.Hz
     val CHOREO = 100.Hz
-    val SWERVE_POS_UPDATE = 50.Hz
+    val SWERVE_POS_UPDATE = 100.Hz
 
     const val DRIVE_UPDATE_THRESHOLD = 0.01
     const val TURN_UPDATE_THRESHOLD = 0.02
@@ -251,17 +264,17 @@ object SimIOTimes {
 
 @Suppress("SimplifyBooleanWithConstants", "MemberVisibilityCanBePrivate", "KotlinConstantConditions" )
 object LOGGING {
-    const val ALL_LOG: Boolean = true
+    const val ALL_LOG: Boolean = false
     const val LOG_IO: Boolean = false && ALL_LOG
-    const val RERUN_SWERVE: Boolean = true && ALL_LOG
-    const val RERUN_CHOREO: Boolean = true && ALL_LOG
-    const val RERUN_ARM: Boolean = true && ALL_LOG
+    val RERUN_SWERVE: Boolean = (true && ALL_LOG) || SIM
+    val RERUN_CHOREO: Boolean = (true && ALL_LOG) || SIM
+    val RERUN_ARM: Boolean = (true && ALL_LOG) || SIM
 }
 
 @Config
 object PIDTune {
     @JvmField
-    var P = 20.0
+    var P = 1.0
     @JvmField
     var I = 0.0
     @JvmField
