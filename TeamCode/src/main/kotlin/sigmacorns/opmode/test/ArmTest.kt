@@ -76,14 +76,12 @@ class ArmTest: SimOrHardwareOpMode() {
             Scheduler.tick()
 
             robot.armControlLoop.mapTarget {
-                it.armDiffyController = it.pidDiffyController(boxTubeKinematics,Tuning.ARM_PIVOT_PID,Tuning.ARM_EXTENSION_PID)
                 it.target.let { target ->
                     ArmTarget(
                         Constants.ARM_PIVOT_BOUNDS.apply((target.pivot + gm1.leftStick.yAxis*armManualPivotSpeed*dt).cast(rad)),
                         Constants.ARM_EXTENSION_BOUNDS.apply((target.extension + gm1.leftStick.xAxis*armManualExtensionSpeed*dt).cast(m)),
                         target.pitch,
                         target.roll,false
-//                        gm1.a.isToggled
                     )
                 }
             }

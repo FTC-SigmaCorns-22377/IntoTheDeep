@@ -20,10 +20,10 @@ object Tuning {
     val ARM_PIVOT_PROFILE_UP = TrapezoidalProfile(2.rad / s, 2.3.rad / s / s)
 
     @JvmField
-    var ARM_PROFILE_DIST_DEG = 10
+    var ARM_FINE_DIST_DEG = 10
 
-    val ARM_PROFILE_DIST
-        get() = ARM_PROFILE_DIST_DEG.degrees
+    val ARM_FINE_DIST
+        get() = ARM_FINE_DIST_DEG.degrees
 
     @JvmField
     var ARM_EXTEND_FINE_DIST_CM = 5
