@@ -18,6 +18,6 @@ fun armControlLoop() = ControlLoopContext(
         io.diffyPos.zip(u.servoTarget).forEach { it.first.write(it.second.toDouble()) }
         io.clawPos.write(u.clawTarget);
     },
-    { if(RERUN_ARM) it.log("arm") },
+    { if(RERUN_ARM) it.log("robot/arm") },
     async = true,
 )

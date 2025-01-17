@@ -13,13 +13,14 @@ import sigmacorns.opmode.SIM
 import sigmacorns.opmode.SimOrHardwareOpMode
 import sigmacorns.opmode.Teleop
 import sigmacorns.opmode.test.ArmTest
+import sigmacorns.opmode.test.ClawMachineTest
 
 class OpModeTest {
     @Test
     fun test() {
         SIM = true
 
-        val opMode: SimOrHardwareOpMode = Teleop()
+        val opMode: SimOrHardwareOpMode = ClawMachineTest()
         val maxTime = 10.s
 
         opMode.gamepad1 = Gamepad()

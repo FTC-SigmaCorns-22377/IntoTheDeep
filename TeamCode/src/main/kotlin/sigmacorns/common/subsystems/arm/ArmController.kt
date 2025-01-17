@@ -91,11 +91,18 @@ class ArmController()
             armDiffyController.axis1PIDCoefficients = Tuning.ARM_PIVOT_PID
             pivot = (profile!!)(profileT).cast(rad)
             profileT = (profileT + deltaTime.s).cast(s)
+            armDiffyController.pid1.integral = 0.0
         } else {
             armDiffyController.axis1PIDCoefficients = Tuning.ARM_FINE_PIVOT_PID
         }
 
-        armDiffyController.axis2PIDCoefficients = if(extensionFine) Tuning.ARM_FINE_EXTEND_PID else Tuning.ARM_EXTENSION_PID
+        if(extensionFine) {
+            armDiffyController.axis2PIDCoefficients = Tuning.ARM_FINE_EXTEND_PID
+        } else {
+            armDiffyController.pid2.integral = 0.0
+            armDiffyController.axis2PIDCoefficients = Tuning.ARM_EXTENSION_PID
+        }
+
 
         val motorPowers = armDiffyController.updateStateless(deltaTime,position.motorPos,DiffyOutputPose(pivot,extension))
 

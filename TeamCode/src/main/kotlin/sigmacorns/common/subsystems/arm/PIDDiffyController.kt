@@ -51,6 +51,9 @@ class PIDDiffyController(val kinematics: DiffyKinematics, var axis1PIDCoefficien
         )
 
         val powers = kinematics.forward(x).let {
+            if((tBounded.axis1-it.axis1).value.sign != pid1.previousError.sign) pid1.integral = 0.0
+            if((tBounded.axis2-it.axis2).value.sign != pid2.previousError.sign) pid2.integral = 0.0
+
             var pivot = pid1.updateStateless(dt,it.axis1.value,tBounded.axis1.value).V
             var extension = pid2.updateStateless(dt,it.axis2.value,tBounded.axis2.value).V
 

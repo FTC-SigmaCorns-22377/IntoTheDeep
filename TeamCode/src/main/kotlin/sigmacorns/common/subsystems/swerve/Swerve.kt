@@ -28,6 +28,7 @@ import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.Rerunable
 import net.unnamedrobotics.lib.rerun.archetypes.Arrows3D
 import net.unnamedrobotics.lib.rerun.archetypes.Points3D
+import org.joml.Quaternionf
 import kotlin.math.absoluteValue
 
 class SwerveController(
@@ -100,7 +101,7 @@ class SwerveController(
 
         // TODO: make this accept a name in library and implement rerunnable. also customizable colors :)
         val moduleRadius = drivebase.moduleVizRadius
-        prefix("$name/visual") {
+        prefix("robot/$name/visual") {
             drivebase.visualize(SwerveState(
                 List(4) { MotorState(0.A,0.rad/s, position.modulePos[it]) },
                 List(4) { MotorState(0.A, drivebase.driveMotor.topSpeed(output.drivePowers[it]), 0.rad) },
@@ -146,7 +147,7 @@ class SwerveController(
             }
         }
 
-        prefix(name) {
+        prefix("robot/$name") {
             output.drivePowers.forEachIndexed { i,it -> scalar("drivePowers/drivePower$i",it) }
             output.turnPowers.forEachIndexed { i,it -> scalar("turnPowers/turnPower$i",it) }
 
@@ -160,5 +161,10 @@ class SwerveController(
             scalar("desVel/vy",target.vel.y.value)
             scalar("desVel/vAngle",target.vel.angle.value)
         }
+
+        val quat = Quaternionf().setAngleAxis(logPosition.angle.cast(rad).value.toFloat(),0f,0f,1f)
+        transform("robot", logPosition.vector().withZ(drivebase.vizHeight/2.0), rotate = quat)
     }
 }
+
+//TODO: make a provider for position since there are so many things that need it. need to sync somehow. atp switch to ros nodes lmao

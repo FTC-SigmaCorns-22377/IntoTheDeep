@@ -191,10 +191,10 @@ object Constants {
     val CLAW_OPEN = 0.75
 
     val MODULE_OFFSET = arrayOf(
-        0.4779028824551746.rad,
-        1.4946365048896897.rad,
-        1.2566370614359172.rad,
-        4.415365674954382.rad
+        0.5026548245743669.rad,
+        1.6203002110332811.rad,
+        6.233681422941202.rad,
+        4.386805741739931.rad
     )
 }
 
@@ -223,7 +223,7 @@ object SimIOTimes {
 object LOGGING {
     const val ALL_LOG: Boolean = true
     const val LOG_IO: Boolean = false && ALL_LOG
-    val RERUN_SWERVE: Boolean = (false && ALL_LOG) || SIM
+    val RERUN_SWERVE: Boolean = (true && ALL_LOG) || SIM
     val RERUN_CHOREO: Boolean = (false && ALL_LOG) || SIM
     val RERUN_ARM: Boolean = (true && ALL_LOG) || SIM
 }
