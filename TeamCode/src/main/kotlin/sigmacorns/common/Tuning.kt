@@ -1,6 +1,7 @@
 package sigmacorns.common
 
 import com.acmerobotics.dashboard.config.Config
+import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.div
 import eu.sirotin.kotunil.derived.rad
@@ -27,6 +28,9 @@ object Tuning {
 
     @JvmField
     var ARM_EXTEND_FINE_DIST_CM = 5
+
+    val ARM_FINE_EXTENSION_DIST
+        get() = ARM_EXTEND_FINE_DIST_CM.cm
 
 
     @JvmField

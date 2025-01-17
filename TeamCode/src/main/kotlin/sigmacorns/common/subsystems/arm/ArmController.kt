@@ -73,6 +73,7 @@ class ArmController()
 
         val pos = boxTubeKinematics.forward(position.motorPos)
         val useProfile = (pos.axis1.value - pivot.value).absoluteValue > Tuning.ARM_FINE_DIST.value
+        val extensionFine = (pos.axis2 - extension) .map { it.absoluteValue } < Tuning.ARM_FINE_EXTENSION_DIST
 
         if(!useProfile) profile = null
         if(useProfile && (profile==null  || ((profile!!)(1000.s) - target.pivot).value.absoluteValue > Tuning.ARM_FINE_DIST.value.absoluteValue)) {
@@ -87,9 +88,14 @@ class ArmController()
         }
 
         if(useProfile) {
+            armDiffyController.axis1PIDCoefficients = Tuning.ARM_PIVOT_PID
             pivot = (profile!!)(profileT).cast(rad)
             profileT = (profileT + deltaTime.s).cast(s)
+        } else {
+            armDiffyController.axis1PIDCoefficients = Tuning.ARM_FINE_PIVOT_PID
         }
+
+        armDiffyController.axis2PIDCoefficients = if(extensionFine) Tuning.ARM_FINE_EXTEND_PID else Tuning.ARM_EXTENSION_PID
 
         val motorPowers = armDiffyController.updateStateless(deltaTime,position.motorPos,DiffyOutputPose(pivot,extension))
 
