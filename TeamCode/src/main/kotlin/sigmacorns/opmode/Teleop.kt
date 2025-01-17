@@ -53,9 +53,7 @@ class Teleop: SimOrHardwareOpMode() {
     var targetHeading: Expression = initialScoringPose.theta
 
     override fun runOpMode(io: SigmaIO) {
-
-        //TODO: test why rerun dosent fully disable (some rogue call)`
-//        io.rerunConnection.disabled = false
+        io.rerunConnection.disabled = true
 
         val robot = Robot(io)
 
@@ -106,10 +104,12 @@ class Teleop: SimOrHardwareOpMode() {
 
         val baseDistance = 400.mm
 
-        var wasAPressed = false
-
         waitForStart()
         robot.launchIOLoop()
+
+        var wasA1Pressed = false
+        var wasA2Pressed = false
+
 
         robot.inputLoop { dt ->
             gm1.periodic()
@@ -133,17 +133,17 @@ class Teleop: SimOrHardwareOpMode() {
                 val angularSpeed = -gamepad1.right_stick_x.toDouble() * angularMaxSpeed
                 val lockWheels = gamepad1.left_stick_button
 
-                targetHeading += angularSpeed*dt
-
-                val diff = (targetHeading-pos.angle).normalizeRadian()
-                    .map { it.clampMagnitude(Tuning.TELEOP_TARGET_HEADING_MAX_DIFF) }
-                targetHeading = pos.angle + diff
-
-                val angularPower = headingController.updateStateless(
-                    dt.value,
-                    pos.angle.value,
-                    targetHeading.value
-                ).rad/s
+//                targetHeading += angularSpeed*dt
+//
+//                val diff = (targetHeading-pos.angle).normalizeRadian()
+//                    .map { it.clampMagnitude(Tuning.TELEOP_TARGET_HEADING_MAX_DIFF) }
+//                targetHeading = pos.angle + diff
+//
+//                val angularPower = headingController.updateStateless(
+//                    dt.value,
+//                    pos.angle.value,
+//                    targetHeading.value
+//                ).rad/s
 
                 var speed = vec2(xSpeed,ySpeed)
 //                if(speed.magnitude().value > Tuning.MIN_VEL_SLEW_LIMIT) {
@@ -158,7 +158,7 @@ class Teleop: SimOrHardwareOpMode() {
                 // field relative wooo
                 swerve.mapTarget {
                     val theta = -it.logPosition.angle
-                    SwerveController.Target(Transform2D(speed.rotate(theta.cast(rad)), angularPower), lockWheels)
+                    SwerveController.Target(Transform2D(speed.rotate(theta.cast(rad)), angularSpeed), lockWheels)
                 }
 
                 if(gm1.start.isJustPressed)
@@ -194,17 +194,24 @@ class Teleop: SimOrHardwareOpMode() {
                     armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll + clawRollSpeed*dt).cast(rad))
 
                 //claw
-                if(gamepad1.a || gamepad2.b)
+                if((gamepad1.a && !wasA1Pressed) || (gamepad2.a && !wasA2Pressed))
                     armTarget.isOpen = !armTarget.isOpen
+
+                wasA1Pressed = gamepad1.a
+                wasA2Pressed = gamepad2.a
 
                 if(gamepad1.b || gamepad2.b)
                     armTarget = ScoringPresets.placeLowSpecimen().armTarget(armTarget.isOpen).also { println("SET LOW")}
 
-                if(gamepad1.y || gamepad2.b)
+                if(gamepad1.y || gamepad2.y)
                     armTarget = ScoringPresets.placeHighSpecimen().armTarget(armTarget.isOpen).also { println("SET HIGH")}
                 if(gamepad2.x)
                     armTarget = ScoringPresets.placeOverSubmersible(baseDistance).armTarget(armTarget.isOpen)
 
+                if(gamepad1.dpad_down || gamepad2.dpad_down)
+                    armTarget = ScoringPresets.placeLowSample().armTarget(armTarget.isOpen)
+                if(gamepad1.dpad_up || gamepad2.dpad_up)
+                    armTarget = ScoringPresets.placeHighSample().armTarget(armTarget.isOpen)
 //                println("ARM TARGET: ${armTarget.pivot}, ${armTarget.extension}")
 
                 armLoop.target(armTarget)
