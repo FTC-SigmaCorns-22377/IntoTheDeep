@@ -122,10 +122,11 @@ class RobotIO(
                 initialScoringPose.theta.value
             )
         })
-        pinpointDriver.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,GoBildaPinpointDriver.EncoderDirection.REVERSED)
+        pinpointDriver.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,GoBildaPinpointDriver.EncoderDirection.REVERSED)
 
         rerun(rerunConnection) {
             field(hardwareMap.appContext)
+            transform("field/image", mat = floatArrayOf(0f,1f,0f, 1f,0f,0f, 0f,0f,1f))
         }
 
         hubs = hardwareMap.getAll(LynxModule::class.java)

@@ -1,6 +1,7 @@
 package sigmacorns.common
 
 import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
 import net.unnamedrobotics.lib.math2.inches
 import eu.sirotin.kotunil.core.*
@@ -10,6 +11,7 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
+import net.unnamedrobotics.lib.math2.z
 import sigmacorns.common.subsystems.arm.ArmTarget
 import sigmacorns.common.subsystems.arm.ScoringKinematics
 import sigmacorns.common.subsystems.arm.ScoringPose
@@ -58,4 +60,14 @@ object ScoringPresets {
     fun placeOverSample(distance: Metre) = placeHeight(HOVER_HEIGHT, distance, HOVER_PITCH)
     fun placeOverSubmersible(distance: Metre) = placeHeight(SUBMERSIBLE_TRANSITION_HEIGHT,distance, HOVER_PITCH)
     fun grabSamplePose(distance: Metre) = placeHeight(GRAB_HEIGHT,distance, HOVER_PITCH)
+}
+
+object AutoSamples {
+    val SAMPLE_Y_1 = 60.cm -1.inches
+    val SAMPLE_X = 120.cm - 2.inches
+    val SAMPLE_HEIGHT = 1.5.inches
+
+    val BLUE_BUCKET_SAMPLE_1 = vec3(24.inches*3 - SAMPLE_X, SAMPLE_Y_1, SAMPLE_HEIGHT/2.0)
+    val BLUE_BUCKET_SAMPLE_2 = vec3(BLUE_BUCKET_SAMPLE_1.x, BLUE_BUCKET_SAMPLE_1.y + 10.inches, BLUE_BUCKET_SAMPLE_1.z)
+    val BLUE_BUCKET_SAMPLE_3 = vec3(BLUE_BUCKET_SAMPLE_2.x, BLUE_BUCKET_SAMPLE_2.y + 10.inches, BLUE_BUCKET_SAMPLE_2.z)
 }

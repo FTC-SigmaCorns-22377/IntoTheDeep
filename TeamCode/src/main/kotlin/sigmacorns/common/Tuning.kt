@@ -7,6 +7,12 @@ import eu.sirotin.kotunil.core.div
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.degrees
+import sigmacorns.common.Choreo.CHOREO_ANG_D
+import sigmacorns.common.Choreo.CHOREO_ANG_I
+import sigmacorns.common.Choreo.CHOREO_ANG_P
+import sigmacorns.common.Choreo.CHOREO_POS_D
+import sigmacorns.common.Choreo.CHOREO_POS_I
+import sigmacorns.common.Choreo.CHOREO_POS_P
 import sigmacorns.common.SwerveHeading.SWERVE_HEADING_D
 import sigmacorns.common.SwerveHeading.SWERVE_HEADING_I
 import sigmacorns.common.SwerveHeading.SWERVE_HEADING_I_ZONE_DEG
@@ -30,8 +36,10 @@ object Tuning {
     @JvmField
     var ARM_PIVOT_PROFILE_UP_ACC = 2.3
 
-    val ARM_PIVOT_PROFILE_DOWN = TrapezoidalProfile(ARM_PIVOT_PROFILE_DOWN_SPEED.rad / s, ARM_PIVOT_PROFILE_DOWN_ACC.rad / s / s)
-    val ARM_PIVOT_PROFILE_UP = TrapezoidalProfile(ARM_PIVOT_PROFILE_UP_SPEED.rad / s, ARM_PIVOT_PROFILE_UP_ACC.rad / s / s)
+    val ARM_PIVOT_PROFILE_DOWN
+        get() = TrapezoidalProfile(ARM_PIVOT_PROFILE_DOWN_SPEED.rad / s, ARM_PIVOT_PROFILE_DOWN_ACC.rad / s / s)
+    val ARM_PIVOT_PROFILE_UP
+        get() = TrapezoidalProfile(ARM_PIVOT_PROFILE_UP_SPEED.rad / s, ARM_PIVOT_PROFILE_UP_ACC.rad / s / s)
 
     @JvmField
     var ARM_FINE_DIST_DEG = 5
@@ -40,7 +48,7 @@ object Tuning {
         get() = ARM_FINE_DIST_DEG.degrees
 
     @JvmField
-    var ARM_EXTEND_FINE_DIST_CM = 5
+    var ARM_EXTEND_FINE_DIST_CM = 7
 
     val ARM_FINE_EXTENSION_DIST
         get() = ARM_EXTEND_FINE_DIST_CM.cm
@@ -69,7 +77,7 @@ object Tuning {
         get() = PIDCoefficients(ARM_EXTEND_P, ARM_EXTEND_I, ARM_EXTEND_D)
 
     @JvmField
-    var ARM_FINE_PIVOT_P = 5.0
+    var ARM_FINE_PIVOT_P = 5.5
     @JvmField
     var ARM_FINE_PIVOT_I = 5.0
     @JvmField
@@ -78,9 +86,9 @@ object Tuning {
         get() = PIDCoefficients(ARM_FINE_PIVOT_P, ARM_FINE_PIVOT_I, ARM_FINE_PIVOT_D)
 
     @JvmField
-    var ARM_FINE_EXTEND_P = 24.0
+    var ARM_FINE_EXTEND_P = 27.0
     @JvmField
-    var ARM_FINE_EXTEND_I = 1.0
+    var ARM_FINE_EXTEND_I = 5.0
     @JvmField
     var ARM_FINE_EXTEND_D = 0.0
     val ARM_FINE_EXTEND_PID
@@ -112,6 +120,11 @@ object Tuning {
         get() = SWERVE_HEADING_I_ZONE_DEG.degrees
     val SWERVE_HEADING_PROFILE
         get() = TrapezoidalProfile(SwerveHeading.SPEED.rad/s,SwerveHeading.ACCELERATION.rad/s/s)
+
+    val CHOREO_POS_PID
+        get() = PIDCoefficients(CHOREO_POS_P,CHOREO_POS_I,CHOREO_POS_D)
+    val CHOREO_ANG_PID
+        get() = PIDCoefficients(CHOREO_ANG_P,CHOREO_ANG_I,CHOREO_ANG_D)
 }
 
 //TODO: only constantly update in controllers when flag is set / make nice syntax for it.
@@ -131,4 +144,22 @@ object SwerveHeading {
     var SPEED = 1.0
     @JvmField
     var ACCELERATION = 1.0
+}
+
+@Config
+object Choreo {
+    @JvmField
+    var CHOREO_POS_P = 4.0
+    @JvmField
+    var CHOREO_POS_I = 0.15
+    @JvmField
+    var CHOREO_POS_D = 0.0
+
+
+    @JvmField
+    var CHOREO_ANG_P = 2.0
+    @JvmField
+    var CHOREO_ANG_I = 0.0
+    @JvmField
+    var CHOREO_ANG_D = 0.0
 }

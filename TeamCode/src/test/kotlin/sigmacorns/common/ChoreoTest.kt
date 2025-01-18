@@ -29,10 +29,10 @@ class ChoreoTest {
     fun test() {
         Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
             it.isAccessible = true
-            it.set(null,File("C:\\Users\\chemi\\Documents\\choreo"))
+            it.set(null,File("C:\\Users\\chemi\\Documents\\choreo\\blueauto"))
         }
 
-        val traj = (Choreo::loadTrajectory)("New Path").get() as Trajectory<SwerveSample>
+        val traj = (Choreo::loadTrajectory)("TESTPATH").get() as Trajectory<SwerveSample>
 
         val pos = traj.initialSample.let { Transform2D(it.x.m,it.y.m,it.heading.rad) }
 
