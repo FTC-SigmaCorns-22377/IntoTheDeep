@@ -43,6 +43,8 @@ class ChoreoController(
 
     val trajectoryLogger = TrajectoryLogger(drivebaseSize.x.cast(m),drivebaseSize.y.cast(m))
 
+    private var lastTraj: Trajectory<SwerveSample>? = null
+
     var t = 0.0
 
     lateinit var sample: SwerveSample
@@ -50,14 +52,15 @@ class ChoreoController(
     override fun copy() = TODO()
 
     override fun update(deltaTime: Double): SwerveController.Target {
-        t += deltaTime
+        if(lastTraj == target) t += deltaTime else t = 0.0
+        lastTraj = target
 //        sample = target.getClosestSample(position.pos.toPose2d())
 //        sample = target.sampleAt(sample.t + 1.ms.value)
         sample = target.sampleAt(t)
         val endSample = target.finalSample.pose
 
-//        if((sample.pose.toTransform2d() - endSample.toTransform2d()).vector().magnitude() < 5.cm)
-//            sample = target.finalSample
+        if((sample.pose.toTransform2d() - endSample.toTransform2d()).vector().magnitude() < 5.cm)
+            sample = target.finalSample
 
         val posErr = sample.pose.toTransform2d()-position.pos
         val robotRelPosErr = posErr.vector().rotate((-position.pos.angle).cast(rad))/s
@@ -67,11 +70,10 @@ class ChoreoController(
             rad)),sample.alpha.rad/s)
 
         val velBase = Twist2D(
-            vec2(sample.vx.m/s,sample.vy.m/s)
-                .rotate((-position.pos.angle).cast(rad)),
+            vec2(sample.vx.m/s,sample.vy.m/s).rotate((-position.pos.angle).cast(rad)),
             sample.omega.rad/s
         )
-        val velErr = velBase - position.vel
+        val velErr = (velBase - position.vel.let { Twist2D(it.vector().rotate((-position.pos.angle).cast(rad)),it.dAngle) })
 
         val res =
             Transform2D(robotRelPosErr*coeff.p, headingErr*angCoeff.p) +

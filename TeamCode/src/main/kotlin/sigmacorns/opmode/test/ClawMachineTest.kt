@@ -60,7 +60,7 @@ class ClawMachineTest: SimOrHardwareOpMode() {
 
         var scoringPose = initialScoringPose
 
-        val speed = 5.cm/s
+        val speed = 15.cm/s
         val driveSpeed = 2.m/s
         val turnSpeed = 0.5.rad/s
 

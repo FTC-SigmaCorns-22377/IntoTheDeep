@@ -82,12 +82,16 @@ class SimIO(
 
         val dir = System.getProperty("user.dir")
         rerunConnection.field("$dir/src/test/resources/field_image.png")
+
+        rerun(rerunConnection) {
+            transform("field/image", mat = floatArrayOf(0f,1f,0f, 1f,0f,0f, 0f,0f,1f))
+        }
     }
 
     private val boxTubeKinematics = DiffyKinematics(Constants.ARM_PIVOT_RATIO,Constants.ARM_EXTENSION_RATIO)
 
     private val armIntegrator: RK45Integrator<SimArmState, List<Volt>> = RK45Integrator(
-        minStep = 0.002, tolerance = 0.005
+        minStep = 0.001, tolerance = 0.003
     )
 
     private var armState: SimArmState = SimArmState(initialScoringPose.pivot,initialScoringPose.extension)
@@ -130,7 +134,7 @@ class SimIO(
         val t1 = (Kt*x.i1).cast(N*m)
         val t2 = (Kt*x.i2).cast(N*m)
 
-        val armMoment = x.extension.map { it.absoluteValue } * Constants.ARM_MOMENT_RATIO + 10000.g*mm*mm
+        val armMoment = x.extension.map { it.absoluteValue } * Constants.ARM_MOMENT_RATIO + 20000.g*mm*mm
 
         val g = (-9.8).m/s/s
 
@@ -175,7 +179,7 @@ class SimIO(
     fun stepSim(dt: Second) {
         fun actuatorToPower(actuator: Actuator<Double>) =
             ((actuator as SimActuator).u
-                ?.clampMagnitude(1.0)
+                ?.clampMagnitude(1.0)?.takeIf { !it.isNaN() }
                 ?: 0.0).unitless()
 
         armState = armIntegrator.integrate(
@@ -204,8 +208,8 @@ class SimIO(
     context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun armPositions(): List<Tick> = armPosSensor.get()
 
     private val turnVoltageSensor = sensor(bulkReadable = true, name = "turnVoltage") {
-        swerveIntegrator.state.turns.map { x ->
-            ((x.position/revolution)*3.3.V).cast(V)
+        swerveIntegrator.state.turns.zip(Constants.MODULE_OFFSET).map {
+            (((it.first.position + it.second)/revolution)*3.3.V).map { it.mod(3.3.V.value) }.cast(V)
         }
     }
 

@@ -77,14 +77,16 @@ class ArmController()
 
         if(!useProfile) profile = null
         if(useProfile && (profile==null  || ((profile!!)(1000.s) - target.pivot).value.absoluteValue > Tuning.ARM_FINE_DIST.value.absoluteValue)) {
+            val resetT = profile == null
             profile =
                 (
                     if(pivot.map { it.absoluteValue } > pos.axis1.map { it.absoluteValue })
                         Tuning.ARM_PIVOT_PROFILE_DOWN
                     else
                         Tuning.ARM_PIVOT_PROFILE_UP
+
                 ).new(pos.axis1,target.pivot)
-            profileT = 0.s
+            if(resetT) profileT = 0.s
         }
 
         if(useProfile) {

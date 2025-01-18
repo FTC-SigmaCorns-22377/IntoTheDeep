@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.inches
+import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.physics.LinearTireModel
 import net.unnamedrobotics.lib.physics.SwerveDrivebase
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
@@ -26,10 +27,13 @@ import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.io.ControlLoopContext
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.subsystems.arm.armControlLoop
+import sigmacorns.common.subsystems.path.ChoreoController
+import sigmacorns.common.subsystems.path.choreoControllerLoop
 import sigmacorns.common.subsystems.swerve.ModuleController
 import sigmacorns.common.subsystems.swerve.SwerveController
 import sigmacorns.common.subsystems.swerve.idController
 import sigmacorns.common.subsystems.swerve.swerveControlLoop
+import sigmacorns.common.subsystems.swerve.swerveHeadingControlLoop
 import sigmacorns.common.subsystems.swerve.swerveLogPosControlLoop
 import sigmacorns.common.subsystems.swerve.swerveLogVelControlLoop
 import sigmacorns.opmode.SIM
@@ -51,12 +55,23 @@ class Robot(val io: SigmaIO): Closeable {
     var ioLoop: Job? = null
 
     val armControlLoop = armControlLoop()
-    val swerveControlLoop = swerveControlLoop(SwerveController(
+    val swerveController = SwerveController(
         ModuleController(Tuning.SWERVE_MODULE_PID),
-        drivebase)
+        drivebase
     )
+
+    //TODO: REFACTOR THESE INTO ONE
+    val swerveControlLoop = swerveControlLoop(swerveController)
+    val swerveHeadingControlLoop = swerveHeadingControlLoop(swerveController)
+
     val swerveLogPosControlLoop = swerveLogPosControlLoop(swerveControlLoop)
     val swerveLogVelControlLoop = swerveLogVelControlLoop(swerveControlLoop)
+
+    val choreoControlLoop = choreoControllerLoop(ChoreoController(
+        Tuning.CHOREO_POS_PID,
+        Tuning.CHOREO_ANG_PID,
+        vec2(drivebase.width,drivebase.length),3
+    ),swerveControlLoop)
 
     context(LinearOpMode)
     fun launchIOLoop() {

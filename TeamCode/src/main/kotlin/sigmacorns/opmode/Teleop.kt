@@ -41,7 +41,7 @@ import sigmacorns.common.subsystems.swerve.SwerveController
 class Teleop: SimOrHardwareOpMode() {
     override val initialScoringPose = ScoringPose(
         vec2(0.m,0.m),
-        0.degrees,
+        90.degrees,
         406.4.mm,
         90.degrees,
         0.rad,0.rad
@@ -53,7 +53,7 @@ class Teleop: SimOrHardwareOpMode() {
     var targetHeading: Expression = initialScoringPose.theta
 
     override fun runOpMode(io: SigmaIO) {
-        io.rerunConnection.disabled = true
+//        io.rerunConnection.disabled = true
 
         val robot = Robot(io)
 
@@ -70,18 +70,16 @@ class Teleop: SimOrHardwareOpMode() {
         val normalMaxSpeed = 1.0 * robot.topSpeed()
         val slowMaxSpeed = (0.5) * normalMaxSpeed
 
-        val normalAngularMaxSpeed = 0.5 * robot.topAngularSpeed()
+        val normalAngularMaxSpeed = 0.4 * robot.topAngularSpeed()
         val slowAngularMaxSpeed = (0.5) * normalAngularMaxSpeed
 
-        val armPivotNormalSpeed = 1.0.rad/s
+        val armPivotNormalSpeed = 0.5.rad/s
         val armPivotSlowSpeed = armPivotNormalSpeed * 0.5
 
-        val armExtensionNormalSpeed = 1.0.m/s
+        val armExtensionNormalSpeed = 25.cm/s
         val armExtensionSlowSpeed = armExtensionNormalSpeed * 0.5
 
-        val armSpeed = 6.cm/s
-
-        val clawRollSpeed = 2.rad/s
+        val clawRollSpeed = 6.rad/s
 
         gamepad1.type = Gamepad.Type.LOGITECH_F310
         gamepad2.type = Gamepad.Type.LOGITECH_F310
@@ -110,20 +108,19 @@ class Teleop: SimOrHardwareOpMode() {
         var wasA1Pressed = false
         var wasA2Pressed = false
 
+        var wasXPressed = false
 
         robot.inputLoop { dt ->
             gm1.periodic()
             gm2.periodic()
             runBlocking {
-                val pos = swerve.controller.logPosition
-                val vel = swerve.controller.logVelocity
-                val armPos = ScoringKinematics.forward(ScoringPose(armTarget))
-
                 slewRateLimiter.maxRate = Tuning.SWERVE_MAX_SLEW_RATE
                 headingController.coefficients = Tuning.TELEOP_HEADING_PID
 
                 //swerve speed controls
-                isSlowMode = gm1.x.isToggled
+                if(gamepad1.x && !wasXPressed) isSlowMode = !isSlowMode
+                wasXPressed = gamepad1.x
+
                 val maxSpeed = if(isSlowMode) slowMaxSpeed else normalMaxSpeed
                 val angularMaxSpeed = if(isSlowMode) slowAngularMaxSpeed else normalAngularMaxSpeed
 
@@ -133,27 +130,7 @@ class Teleop: SimOrHardwareOpMode() {
                 val angularSpeed = -gamepad1.right_stick_x.toDouble() * angularMaxSpeed
                 val lockWheels = gamepad1.left_stick_button
 
-//                targetHeading += angularSpeed*dt
-//
-//                val diff = (targetHeading-pos.angle).normalizeRadian()
-//                    .map { it.clampMagnitude(Tuning.TELEOP_TARGET_HEADING_MAX_DIFF) }
-//                targetHeading = pos.angle + diff
-//
-//                val angularPower = headingController.updateStateless(
-//                    dt.value,
-//                    pos.angle.value,
-//                    targetHeading.value
-//                ).rad/s
-
-                var speed = vec2(xSpeed,ySpeed)
-//                if(speed.magnitude().value > Tuning.MIN_VEL_SLEW_LIMIT) {
-//                    val angle = slewRateLimiter.updateStateless(
-//                        dt.value,
-//                        vel.vector().theta().value,
-//                        speed.theta().value
-//                    ).rad
-//                    speed = polar(speed.magnitude(),angle)
-//                }
+                val speed = vec2(xSpeed,ySpeed)
 
                 // field relative wooo
                 swerve.mapTarget {
@@ -161,36 +138,16 @@ class Teleop: SimOrHardwareOpMode() {
                     SwerveController.Target(Transform2D(speed.rotate(theta.cast(rad)), angularSpeed), lockWheels)
                 }
 
-                if(gm1.start.isJustPressed)
+                if(gamepad1.start)
                     if(!SIM) (io as RobotIO).pinpoint.reset()
 
-//                //speed control
-//                if(gm2.x.isJustPressed) isArmSlowMode = !isArmSlowMode
-//                val armPivotSpeed = if(isArmSlowMode) armPivotSlowSpeed else armPivotNormalSpeed
-//                val armExtensionSpeed = if(isArmSlowMode) armExtensionSlowSpeed else armExtensionNormalSpeed
-//
-//                //manual arm controls
-//                armTarget.pivot = (armTarget.pivot + (gm2.leftStick.yAxis * dt * armPivotSpeed)).cast(rad)
-//                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply(armTarget.pivot)
-//
-//                armTarget.extension = (armTarget.extension + (gm2.rightStick.yAxis * dt * armExtensionSpeed)).cast(m)
-//                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply(armTarget.extension)
-
-                armTarget = ScoringKinematics.inverse(armPos.also {
-                    it.samplePos = vec3(
-                        it.samplePos.x + gm2.leftStick.xAxis*armSpeed*dt,
-                        it.samplePos.y,
-                        it.samplePos.z + gm2.leftStick.yAxis*armSpeed*dt
-                    )
-                }).armTarget(armTarget.isOpen)
-
-                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply(armTarget.extension)
-                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply(armTarget.pivot)
+                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply((armTarget.extension - gamepad2.left_stick_y*armExtensionNormalSpeed*dt).cast(m))
+                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply((armTarget.pivot + gamepad2.right_stick_y*armPivotNormalSpeed*dt).cast(rad))
 
                 //roll
-                if(gm1.leftBumper.isPressed || gm2.leftBumper.isPressed)
+                if(gamepad1.left_bumper || gamepad2.left_bumper)
                     armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll - clawRollSpeed*dt).cast(rad))
-                if(gm1.rightBumper.isPressed || gm2.rightBumper.isPressed)
+                if(gamepad1.right_bumper || gamepad2.right_bumper)
                     armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll + clawRollSpeed*dt).cast(rad))
 
                 //claw
