@@ -1,4 +1,4 @@
-package sigmacorns.common.subsystems.localization//package sigmacorns.common.subsystems.swerve
+package sigmacorns.common.localization//package sigmacorns.common.subsystems.swerve
 //
 //import net.unnamedrobotics.lib.math.Pose
 //import sigmacorns.common.subsystems.vision.AprilTagLocalizer

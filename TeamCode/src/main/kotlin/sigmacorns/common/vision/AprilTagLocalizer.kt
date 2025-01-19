@@ -1,7 +1,7 @@
 // vals and vars a bit lazy, sorry
 // also a lot of these can be vectorized but ugh
 
-package sigmacorns.common.subsystems.vision
+package sigmacorns.common.vision
 
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.IMU

@@ -1,74 +1,12 @@
 package sigmacorns.common
 
-import eu.sirotin.kotunil.base.A
-import eu.sirotin.kotunil.base.Metre
-import eu.sirotin.kotunil.base.centimetre
-import eu.sirotin.kotunil.base.kg
-import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.ns
-import eu.sirotin.kotunil.derived.Radian
-import eu.sirotin.kotunil.core.*
-import eu.sirotin.kotunil.derived.H
-import eu.sirotin.kotunil.derived.Hz
-import eu.sirotin.kotunil.derived.N
-import eu.sirotin.kotunil.derived.V
-import eu.sirotin.kotunil.derived.rad
-import eu.sirotin.kotunil.derived.Ω
-import eu.sirotin.kotunil.specialunits.g
-import net.unnamedrobotics.lib.math2.Bounds
-import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
-import net.unnamedrobotics.lib.math2.inches
-import net.unnamedrobotics.lib.math2.revolution
-import net.unnamedrobotics.lib.math2.revolutions
-import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
-import sigmacorns.opmode.SIM
-import kotlin.math.hypot
 
 object Constants {
-
-    val ANALOG_MAX = 3.3.V
-
-    /*-----PHYSICAL MEASUREMENTS-----*/
-
-    /**
-     * X is the length of the side plates
-     */
-    val DRIVEBASE_SIZE = vec3(329.59376.mm,335.94376.mm,65.52500.mm)
-
-
-    val ODO_CENTER = vec3()
-
-    /**
-     * Position of the axle relative to the center of the robot.
-     */
-    val AXLE_CENTER = vec3((-127.49760).mm,0.mm,142.356.mm)
-
-    /**
-     * The radius of the axle when visualized through rerun.
-     */
-    val AXLE_VISUAL_RADIUS = 10.mm
-
-    val BOXTUBE_1_VISUAL_OFFSET = 32.8.mm
-    val BOXTUBE_SECTION_LENGTH = 330.mm
-    val BOXTUBE_VISUAL_SIZES = listOf(1.5.inches,1.inches,0.5.inches)
-
-    /**
-     * Orthogonal distance between the box tube and the arm axle
-     */
-    val ARM_OFFSET = 66.13235.mm
-
-    /**
-     * Length between the pivot axis of the claw and the ideal gripped sample position
-     */
-    val CLAW_LENGTH = 0.0.inches
-
-    val ARM_MOTOR_GEAR_RATIO = (((1+(46/11))) * (1+(46/11))).rad / rad
-
     /**
      * Limelight Pose3d in robot coordinates; ROT contains (yaw, pitch, roll).
      * I avoided vec3 since the components kept returning as expressions and I'm too lazy to fix it.
@@ -76,41 +14,6 @@ object Constants {
      */
     val LIMELIGHT_OFFSET_VEC = arrayOf(0.0,0.0,0.0)
     val LIMELIGHT_OFFSET_ROT = arrayOf(0.0,0.0,0.0)
-
-    // -----GoBilda Motor Constants-----
-    /**
-     * Encoder ticks per internal revolution of each motor
-     */
-    val MOTOR_TICK_RATIO = 28.tick / revolution
-    val MOTOR_TORQUE_CONSTANT = 0.0188605*(N*m / A)
-    val MOTOR_INDUCTANCE = 0.01*H
-    val MOTOR_RESISTANCE = 1.15674*Ω
-
-    /**
-     * arm pulley ratio = 16:36
-     * gearing between pulley and spool = 80:36,
-     * spool radius = 25mm
-     * bc its cascade the arm extends 2m for every m of string spooled.
-     */
-    val ARM_PULLEY_RATIO = 16.revolutions / 36.revolutions
-    val ARM_DIFFY_RATIO = 80.revolutions / 36.revolutions
-    val ARM_SPOOL_RADIUS = 25.mm
-
-    val ARM_PIVOT_RATIO = (ARM_PULLEY_RATIO/ARM_MOTOR_GEAR_RATIO/MOTOR_TICK_RATIO).cast(revolution/tick)
-    val ARM_EXTENSION_RATIO = (ARM_PIVOT_RATIO * ( ARM_DIFFY_RATIO * ARM_SPOOL_RADIUS*revolution / revolution) * 2.m/m).cast(m/tick)
-
-    val ARM_MOMENT_RATIO =
-        ((78321.89077 * (g*mm*mm) - 20598.01367 * (g*mm*mm))
-                / (871.58165.mm - 369.90937.mm))
-        .cast(kg*m*m / m)
-    val ARM_COM_DIST_TO_PIVOT = hypot(68.58108,18.61353).mm
-
-    /**
-     * Ratio between pitch and roll axes of the claw.
-     */
-    val CLAW_PITCH_RATIO = 1.rad / 1.rad
-
-    val CLAW_ROLL_RATIO = 40.rad / 25.rad
 
     // -----Camera Calibration-----
     /**
@@ -145,69 +48,6 @@ object Constants {
      */
     val CAMERA_MATRIX = arrayOf(arrayOf(1215.838,0.0,647.801),arrayOf(0.0,1215.106,500.489),arrayOf(0.0,0.0,1.0))
     // default ((1221.445,0.0,637.226),(0.0,1223.398,502.549),(0,0,1))
-
-
-    /*-----BOUNDS-----*/
-    val ARM_PIVOT_BOUNDS: Bounds<Radian> = Bounds((-30).degrees,90.degrees)
-    val ARM_EXTENSION_BOUNDS: Bounds<Metre> = Bounds(376.43997.mm,1010.58165.mm)
-    val CLAW_SERVO_1_BOUNDS: Bounds<Radian> = Bounds((-355.0/2.0).degrees, (355.0/2.0).degrees)
-    val CLAW_SERVO_2_BOUNDS: Bounds<Radian> = Bounds((-355.0/2.0).degrees, (355.0/2.0).degrees)
-    val CLAW_PITCH_BOUNDS = Bounds((-90).degrees,90.degrees)
-    val CLAW_ROLL_BOUNDS = Bounds((-180).degrees,(180).degrees)
-
-    /**-----SAFETY-----*/
-
-    /**
-     * How far away the extension needs to be from [ARM_EXTENSION_BOUNDS] to run full power.
-     *
-     * When the current position is within the threshold the power is clamped to [ARM_SAFE_EXTENSION_POWER].
-     */
-    val ARM_SAFE_EXTENSION_THRESH: Metre = 10.centimetre
-
-
-    /**
-     * How far away the pivot needs to be from [ARM_PIVOT_BOUNDS] to run full power.
-     *
-     * When the distance between the pivot bounds is less than it, the power is clamped to [ARM_SAFE_PIVOT_POWER].
-     */
-    val ARM_SAFE_PIVOT_THRESH: Radian = 10.degrees
-
-    /**
-     * The maximum power to apply to the extension when it is under [ARM_SAFE_EXTENSION_THRESH]
-     */
-    val ARM_SAFE_EXTENSION_POWER = 3.V
-
-    /**
-     * The maximum power to apply to the pivot when it is under [ARM_SAFE_PIVOT_THRESH]
-     */
-    val ARM_SAFE_PIVOT_POWER = 4.V
-
-    /**
-     * The maximum power to apply to an individual arm motor.
-     */
-    val ARM_MAX_MOTOR_POWER = 12.V
-
-    val CLAW_CLOSED = 0.23
-    val CLAW_OPEN = 0.75
-
-    val MODULE_OFFSET = arrayOf(
-        0.5026548245743669.rad,
-        1.6203002110332811.rad,
-        6.233681422941202.rad,
-        4.386805741739931.rad
-    )
-}
-
-object LoopTimes {
-    val SWERVE = 500.Hz
-    val ARM = 300.Hz
-    val CHOREO = 100.Hz
-    val SWERVE_POS_UPDATE = 100.Hz
-
-    const val DRIVE_UPDATE_THRESHOLD = 0.01
-    const val TURN_UPDATE_THRESHOLD = 0.02
-    const val ARM_UPDATE_THRESHOLD = 0.02
-    const val DIFFY_UPDATE_THRESHOLD = 0.005
 }
 
 object SimIOTimes {
@@ -221,9 +61,4 @@ object SimIOTimes {
 
 @Suppress("SimplifyBooleanWithConstants", "MemberVisibilityCanBePrivate", "KotlinConstantConditions" )
 object LOGGING {
-    const val ALL_LOG: Boolean = false
-    const val LOG_IO: Boolean = false && ALL_LOG
-    val RERUN_SWERVE: Boolean = (true && ALL_LOG) || SIM
-    val RERUN_CHOREO: Boolean = (true && ALL_LOG) || SIM
-    val RERUN_ARM: Boolean = (true && ALL_LOG) || SIM
 }

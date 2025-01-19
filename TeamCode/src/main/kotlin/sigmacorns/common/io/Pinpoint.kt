@@ -106,6 +106,3 @@ class PinpointLocalizer(val device: GoBildaPinpointDriver) {
         )
     }
 }
-
-
-
