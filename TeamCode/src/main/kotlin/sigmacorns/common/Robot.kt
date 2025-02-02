@@ -1,6 +1,78 @@
 package sigmacorns.common
 
+import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.derived.Radian
+import net.unnamedrobotics.lib.command.Scheduler
+import net.unnamedrobotics.lib.command.schedule
+import net.unnamedrobotics.lib.control.controller.transfer
+import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.physics.MecanumDrivebase
+import net.unnamedrobotics.lib.physics.goBildaMotorConstants
+import sigmacorns.common.cmd.CommandSlot
+import sigmacorns.common.control.Actuator
+import sigmacorns.common.control.ArmControlLoop
+import sigmacorns.common.control.IntakeController
+import sigmacorns.common.control.MecanumController
+import sigmacorns.common.control.slidesControlLoop
+import sigmacorns.common.control.toControlLoop
 import sigmacorns.common.io.SigmaIO
+import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.constants.Physical
+import sigmacorns.constants.Tuning
 
-class Robot(val io: SigmaIO) {
+class Robot(
+    val io: SigmaIO,
+    val initArmPose: DiffyOutputPose,
+    val initSlidesPose: DiffyOutputPose,
+    intakePos: IntakePositions = IntakePositions.OVER
+) {
+    val drivebase: MecanumDrivebase = MecanumDrivebase(
+        Physical.WHEEL_RADIUS,
+        Physical.DRIVEBASE_SIZE.y.cast(m),
+        Physical.DRIVEBASE_SIZE.x.cast(m),
+        Physical.WEIGHT,
+        Physical.WHEEL_INERTIA,
+        goBildaMotorConstants(Physical.DRIVE_RATIO)
+    )
+
+    val mecanum = MecanumController(drivebase,io)
+    val slides = slidesControlLoop(io,initSlidesPose)
+    val arm = with(io) { ArmControlLoop(Actuator { armL = it }, Actuator { armR = it }, initArmPose, io) }
+
+    val intake = transfer { d, x: Unit, t: IntakePositions ->
+        t.x
+    }.toControlLoop("intake",io,{},{
+        io.intakeL = it.first; io.intakeR = it.second
+   }).also { it.t = intakePos  }
+
+    enum class IntakePositions(val x: Pair<Double, Double>) {
+        OVER(Tuning.INTAKE_OVER_POS),
+        BACK(Tuning.INTAKE_BACK_POS),
+        INTER(Tuning.INTAKE_INTER_POS)
+    }
+
+    val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
+    val active: Actuator<Double> = with(io) { Actuator { intake = it }}
+
+    val extendCommandSlot = CommandSlot()
+    val liftCommandSlot = CommandSlot()
+    val armCommandSlot = CommandSlot()
+    val intakeCommandSlot = CommandSlot()
+
+    init {
+        extendCommandSlot.schedule()
+        liftCommandSlot.schedule()
+        armCommandSlot.schedule()
+        intakeCommandSlot.schedule()
+    }
+
+    fun update(dt: Double) {
+        mecanum.tickControlNode(dt)
+        slides.tickControlNode(dt)
+        arm.tickControlNode(dt)
+        intake.tickControlNode(dt)
+        active.node.tickControlNode(dt)
+        claw.node.tickControlNode(dt)
+        io.updateColor()
+    }
 }

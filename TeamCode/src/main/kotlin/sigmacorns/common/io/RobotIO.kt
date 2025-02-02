@@ -1,33 +1,200 @@
 package sigmacorns.common.io
 
+import android.graphics.Color
+import android.graphics.ColorSpace
+import com.qualcomm.robotcore.hardware.ColorRangeSensor
+import com.qualcomm.robotcore.hardware.ColorSensor
+import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.HardwareMap
-import eu.sirotin.kotunil.base.Second
+import com.qualcomm.robotcore.hardware.Servo
+import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.s
+import eu.sirotin.kotunil.core.*
+import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
+import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
+import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.util.Clock
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 
 class RobotIO(
     val hardwareMap: HardwareMap,
-    io: String = "192.168.43.122",
-    rerunName: String = "unnamed",
+    val ip: String = "192.168.43.122",
+    val rerunName: String = "unnamed",
 ): SigmaIO() {
+    //TODO: disable rerunconnection by default.
+    private var rerun: RerunConnection? = null
     override val rerunConnection: RerunConnection
-        get() = TODO("Not yet implemented")
+        get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
+
+    private val m1 = hardwareMap.get(DcMotor::class.java,"D1")
+    private val m2 = hardwareMap.get(DcMotor::class.java,"D2")
+
+    private val fl = hardwareMap.get(DcMotor::class.java,"FL")
+    private val bl = hardwareMap.get(DcMotor::class.java,"BL")
+    private val br = hardwareMap.get(DcMotor::class.java,"BR")
+    private val fr = hardwareMap.get(DcMotor::class.java,"FR")
+
+    private val mIntake = hardwareMap.get(DcMotor::class.java,"intake")
+
+    // arm: 01
+    // claw: 2
+    // intake: 34
+    // tilt: 56
+    //
+
+    private val sArmL = hardwareMap.get(Servo::class.java, "AL")
+    private val sArmR = hardwareMap.get(Servo::class.java, "AR")
+    private val sClaw = hardwareMap.get(Servo::class.java, "claw")
+    private val sIntake1 = hardwareMap.get(Servo::class.java, "I1")
+    private val sIntake2 = hardwareMap.get(Servo::class.java, "I2")
+
+    private val colorSensor = hardwareMap.get(ColorRangeSensor::class.java, "color")
+
+    init {
+        fl.direction = DcMotorSimple.Direction.REVERSE
+        bl.direction = DcMotorSimple.Direction.REVERSE
+        m1.direction = DcMotorSimple.Direction.REVERSE
+        m2.direction = DcMotorSimple.Direction.REVERSE
+
+        m1.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+        m2.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+
+
+        m1.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        m2.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+
+        colorSensor.argb()
+    }
 
     override fun position(): Transform2D {
-        TODO("Not yet implemented")
+        return Transform2D(0.m,0.m,0.rad)
     }
 
     override fun velocity(): Twist2D {
-        TODO("Not yet implemented")
+        return Twist2D(0.m/s,0.m/s,0.rad/s)
     }
 
-    override fun voltage(): Volt {
-        TODO("Not yet implemented")
+    //TODO: proper caching once per tick.
+
+    override fun motor1Pos() = m1.currentPosition.tick
+
+    override fun motor2Pos() = m2.currentPosition.tick
+
+    private var lastColorVal: Int = 0
+    private var distance: Metre = 0.m
+
+    override fun updateColor() {
+        lastColorVal = colorSensor.argb()
+        distance = colorSensor.getDistance(DistanceUnit.METER).m
     }
 
-    override fun time(): Second {
-        TODO("Not yet implemented")
-    }
+    override fun red() = Color.red(lastColorVal)
+    override fun green() = Color.green(lastColorVal)
+    override fun blue() = Color.blue(lastColorVal)
+    override fun alpha() = Color.alpha(lastColorVal)
+    override fun distance(): Metre = distance
+
+    override fun voltage(): Volt = 12.V
+
+    override fun time() = Clock.seconds.s
+
+    override var driveFL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                fl.power = value
+                field = value
+            }
+        }
+    override var driveBL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                bl.power = value
+                field = value
+            }
+        }
+    override var driveBR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                br.power = value
+                field = value
+            }
+        }
+
+    override var driveFR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                fr.power = value
+                field = value
+            }
+        }
+
+    override var motor1: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m1.power = value
+                field = value
+            }
+        }
+
+    override var motor2: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m2.power = value
+                field = value
+            }
+        }
+
+    override var intake: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                mIntake.power = value
+                field = value
+            }
+        }
+
+    override var intakeL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sIntake1.position = value
+                field = value
+            }
+        }
+    override var intakeR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sIntake2.position = value
+                field = value
+            }
+        }
+
+    override var armL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sArmL.position = value
+                field = value
+            }
+        }
+    override var armR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sArmR.position = value
+                field = value
+            }
+        }
+    override var claw: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sClaw.position = value
+                field = value
+            }
+        }
+    override var tiltL: Double = 0.0
+    override var tiltR: Double = 0.0
 }

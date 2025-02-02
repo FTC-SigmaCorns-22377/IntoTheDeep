@@ -7,10 +7,8 @@ import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.IMU
 import net.unnamedrobotics.lib.math.Pose
 import net.unnamedrobotics.lib.math.radians
-import net.unnamedrobotics.lib.math2.Vector2
-import net.unnamedrobotics.lib.math2.vec2
-import sigmacorns.common.Constants.LIMELIGHT_OFFSET_ROT
-import sigmacorns.common.Constants.LIMELIGHT_OFFSET_VEC
+import sigmacorns.constants.Vision.LIMELIGHT_OFFSET_ROT
+import sigmacorns.constants.Vision.LIMELIGHT_OFFSET_VEC
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin

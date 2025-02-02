@@ -1,12 +1,10 @@
-package sigmacorns.common
+package sigmacorns.constants
 
-import eu.sirotin.kotunil.base.ms
-import eu.sirotin.kotunil.base.ns
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
 import net.unnamedrobotics.lib.math2.vec3
 
-object Constants {
+object Vision {
     /**
      * Limelight Pose3d in robot coordinates; ROT contains (yaw, pitch, roll).
      * I avoided vec3 since the components kept returning as expressions and I'm too lazy to fix it.
@@ -48,17 +46,4 @@ object Constants {
      */
     val CAMERA_MATRIX = arrayOf(arrayOf(1215.838,0.0,647.801),arrayOf(0.0,1215.106,500.489),arrayOf(0.0,0.0,1.0))
     // default ((1221.445,0.0,637.226),(0.0,1223.398,502.549),(0,0,1))
-}
-
-object SimIOTimes {
-    const val uncertainty = 0.2
-    val bulkRead = 1.ms
-    val motorWrite = 1.ms
-    val servoWrite = 1.ms
-    val pinpointFetch = 2.ms
-    val base = 10.ns
-}
-
-@Suppress("SimplifyBooleanWithConstants", "MemberVisibilityCanBePrivate", "KotlinConstantConditions" )
-object LOGGING {
 }

@@ -36,6 +36,14 @@ repositories {
 
 android {
 
+
+//    defaultConfig {
+//        externalNativeBuild {
+//            cmake {
+//                cppFlags ''
+//            }
+//        }
+//    }
     buildTypes {
         release {
 
@@ -66,6 +74,34 @@ android {
             jvmTarget = '11'
         }
     }
+//    externalNativeBuild {
+//        cmake {
+//            path file('src/main/cpp/CMakeLists.txt')
+//            version '3.22.1'
+//        }
+//    }
+}
+
+tasks.register("buildNativeLib", Exec) {
+    workingDir file("src/main/cpp/build")
+    commandLine "cmake", "..", "-DCMAKE_BUILD_TYPE=Release"
+    doFirst {
+        file("src/main/cpp/build").mkdirs()
+    }
+}
+
+tasks.register("compileNativeLib", Exec) {
+    workingDir file("src/main/cpp/build")
+    commandLine "cmake", "--build", "."
+    dependsOn "buildNativeLib"
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn "compileNativeLib"
+    doFirst {
+        def libPath = file("src/main/cpp/build/Debug/").absolutePath
+        System.setProperty("java.library.path", libPath)
+    }
 }
 
 project.afterEvaluate {
@@ -78,7 +114,7 @@ project.afterEvaluate {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation ("net.unnamedrobotics:library:1.0.29k@aar")
+    implementation ("net.unnamedrobotics:library:1.0.29n@aar")
     implementation 'dev.nullrobotics:choreolib:0.04'
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9'
