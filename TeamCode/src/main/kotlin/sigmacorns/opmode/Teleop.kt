@@ -25,6 +25,7 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.vec2
+import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.armCommand
@@ -58,7 +59,8 @@ class Teleop: SimOrHardwareOpMode() {
     var wasBPressed = false
     var wasYPressed = false
     var wasXPressed = false
-    var wasRBumperPressed = false
+    var wasRBumperPressed = 0
+    val rBumperThresh = 5
     var wasLBumperPressed = false
 
     var dt = 0.s
@@ -74,15 +76,15 @@ class Teleop: SimOrHardwareOpMode() {
     }
 
     private fun runClawOpen() {
-        if (gamepad1.y && !wasYPressed) {
-            intaking = true
-            intakingDist = 0.35.m
-
-            (autoIntake(
-                robot,
-                intakingDist.cast(m)
-            ) then cmd { instant { closeClaw() } }).schedule()
-        }
+//        if (gamepad1.y && !wasYPressed) {
+//            intaking = true
+//            intakingDist = 0.35.m
+//
+//            (autoIntake(
+//                robot,
+//                intakingDist.cast(m)
+//            ) then cmd { instant { closeClaw() } }).schedule()
+//        }
 
         if (gamepad1.left_bumper)
             liftCommand(robot, 0.m).schedule()
@@ -101,13 +103,13 @@ class Teleop: SimOrHardwareOpMode() {
                 DiffyOutputPose(intakingDist, it.axis2)
             }
 
-            if (gamepad1.y && !wasYPressed) {
-                retract(robot).schedule()
-                intaking = false
-            }
+//            if (gamepad1.y && !wasYPressed) {
+//                retract(robot).schedule()
+//                intaking = false
+//            }
         }
 
-        if (gamepad2.right_bumper && !wasRBumperPressed) robot.intake.t = when (robot.intake.t) {
+        if (gamepad2.right_bumper && wasRBumperPressed > rBumperThresh) robot.intake.t = when (robot.intake.t) {
             Robot.IntakePositions.OVER -> Robot.IntakePositions.INTER
             Robot.IntakePositions.INTER -> Robot.IntakePositions.OVER
             Robot.IntakePositions.BACK -> TODO()
@@ -168,7 +170,7 @@ class Teleop: SimOrHardwareOpMode() {
                 } then transferCommand(robot) then cmd { instant { closeClaw() } }
                 ).schedule()
 
-        if (gamepad1.right_bumper && !wasRBumperPressed) {
+        if (gamepad1.right_bumper && wasRBumperPressed > rBumperThresh) {
             dst = ScorePositions.HIGH_BUCKET
             depoCommand(robot, dst!!.x).schedule()
         }
@@ -187,6 +189,10 @@ class Teleop: SimOrHardwareOpMode() {
             dst = ScorePositions.HIGH_SPECIMEN
             depoCommand(robot, dst!!.x).schedule()
         }
+
+//        rerun(io?.rerunConnection!!) {
+//             scalar("sjgsgfojn",)
+//        }
     }
 
     override fun runOpMode(io: SigmaIO) {
@@ -203,7 +209,7 @@ class Teleop: SimOrHardwareOpMode() {
         val g2 = GamepadEx(gamepad2)
 
         val maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
-        val maxAngSpeed = maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
+        val maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
 
 
         Scheduler.reset()
@@ -269,7 +275,8 @@ class Teleop: SimOrHardwareOpMode() {
             wasXPressed = gamepad1.x
             wasYPressed = gamepad1.y
             wasLBumperPressed = gamepad1.left_bumper
-            wasRBumperPressed = gamepad1.right_bumper
+            wasRBumperPressed = if(gamepad1.right_bumper) 0 else wasRBumperPressed+1
+//            wasRBumperPressed += gamepad1.right_bumper
 
             robot.update(dt.value)
 //            visualizer.log()

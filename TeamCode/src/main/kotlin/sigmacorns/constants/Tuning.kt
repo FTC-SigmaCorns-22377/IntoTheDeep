@@ -35,7 +35,7 @@ object Tuning {
 
     var TRANSFER_LIFT: Metre
     var TRANSFER_ARM: DiffyOutputPose
-    var HOVER_DIST: Metre = 7.cm
+    var HOVER_DIST: Metre = 10.cm
     var HOVER_LIFT: Metre
     var EXTRACT_DIST = 15.cm
     var EXTRACT_LIFT: Metre
@@ -58,7 +58,7 @@ object Tuning {
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
-    var ACTIVE_POWER: Double = -0.7
+    var ACTIVE_POWER: Double = -0.6
 
 
     var INTAKE_OVER_POS = 0.25 to 0.57
@@ -66,11 +66,12 @@ object Tuning {
     var INTAKE_BACK_POS = 0.0 to 0.805
 
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
-    var specimenHighPose = LiftPose(170.mm,(30).degrees,(65).degrees)
-    var specimenLowPose = LiftPose(170.mm,(30).degrees,(65).degrees)
+    var specimenHighPose = LiftPose(110.mm,(30).degrees, (30).degrees)
+    var specimenLowPose = LiftPose(170.mm,(30).degrees, (30).degrees)
+    var asdf = LiftPose(150.mm,(30).degrees, (50).degrees)
 
-    var specimentScoreOffset = 170.mm
+    var specimentScoreOffset = 200.mm
 
-    var bucketHighPose: LiftPose = LiftPose(550.mm,(-45).degrees,(-45).degrees)
-    var bucketLowPose: LiftPose = LiftPose(400.mm,(-45).degrees,(-45).degrees)
+    var bucketHighPose: LiftPose = LiftPose(750.mm,(-45).degrees,(-25).degrees)
+    var bucketLowPose: LiftPose = LiftPose(400.mm,(-45).degrees,(-25).degrees)
 }
