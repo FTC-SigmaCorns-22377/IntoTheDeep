@@ -4,25 +4,18 @@ import com.qualcomm.robotcore.util.ElapsedTime
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.then
-import net.unnamedrobotics.lib.command.instant
-import net.unnamedrobotics.lib.command.wait
-import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.Color
 import sigmacorns.constants.Tuning
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
-fun extendCommand(robot: Robot, dist: Metre) = robot.extendCommandSlot.schedule(robot.slides.follow {
-    DiffyOutputPose(dist.also { if(it.value.isNaN()) println("OH SHIT BRO"); }, robot.slides.t.axis2)
+fun extendCommand(robot: Robot, dist: Metre) = robot.extendCommandSlot.register(robot.slides.follow {
+    DiffyOutputPose(dist, robot.slides.t.axis2)
 })
 
 fun powerIntakeCommand(robot: Robot, power: Double) = cmd {
@@ -37,7 +30,7 @@ fun detectCommand(robot: Robot) = cmd {
 }
 
 fun autoIntake(robot: Robot, dist: Metre) =
-    parallel(intakeCommand(robot,dist), detectCommand(robot)) then transferCommand(robot)
+    deadline(detectCommand(robot), intakeCommand(robot,dist)) then transferCommand(robot)
 
 fun retract(robot: Robot) =
     parallel(extendCommand(robot,0.m), powerIntakeCommand(robot,0.0), robot.intake.follow(Robot.IntakePositions.OVER))

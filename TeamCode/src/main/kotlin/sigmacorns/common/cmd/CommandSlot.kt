@@ -1,6 +1,5 @@
 package sigmacorns.common.cmd
 
-import kotlinx.coroutines.runBlocking
 import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.Status
 import net.unnamedrobotics.lib.command.cmd
@@ -23,7 +22,7 @@ class CommandSlot: Command() {
         return true
     }
 
-    fun schedule(command: Command, interruptible: Boolean = true) = cmd {
+    fun register(command: Command, interruptible: Boolean = true) = cmd {
         init { tryPut(command, interruptible) }
         finishWhen { command.status==Status.FINISHED }
     }

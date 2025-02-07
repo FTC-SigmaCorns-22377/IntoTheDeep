@@ -2,22 +2,32 @@ package sigmacorns.common.cmd
 
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.derived.Radian
+import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.plus
-import net.unnamedrobotics.lib.command.instant
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.common.kinematics.LiftPose
 import sigmacorns.constants.Tuning
 
-fun liftCommand(robot: Robot, dist: Metre) = robot.liftCommandSlot.schedule(robot.slides.follow {
-    DiffyOutputPose(robot.slides.t.axis1.also { println("WHEN SETTING LIFT EXTENSION = $it") }, dist)
-})
+fun liftCommand(robot: Robot, dist: Metre, lock: Boolean = true) = robot.slides.follow {
+    DiffyOutputPose(robot.slides.t.axis1, dist)
+}.let {
+    if(lock) robot.liftCommandSlot.register(it) else it
+}
 
-fun armCommand(robot: Robot, arm: Radian, wrist: Radian) = robot.armCommandSlot.schedule(robot.arm.follow(
-    DiffyOutputPose(arm,wrist))
-)
+fun armCommand(robot: Robot, arm: Radian, wrist: Radian, lock: Boolean = true) = robot.arm.follow(
+    DiffyOutputPose(arm,wrist)
+).let {
+    if(lock) robot.liftCommandSlot.register(it) else it
+}
 
-fun depoCommand(robot: Robot, liftPose: LiftPose)
-    = armCommand(robot,liftPose.arm,liftPose.wrist) + liftCommand(robot, liftPose.lift)
+fun clawCommand(robot: Robot, closed: Boolean)
+    = instant { robot.claw.updatePort(if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN) } + wait(Tuning.CLAW_TIME)
 
-fun activeIntake(robot: Robot, active: Boolean) = instant { robot.active.updatePort(if(active) Tuning.ACTIVE_POWER else 0.0); true }
+fun depoCommand(robot: Robot, liftPose: LiftPose, lock: Boolean = true)
+    = armCommand(robot,liftPose.arm,liftPose.wrist,lock) + liftCommand(robot, liftPose.lift,lock)
+
+fun depoCommand(robot: Robot, positions: ScorePositions) = depoCommand(robot,positions.x)
+
+fun instant(f: ()->Unit) = cmd {instant(f)}
+

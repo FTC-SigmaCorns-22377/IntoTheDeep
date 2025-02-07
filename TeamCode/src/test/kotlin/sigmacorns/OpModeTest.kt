@@ -13,13 +13,14 @@ import sigmacorns.opmode.SimOrHardwareOpMode
 import sigmacorns.opmode.Teleop
 import sigmacorns.opmode.TransferTest
 
-class OpModeTest {
-    @Test
+abstract class OpModeTest {
+    abstract val opMode: SimOrHardwareOpMode
+    open val useKeyboardInput = false
+    open val maxTime = 20.s
+
+
     fun test() {
         SIM = true
-
-        val opMode: SimOrHardwareOpMode = Teleop()
-        val maxTime = 2000.s
 
         opMode.gamepad1 = Gamepad()
         opMode.gamepad2 = Gamepad()
@@ -41,7 +42,9 @@ class OpModeTest {
             val stopRequested = internal.getDeclaredField("stopRequested")
             stopRequested.isAccessible = true
 
-            while (!job.isCompleted && (opMode.io?.time() ?: 0.s) < maxTime) { Thread.sleep(1000) }
+            while (!job.isCompleted && (opMode.io?.time() ?: 0.s) < maxTime) {
+                Thread.sleep(1000)
+            }
 
             stopRequested.set(opMode,true)
         } catch (e: Exception) {

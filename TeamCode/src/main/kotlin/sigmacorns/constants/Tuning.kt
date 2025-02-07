@@ -1,17 +1,18 @@
 package sigmacorns.constants
 
 import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
+import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.Expression
 import eu.sirotin.kotunil.derived.Radian
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
-import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.common.kinematics.LiftPose
 
 object Tuning {
@@ -33,33 +34,26 @@ object Tuning {
     var TRANSFER_ANGLE_INTAKE = 0.degrees
     var TRANSFER_CLAW_ANGLE = 180.degrees
 
-    var TRANSFER_LIFT: Metre
-    var TRANSFER_ARM: DiffyOutputPose
     var HOVER_DIST: Metre = 10.cm
-    var HOVER_LIFT: Metre
     var EXTRACT_DIST = 15.cm
-    var EXTRACT_LIFT: Metre
-
-    init {
-//        val samplePos = Physical.INTAKE_END + IntakeAngleKinematics.offsetFromSlideEnd(TRANSFER_ANGLE_INTAKE, TRANSFER_DIST)
-//        val liftPose = LiftKinematics.inverse(LiftScoringTarget(samplePos, TRANSFER_CLAW_ANGLE))
-        val transferLiftPose = LiftPose(2.cm,140.degrees,43.degrees)
-
-        TRANSFER_LIFT = transferLiftPose.lift
-        TRANSFER_ARM = DiffyOutputPose(transferLiftPose.arm, transferLiftPose.wrist)
-        HOVER_LIFT = (TRANSFER_LIFT + HOVER_DIST).cast(m)
-        EXTRACT_LIFT = (TRANSFER_LIFT + EXTRACT_DIST).cast(m)
-    }
+    var TRANSFER_POSE: LiftPose = LiftPose(2.cm,140.degrees,43.degrees)
+    var TRANSFER_HOVER_POSE: LiftPose = TRANSFER_POSE
+        .let { LiftPose((it.lift + HOVER_DIST).cast(m),it.arm,it.wrist) }
+    var TRANSFER_EXTRACT_POSE = TRANSFER_POSE
+        .let { LiftPose((it.lift + EXTRACT_DIST).cast(m),it.arm,it.wrist) }
 
     var INTAKE_SERVO_ACC: Expression = 100.degrees/(0.2.s)/s
     var INTAKE_SERVO_VEL: Expression = 60.degrees/(0.2.s)
     var INTAKE_SERVO_TOLERANCE: Radian = 3.degrees
 
+    var CLAW_TIME: Second = 300.ms
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
-    var ACTIVE_POWER: Double = -0.6
-
+    var ACTIVE_POWER: Double = -1.0
+    var ACTIVE_STOP_POWER: Double = 0.4
+    var ACTIVE_STOP_TIME = 300.ms
+    var TRANSFER_ACTIVE_TIME = 300.ms
 
     var INTAKE_OVER_POS = 0.25 to 0.57
     var INTAKE_INTER_POS = 0.1015 to 0.1855

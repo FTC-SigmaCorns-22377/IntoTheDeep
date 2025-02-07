@@ -30,6 +30,7 @@ import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.armCommand
 import sigmacorns.common.cmd.autoIntake
+import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.liftCommand
 import sigmacorns.common.cmd.retract
@@ -44,166 +45,18 @@ import sigmacorns.constants.Tuning
 
 @TeleOp
 class Teleop: SimOrHardwareOpMode() {
-    enum class ScorePositions(val x: LiftPose) {
-        HIGH_SPECIMEN(Tuning.specimenHighPose),
-        LOW_SPECIMEN(Tuning.specimenLowPose),
-        HIGH_BUCKET(Tuning.bucketHighPose),
-        LOW_BUCKET(Tuning.bucketLowPose)
-    }
 
-    data class CommandHolder(var cmd: Command)
 
-    lateinit var robot: Robot
-
-    var wasAPressed = false
-    var wasBPressed = false
-    var wasYPressed = false
-    var wasXPressed = false
-    var wasRBumperPressed = 0
-    val rBumperThresh = 5
-    var wasLBumperPressed = false
-
-    var dt = 0.s
-    var clawOpen = true
-
-    var intaking = false
-    var intakingDist: Expression = 0.m
-
-    private fun openClaw() {
-        clawOpen = true
-        intaking = false
-        robot.claw.updatePort(Tuning.CLAW_OPEN)
-    }
-
-    private fun runClawOpen() {
-//        if (gamepad1.y && !wasYPressed) {
-//            intaking = true
-//            intakingDist = 0.35.m
-//
-//            (autoIntake(
-//                robot,
-//                intakingDist.cast(m)
-//            ) then cmd { instant { closeClaw() } }).schedule()
-//        }
-
-        if (gamepad1.left_bumper)
-            liftCommand(robot, 0.m).schedule()
-
-        if (gamepad1.b && !wasBPressed)
-            depoCommand(robot, Tuning.specimenWallPose).schedule()
-
-        if (gamepad1.x && !wasXPressed)
-            (transferCommand(robot) then cmd { instant { closeClaw() } }).schedule()
-
-        if (intaking) {
-            if (gamepad1.dpad_up) intakingDist += dt * 0.2.m / s
-            if (gamepad1.dpad_down) intakingDist -= dt * 0.2.m / s
-
-            robot.slides.t.let {
-                DiffyOutputPose(intakingDist, it.axis2)
-            }
-
-//            if (gamepad1.y && !wasYPressed) {
-//                retract(robot).schedule()
-//                intaking = false
-//            }
-        }
-
-        if (gamepad2.right_bumper && wasRBumperPressed > rBumperThresh) robot.intake.t = when (robot.intake.t) {
-            Robot.IntakePositions.OVER -> Robot.IntakePositions.INTER
-            Robot.IntakePositions.INTER -> Robot.IntakePositions.OVER
-            Robot.IntakePositions.BACK -> TODO()
-        }
-
-        if (gamepad1.a && !wasAPressed) {
-            wasAPressed = true
-            closeClaw()
-        }
-    }
-
-    private var dst: ScorePositions? = null
-    private fun closeClaw() {
-        dst = null
-        clawOpen = false
-        robot.intake.follow(Robot.IntakePositions.OVER).schedule()
-        robot.claw.updatePort(Tuning.CLAW_CLOSED)
-    }
-
-    private fun runClawClose() {
-        robot.slides.t = robot.slides.t.let {
-            DiffyOutputPose(
-                it.axis1,
-                Limits.LIFT.apply(
-                    (it.axis2 + 0.2.m / s * dt * (gamepad1.dpad_up.toInt() - gamepad1.dpad_down.toInt())).cast(
-                        m
-                    )
-                )
-            )
-        }
-
-        if (gamepad1.a && !wasAPressed) {
-            val opencmd = cmd { instant { openClaw() } }
-            val c = when (dst) {
-                ScorePositions.HIGH_SPECIMEN, ScorePositions.LOW_SPECIMEN ->
-                    liftCommand(
-                        robot,
-                        (dst!!.x.lift + Tuning.specimentScoreOffset).cast(m)
-                    ) then opencmd
-
-                ScorePositions.HIGH_BUCKET, ScorePositions.LOW_BUCKET ->
-                    opencmd then wait(300.ms) then armCommand(
-                        robot,
-                        robot.arm.t.axis1.map { -it }.cast(rad),
-                        robot.arm.t.axis2.map { -it }.cast(rad)
-                    )
-
-                null -> opencmd
-            }
-            c.schedule()
-        }
-
-        if (gamepad1.x && !wasXPressed) (
-                cmd {
-                    instant {
-                        clawOpen = true
-                    }
-                } then transferCommand(robot) then cmd { instant { closeClaw() } }
-                ).schedule()
-
-        if (gamepad1.right_bumper && wasRBumperPressed > rBumperThresh) {
-            dst = ScorePositions.HIGH_BUCKET
-            depoCommand(robot, dst!!.x).schedule()
-        }
-
-        if (gamepad1.left_bumper && !wasLBumperPressed) {
-            dst = ScorePositions.LOW_BUCKET
-            depoCommand(robot, dst!!.x).schedule()
-        }
-
-        if (gamepad1.b && !wasBPressed) {
-            dst = ScorePositions.LOW_SPECIMEN
-            depoCommand(robot, dst!!.x).schedule()
-        }
-
-        if (gamepad1.y && !wasYPressed) {
-            dst = ScorePositions.HIGH_SPECIMEN
-            depoCommand(robot, dst!!.x).schedule()
-        }
-
-//        rerun(io?.rerunConnection!!) {
-//             scalar("sjgsgfojn",)
-//        }
-    }
 
     override fun runOpMode(io: SigmaIO) {
-        robot = Robot(
+        val robot = Robot(
             io,
             DiffyOutputPose(90.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
             Robot.IntakePositions.OVER
         )
 
-//        val visualizer = RobotVisualizer(io)
+        val visualizer = RobotVisualizer(io)
 
         val g1 = GamepadEx(gamepad1)
         val g2 = GamepadEx(gamepad2)
@@ -214,18 +67,16 @@ class Teleop: SimOrHardwareOpMode() {
 
         Scheduler.reset()
 
-//        visualizer.init()
+        visualizer.init()
 
         waitForStart()
 
         robot.update(0.0)
 
-        openClaw()
-
         var lastT = io.time()
         while (opModeIsActive()) {
             val t = io.time()
-            dt = (t - lastT).cast(s)
+            val dt = (t - lastT).cast(s)
             lastT = t
 
             val v = vec2(-gamepad1.left_stick_y, gamepad1.left_stick_x)
@@ -267,42 +118,10 @@ class Teleop: SimOrHardwareOpMode() {
             g1.periodic()
             g2.periodic()
 
-            if (clawOpen) runClawOpen() else runClawClose()
-
             Scheduler.tick()
-            wasAPressed = gamepad1.a
-            wasBPressed = gamepad1.b
-            wasXPressed = gamepad1.x
-            wasYPressed = gamepad1.y
-            wasLBumperPressed = gamepad1.left_bumper
-            wasRBumperPressed = if(gamepad1.right_bumper) 0 else wasRBumperPressed+1
-//            wasRBumperPressed += gamepad1.right_bumper
 
             robot.update(dt.value)
-//            visualizer.log()
-
-            // AUTOMATED: instant extend, start intaking
-            // instant transfer
-            // presets
+            visualizer.log()
         }
     }
 }
-
-    /*
-    this would be great as a behavior tree.
-
-    Claw open
-        -> extend -> transfer -> Claw closed
-                  -> wall
-        -> wall -> Claw closed
-
-    Claw closed (extend in)
-        -> low specimen
-        -> high specimen
-        -> low sample
-        -> high sample
-        -> drop -> Claw open
-        -> transfer
-
-     */
-

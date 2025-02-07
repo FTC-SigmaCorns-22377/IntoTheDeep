@@ -9,3 +9,8 @@ context(ControlCircuitBuilder)
 infix fun <I,O> PortOut<I,*>.connect(rhs: Kinematics<I,O>): PortOut<O, λPortKind> {
     return (this connect (rhs::forward))
 }
+
+context(ControlCircuitBuilder)
+infix fun <I,O> (() -> I).connect(rhs: Kinematics<I,O>): PortOut<O, λPortKind> {
+    return (this connect (rhs::forward))
+}

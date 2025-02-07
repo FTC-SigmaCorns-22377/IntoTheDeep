@@ -78,7 +78,7 @@ class RobotVisualizer(
         val arm1 = mapRanges(0.0..1.0,Limits.ARM_SERVO_1.let { it.min.value..it.max.value })(io.armL).rad
         val arm2 = mapRanges(0.0..1.0,Limits.ARM_SERVO_2.let { it.min.value..it.max.value })(io.armR).rad
         val arm = (arm1+arm2)/2.0
-        val wrist = (arm1-arm2)/2.0
+        val wrist = (arm1-arm2)/2.0 + arm
 
         val armStart = (Visualization.LIFT_LEFT_END_POS + spherical(lift, 0.rad, 0.rad)).let {
             vec3(it.x, 0.m, it.z-Visualization.ARM_OFFSET)

@@ -4,4 +4,14 @@ import eu.sirotin.kotunil.base.cm
 
 object Color {
     var DIST_THRESHOLD = 10.cm
+
+    fun color(r: Int, g: Int, b: Int): SampleColors? {
+        return null
+    }
+}
+
+enum class SampleColors {
+    RED,
+    BLUE,
+    YELLOW
 }

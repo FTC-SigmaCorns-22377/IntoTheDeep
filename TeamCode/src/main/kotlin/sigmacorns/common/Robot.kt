@@ -1,8 +1,6 @@
 package sigmacorns.common
 
 import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.derived.Radian
-import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.control.controller.transfer
 import net.unnamedrobotics.lib.math2.cast
@@ -11,8 +9,8 @@ import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import sigmacorns.common.cmd.CommandSlot
 import sigmacorns.common.control.Actuator
 import sigmacorns.common.control.ArmControlLoop
-import sigmacorns.common.control.IntakeController
 import sigmacorns.common.control.MecanumController
+import sigmacorns.common.control.ServoController
 import sigmacorns.common.control.slidesControlLoop
 import sigmacorns.common.control.toControlLoop
 import sigmacorns.common.io.SigmaIO
