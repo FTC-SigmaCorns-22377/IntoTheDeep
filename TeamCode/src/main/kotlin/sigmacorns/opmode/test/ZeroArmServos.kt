@@ -3,6 +3,7 @@ package sigmacorns.opmode.test
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.derived.rad
+import eu.sirotin.kotunil.core.*
 import net.unnamedrobotics.lib.math.clamp
 import net.unnamedrobotics.lib.math2.mapRanges
 import sigmacorns.common.Robot
@@ -74,6 +75,7 @@ class ZeroArmServos: SimOrHardwareOpMode() {
             val e = robot.arm.kinematics.inverse(estimted)
             telemetry.addData("estimatedArm=",estimted.axis1)
             telemetry.addData("estimatedWrist=",estimted.axis2)
+            telemetry.addData("estimatedGlobalWrist=",estimted.axis1+estimted.axis2)
             telemetry.addData("e1",e.axis1)
             telemetry.addData("e2",e.axis2)
 

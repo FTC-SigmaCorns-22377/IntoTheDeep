@@ -29,8 +29,8 @@ object Limits {
     // 1 = 0.37,   2 = 0.58 is straight up.
     // zero = -ARM_SERVO_RANGE*0.37
     // zero2 = -ARM_SERVO_RANGE*0.58
-    private val zero1 = -ARM_SERVO_RANGE*0.37
-    private val zero2 = -ARM_SERVO_RANGE*0.58
+    private val zero1 = -ARM_SERVO_RANGE*0.62
+    private val zero2 = -ARM_SERVO_RANGE*0.31
     val ARM_SERVO_1: Bounds<Radian> = Bounds((zero1).cast(rad), ((zero1) + ARM_SERVO_RANGE).cast(rad))
     val ARM_SERVO_2: Bounds<Radian> = Bounds((zero2 ).cast(rad), ((zero2)+ ARM_SERVO_RANGE).cast(rad))
 

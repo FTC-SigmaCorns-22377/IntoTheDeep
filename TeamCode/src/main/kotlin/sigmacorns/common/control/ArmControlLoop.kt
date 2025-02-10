@@ -18,7 +18,7 @@ class ArmControlLoop(
     override var x: DiffyOutputPose,
     io: SigmaIO
 ): ControlLoop<DiffyOutputPose, DiffyInputPose, DiffyOutputPose>("arm",io) {
-    val kinematics = DiffyKinematics()
+    val kinematics = DiffyKinematics(1.unitless(), (-1).unitless())
 
     val servoController1 = SimpleServoController(
         servo1,
