@@ -49,6 +49,6 @@ abstract class SigmaIO: Closeable {
 
     abstract var claw: Double
 
-    abstract var tiltL: Double
-    abstract var tiltR: Double
+    abstract var tilt1: Double
+    abstract var tilt2: Double
 }

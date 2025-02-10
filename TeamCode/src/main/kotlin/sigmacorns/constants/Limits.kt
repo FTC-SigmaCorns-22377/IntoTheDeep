@@ -34,6 +34,6 @@ object Limits {
     val ARM_SERVO_1: Bounds<Radian> = Bounds((zero1).cast(rad), ((zero1) + ARM_SERVO_RANGE).cast(rad))
     val ARM_SERVO_2: Bounds<Radian> = Bounds((zero2 ).cast(rad), ((zero2)+ ARM_SERVO_RANGE).cast(rad))
 
-    val INTAKE_SERVO_1: Bounds<Radian> = Bounds(0.degrees,355.degrees)
-    val INTAKE_SERVO_2: Bounds<Radian> = Bounds(0.degrees,355.degrees)
+    val INTAKE_SERVO_1: Bounds<Radian> = Bounds((180-355).degrees,180.degrees)
+    val INTAKE_SERVO_2: Bounds<Radian> = Bounds((180-355).degrees,180.degrees)
 }

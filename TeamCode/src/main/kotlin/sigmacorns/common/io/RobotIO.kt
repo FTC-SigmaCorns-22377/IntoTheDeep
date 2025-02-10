@@ -55,6 +55,9 @@ class RobotIO(
     private val sIntake1 = hardwareMap.get(Servo::class.java, "I1")
     private val sIntake2 = hardwareMap.get(Servo::class.java, "I2")
 
+    private val t1 = hardwareMap.get(Servo::class.java,"T1")
+    private val t2 = hardwareMap.get(Servo::class.java,"T2")
+
     private val colorSensor = hardwareMap.get(ColorRangeSensor::class.java, "color")
 
     init {
@@ -162,14 +165,14 @@ class RobotIO(
     override var intakeL: Double = 0.0
         set(value) {
             if(value!=field) {
-                sIntake1.position = value
+                sIntake1.position = 1.0-value
                 field = value
             }
         }
     override var intakeR: Double = 0.0
         set(value) {
             if(value!=field) {
-                sIntake2.position = value
+                sIntake2.position = 1.0-value
                 field = value
             }
         }
@@ -195,6 +198,18 @@ class RobotIO(
                 field = value
             }
         }
-    override var tiltL: Double = 0.0
-    override var tiltR: Double = 0.0
+    override var tilt1: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                t1.position = value
+                field = value
+            }
+        }
+    override var tilt2: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                t2.position = value
+                field = value
+            }
+        }
 }

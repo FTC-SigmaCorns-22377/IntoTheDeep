@@ -21,7 +21,6 @@ import net.unnamedrobotics.lib.math2.z
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.rerun.RerunPrefix
 import net.unnamedrobotics.lib.rerun.archetypes.Boxes3D
-import net.unnamedrobotics.lib.rerun.archetypes.Ellipsoids3D
 import net.unnamedrobotics.lib.rerun.archetypes.Points3D
 import net.unnamedrobotics.lib.rerun.rerun
 import org.joml.Quaterniond
@@ -186,8 +185,8 @@ class RobotVisualizer(
             scalar("armR",io.armR)
             scalar("claw",io.claw)
 
-            scalar("tiltL",io.tiltL)
-            scalar("tiltR",io.tiltR)
+            scalar("tiltL",io.tilt1)
+            scalar("tiltR",io.tilt2)
         }
     }
 
