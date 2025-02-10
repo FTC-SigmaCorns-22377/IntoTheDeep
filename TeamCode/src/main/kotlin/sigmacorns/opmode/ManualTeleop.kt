@@ -25,7 +25,7 @@ import sigmacorns.constants.Tuning
 @TeleOp
 class ManualTeleop: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
-        val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m), Robot.IntakePositions.OVER)
+        val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m), Tuning.IntakePosition.OVER)
 
         val g1 = GamepadEx(gamepad1)
         val g2 = GamepadEx(gamepad2)
@@ -48,7 +48,7 @@ class ManualTeleop: SimOrHardwareOpMode() {
 
             val activePower = gamepad1.left_trigger - gamepad1.right_trigger
             robot.active.updatePort(activePower*Tuning.ACTIVE_POWER)
-            robot.intake.t = if(g1.rightBumper.isToggled) Robot.IntakePositions.BACK else Robot.IntakePositions.OVER
+            robot.intake.t = if(g1.rightBumper.isToggled) Tuning.IntakePosition.BACK else Tuning.IntakePosition.OVER
             robot.claw.updatePort(if(g1.a.isToggled) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN)
 
             slidesTarget = DiffyOutputPose(

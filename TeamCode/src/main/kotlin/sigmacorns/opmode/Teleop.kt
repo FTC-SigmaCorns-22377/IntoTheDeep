@@ -57,7 +57,7 @@ class Teleop: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(90.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
-            Robot.IntakePositions.OVER
+            Tuning.IntakePosition.OVER
         )
 
         maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius

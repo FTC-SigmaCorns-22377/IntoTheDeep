@@ -3,13 +3,14 @@ package sigmacorns.opmode.test
 import androidx.core.math.MathUtils.clamp
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import sigmacorns.common.io.SigmaIO
+import sigmacorns.common.kinematics.IntakeAngleKinematics
 import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
 
 @TeleOp
 class IntakeManualTest: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
-        var pos = mutableListOf(Tuning.INTAKE_OVER_POS.first,Tuning.INTAKE_OVER_POS.second)
+        var pos = mutableListOf(0.0,0.0)
         var cur = 0
         var bumperJustPressed = false
 

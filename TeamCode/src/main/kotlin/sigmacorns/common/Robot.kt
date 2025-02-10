@@ -15,14 +15,17 @@ import sigmacorns.common.control.slidesControlLoop
 import sigmacorns.common.control.toControlLoop
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.common.kinematics.IntakeAngleKinematics
+import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
+import sigmacorns.constants.toServoPos
 
 class Robot(
     val io: SigmaIO,
     val initArmPose: DiffyOutputPose,
     val initSlidesPose: DiffyOutputPose,
-    intakePos: IntakePositions = IntakePositions.OVER
+    intakePos: Tuning.IntakePosition = Tuning.IntakePosition.OVER
 ) {
     val drivebase: MecanumDrivebase = MecanumDrivebase(
         Physical.WHEEL_RADIUS,
@@ -37,17 +40,11 @@ class Robot(
     val slides = slidesControlLoop(io,initSlidesPose)
     val arm = with(io) { ArmControlLoop(Actuator { armL = it }, Actuator { armR = it }, initArmPose, io) }
 
-    val intake = transfer { d, x: Unit, t: IntakePositions ->
-        t.x
+    val intake = transfer { d, x: Unit, t: Tuning.IntakePosition ->
+        IntakeAngleKinematics.inverse(t.x)
     }.toControlLoop("intake",io,{},{
-        io.intakeL = it.first; io.intakeR = it.second
+        io.intakeL = Limits.INTAKE_SERVO_1.toServoPos()(it); io.intakeR = Limits.INTAKE_SERVO_2.toServoPos()(it)
    }).also { it.t = intakePos  }
-
-    enum class IntakePositions(val x: Pair<Double, Double>) {
-        OVER(Tuning.INTAKE_OVER_POS),
-        BACK(Tuning.INTAKE_BACK_POS),
-        INTER(Tuning.INTAKE_INTER_POS)
-    }
 
     val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
     val active: Actuator<Double> = with(io) { Actuator { intake = it }}

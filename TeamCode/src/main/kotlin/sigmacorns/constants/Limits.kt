@@ -11,6 +11,7 @@ import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.mapRanges
 
 object Limits {
     val EXTENSION: Bounds<Metre> = Bounds((-10).mm,600.mm)
@@ -37,3 +38,6 @@ object Limits {
     val INTAKE_SERVO_1: Bounds<Radian> = Bounds((180-355).degrees,180.degrees)
     val INTAKE_SERVO_2: Bounds<Radian> = Bounds((180-355).degrees,180.degrees)
 }
+
+fun Bounds<Radian>.toServoPos(): (Radian)->Double
+= { mapRanges(min.value..max.value,0.0..1.0)(it.value).toDouble() }

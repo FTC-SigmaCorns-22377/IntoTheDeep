@@ -20,7 +20,7 @@ robot.armCommandSlot.lock() +
         //before, get everything in the position to transfer
         (
             depoCommand(robot,Tuning.TRANSFER_HOVER_POSE,false) +
-            robot.intake.follow(Robot.IntakePositions.BACK) +
+            robot.intake.follow(Tuning.IntakePosition.BACK) +
             clawCommand(robot,false) +
             // stop rollers quickly, may want to replace this with running under encoders.
             (
@@ -32,7 +32,7 @@ robot.armCommandSlot.lock() +
 
         // we've retracted past the bar, can flip intake to transfer pos now
         retract(robot),
-        robot.intake.follow(Robot.IntakePositions.OVER),
+        robot.intake.follow(Tuning.IntakePosition.OVER),
         // push the sample out of the top into the open claw
         (depoCommand(robot,Tuning.TRANSFER_POSE) +
                 (

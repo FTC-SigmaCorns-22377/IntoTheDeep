@@ -23,7 +23,9 @@ fun powerIntakeCommand(robot: Robot, power: Double) = cmd {
 }
 
 fun intakeCommand(robot: Robot, dist: Metre) =
-    extendCommand(robot,dist) + powerIntakeCommand(robot, Tuning.ACTIVE_POWER) + robot.intake.follow(Robot.IntakePositions.INTER)
+    extendCommand(robot,dist) +
+    powerIntakeCommand(robot, Tuning.ACTIVE_POWER) +
+    robot.intake.follow(Tuning.IntakePosition.ACTIVE)
 
 fun detectCommand(robot: Robot) = cmd {
     finishWhen { robot.io.distance() < Color.DIST_THRESHOLD }
@@ -33,7 +35,7 @@ fun autoIntake(robot: Robot, dist: Metre) =
     deadline(detectCommand(robot), intakeCommand(robot,dist)) then transferCommand(robot)
 
 fun retract(robot: Robot) =
-    parallel(extendCommand(robot,0.m), powerIntakeCommand(robot,0.0), robot.intake.follow(Robot.IntakePositions.OVER))
+    parallel(extendCommand(robot,0.m), powerIntakeCommand(robot,0.0), robot.intake.follow(Tuning.IntakePosition.OVER))
 
 fun wait(t: Second) = cmd {
     val curTime = ElapsedTime()

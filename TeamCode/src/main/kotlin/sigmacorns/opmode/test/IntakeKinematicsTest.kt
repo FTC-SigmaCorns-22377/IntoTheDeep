@@ -34,6 +34,9 @@ class IntakeKinematicsTest: SimOrHardwareOpMode() {
             val angle1 = Limits.INTAKE_SERVO_1.apply(angle)
             val angle2 = Limits.INTAKE_SERVO_2.apply(angle)
 
+            telemetry.addData("target",target.value)
+            telemetry.update()
+
             io.intakeL = mapRanges(Limits.INTAKE_SERVO_1.let { it.min.value..it.max.value },0.0..1.0)(angle1.value).toDouble()
             io.intakeR = mapRanges(Limits.INTAKE_SERVO_2.let { it.min.value..it.max.value },0.0..1.0)(angle2.value).toDouble()
         }
