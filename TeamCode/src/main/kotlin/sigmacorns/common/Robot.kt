@@ -1,8 +1,10 @@
 package sigmacorns.common
 
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.control.controller.transfer
+import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.physics.MecanumDrivebase
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
@@ -23,9 +25,10 @@ import sigmacorns.constants.toServoPos
 
 class Robot(
     val io: SigmaIO,
-    val initArmPose: DiffyOutputPose,
-    val initSlidesPose: DiffyOutputPose,
-    intakePos: Tuning.IntakePosition = Tuning.IntakePosition.OVER
+    val initArmPose: DiffyOutputPose = DiffyOutputPose(0.rad,0.rad),
+    val initSlidesPose: DiffyOutputPose = DiffyOutputPose(0.m,0.m),
+    intakePos: Tuning.IntakePosition = Tuning.IntakePosition.OVER,
+    initPos: Transform2D = Transform2D(0.m,0.m,0.rad)
 ) {
     val drivebase: MecanumDrivebase = MecanumDrivebase(
         Physical.WHEEL_RADIUS,
@@ -69,5 +72,6 @@ class Robot(
         active.node.tickControlNode(dt)
         claw.node.tickControlNode(dt)
         io.updateColor()
+        io.updatePinpoint()
     }
 }

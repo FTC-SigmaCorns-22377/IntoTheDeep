@@ -11,6 +11,7 @@ import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
 import net.unnamedrobotics.lib.math2.Tick
+import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.tick
@@ -30,6 +31,13 @@ class SimIO(
     val realtime: Boolean = false
 ): SigmaIO() {
     override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
+    override fun updatePinpoint() {
+        TODO("Not yet implemented")
+    }
+
+    override fun setPinPos(p: Transform2D) {
+        TODO("Not yet implemented")
+    }
 
     val simStep: Second = 2.ms
     private var realStartTime: Expression = Clock.seconds.s

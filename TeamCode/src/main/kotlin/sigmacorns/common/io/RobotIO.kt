@@ -16,22 +16,28 @@ import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
+import net.unnamedrobotics.lib.driver.gobilda.GoBildaPinpointDriver
+import net.unnamedrobotics.lib.math.Pose
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
 import net.unnamedrobotics.lib.util.Clock
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 
 class RobotIO(
     val hardwareMap: HardwareMap,
     val ip: String = "192.168.43.122",
     val rerunName: String = "unnamed",
+    val initialPos: Transform2D? = null
 ): SigmaIO() {
     //TODO: disable rerunconnection by default.
     private var rerun: RerunConnection? = null
     override val rerunConnection: RerunConnection
         get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
+
 
     private val m1 = hardwareMap.get(DcMotor::class.java,"D1")
     private val m2 = hardwareMap.get(DcMotor::class.java,"D2")
@@ -60,6 +66,11 @@ class RobotIO(
 
     private val colorSensor = hardwareMap.get(ColorRangeSensor::class.java, "color")
 
+    private val pinpointDriver = hardwareMap.get(
+        GoBildaPinpointDriver::class.java,"pinpoint")
+
+    private val pinpoint = PinpointLocalizer(pinpointDriver)
+
     init {
         fl.direction = DcMotorSimple.Direction.REVERSE
         bl.direction = DcMotorSimple.Direction.REVERSE
@@ -74,15 +85,30 @@ class RobotIO(
         m2.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
 
         colorSensor.argb()
+
+        pinpointDriver.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
+        if(initialPos!=null) pinpointDriver.setPosition(transToPose(initialPos))
     }
 
-    override fun position(): Transform2D {
-        return Transform2D(0.m,0.m,0.rad)
+    private fun transToPose(t: Transform2D): Pose2D
+        = Pose2D(
+                DistanceUnit.METER,
+                t.x.value,t.y.value,
+                AngleUnit.RADIANS,
+                t.angle.value
+            )
+
+    override fun setPinPos(p: Transform2D) {
+        pinpointDriver.setPosition(transToPose(p))
     }
 
-    override fun velocity(): Twist2D {
-        return Twist2D(0.m/s,0.m/s,0.rad/s)
+    override fun updatePinpoint() {
+        pinpoint.update(true)
     }
+
+    override fun position() = pinpoint.getTransform()
+
+    override fun velocity() = pinpoint.velocity
 
     //TODO: proper caching once per tick.
 

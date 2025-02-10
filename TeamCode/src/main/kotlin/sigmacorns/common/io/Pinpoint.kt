@@ -1,6 +1,5 @@
 package sigmacorns.common.io
 
-import com.acmerobotics.dashboard.config.Config
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
@@ -11,15 +10,7 @@ import net.unnamedrobotics.lib.math2.Twist2D
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
-
-@Config
-object PinpointConfig {
-    @JvmField var yawScalar = 1
-    @JvmField var flipX: Boolean = true
-    @JvmField var flipY: Boolean = false
-    @JvmField var xOffset: Double = 53.0
-    @JvmField var yOffset: Double = 0.0
-}
+import sigmacorns.constants.PinpointConfig
 
 class PinpointLocalizer(val device: GoBildaPinpointDriver) {
     private var lastSDKPose = Pose2D(

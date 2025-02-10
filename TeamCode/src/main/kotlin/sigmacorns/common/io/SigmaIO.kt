@@ -16,6 +16,8 @@ abstract class SigmaIO: Closeable {
         rerunConnection.close()
     }
 
+    abstract fun updatePinpoint()
+    abstract fun setPinPos(p: Transform2D)
     abstract fun position(): Transform2D
     abstract fun velocity(): Twist2D
     abstract fun motor1Pos(): Tick
