@@ -31,12 +31,10 @@ class SimIO(
     val realtime: Boolean = false
 ): SigmaIO() {
     override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
-    override fun updatePinpoint() {
-        TODO("Not yet implemented")
-    }
+    override fun updatePinpoint() {}
+
 
     override fun setPinPos(p: Transform2D) {
-        TODO("Not yet implemented")
     }
 
     val simStep: Second = 2.ms
@@ -92,9 +90,9 @@ class SimIO(
     }
 
     var triggerDistance = false
-    override fun distance(): Metre {
-        return if(triggerDistance) 2.cm else 20.cm
-    }
+
+    override fun distance(): Metre
+        = (if(time>5.s) 0.cm else 20.cm).also { step(SimLoopTimes.motorWrite) }
 
     override fun voltage() = simV
 

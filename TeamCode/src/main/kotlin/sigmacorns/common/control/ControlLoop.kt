@@ -95,7 +95,7 @@ context(SigmaIO)
 class Actuator<T: Any>(
     private val f: context(SigmaIO) (T) -> Unit,
 ): PortIn<T, UPortKind>() {
-    private var v: T? = null
+    var v: T? = null
 
     override val node = object : ControlNode {
         override fun tickControlNode(dt: Double): Unit {

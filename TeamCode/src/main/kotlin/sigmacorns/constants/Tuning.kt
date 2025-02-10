@@ -46,8 +46,8 @@ object Tuning {
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
-    var ACTIVE_POWER: Double = -1.0
-    var ACTIVE_STOP_POWER: Double = 0.4
+    var ACTIVE_POWER: Double = 1.0
+    var ACTIVE_STOP_POWER: Double = -0.7
     var ACTIVE_STOP_TIME = 300.ms
     var TRANSFER_ACTIVE_TIME = 300.ms
 
@@ -58,7 +58,7 @@ object Tuning {
     }
 
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
-    var specimenHighPose = LiftPose(110.mm,(30).degrees, (30).degrees)
+    var specimenHighPose = LiftPose(170.mm,(30).degrees, (30).degrees)
     var specimenLowPose = LiftPose((specimenHighPose.lift-13.inches).cast(m),(30).degrees, (30).degrees)
     var bucketHighPose: LiftPose = LiftPose(740.mm,(-45).degrees,(-25).degrees)
     var bucketLowPose: LiftPose = LiftPose((bucketHighPose.lift-44.cm).cast(m),(-45).degrees,(-25).degrees)
@@ -81,4 +81,11 @@ object Tuning {
     var specimentScoreOffset = 200.mm
 
 
+    var choreoPosPID = PIDCoefficients(10.0,0.0,0.0)
+    var choreoAngPID = PIDCoefficients(3.0,0.0,0.0)
+
+    var choreoPosThresh = 3.cm
+    var choreoAngThresh = 5.degrees
+    var choreoVelThresh = 10.cm/s
+    var choreoAngVelThresh = 10.degrees/s
 }

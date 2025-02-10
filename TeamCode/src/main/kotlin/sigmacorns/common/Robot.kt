@@ -6,13 +6,16 @@ import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.control.controller.transfer
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
+import net.unnamedrobotics.lib.math2.xy
 import net.unnamedrobotics.lib.physics.MecanumDrivebase
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import sigmacorns.common.cmd.CommandSlot
 import sigmacorns.common.control.Actuator
 import sigmacorns.common.control.ArmControlLoop
+import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.MecanumController
 import sigmacorns.common.control.ServoController
+import sigmacorns.common.control.choreoControllerLoop
 import sigmacorns.common.control.slidesControlLoop
 import sigmacorns.common.control.toControlLoop
 import sigmacorns.common.io.SigmaIO
@@ -40,6 +43,7 @@ class Robot(
     )
 
     val mecanum = MecanumController(drivebase,io)
+    val choreo = choreoControllerLoop(ChoreoController(Tuning.choreoPosPID,Tuning.choreoAngPID,Physical.DRIVEBASE_SIZE.xy,0),this)
     val slides = slidesControlLoop(io,initSlidesPose)
     val arm = with(io) { ArmControlLoop(Actuator { armL = it }, Actuator { armR = it }, initArmPose, io) }
 

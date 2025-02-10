@@ -11,7 +11,6 @@ import net.unnamedrobotics.lib.command.schedule
 import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.autoIntake
-import sigmacorns.common.cmd.detectCommand
 import sigmacorns.common.cmd.extendCommand
 import sigmacorns.common.cmd.intakeCommand
 import sigmacorns.common.cmd.liftCommand

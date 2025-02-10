@@ -6,7 +6,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import net.unnamedrobotics.lib.util.Clock
 import org.junit.Test
+import sigmacorns.common.io.SimIO
 import sigmacorns.common.simutil.GamepadInput
 import sigmacorns.common.simutil.KeyboardGamepads
 import sigmacorns.opmode.REALTIME
@@ -25,7 +27,7 @@ class OpModeTest {
     fun test() {
         SIM = true
         REALTIME = true
-        val opMode = Teleop()
+        val opMode = TransferTest()
 
         opMode.gamepad1 = Gamepad()
         opMode.gamepad2 = Gamepad()
@@ -56,12 +58,19 @@ class OpModeTest {
             stopRequested.isAccessible = true
 
             while (!job.isCompleted && (opMode.io?.time() ?: 0.s) < maxTime) {
+//                println(opMode.io!!.time())
+//                if(opMode.io!!.time() > 2.s) {
+//                    (opMode.io as SimIO).triggerDistance = true
+//                    println("DID IT??")
+//                }
                 if(useGamepadInput) {
                     gamepadInput!!.update()
                     Thread.sleep(5)
                 } else {
                     Thread.sleep(1000)
                 }
+
+                if(Clock.seconds>1.0) (opMode.io as SimIO).triggerDistance = true
             }
 
             stopRequested.set(opMode,true)

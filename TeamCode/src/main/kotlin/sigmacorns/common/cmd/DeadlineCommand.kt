@@ -15,7 +15,7 @@ class DeadlineGroup(val deadline: Command, private vararg val cmds: Command) : C
      * Initializes all the commands in the group in parallel using coroutines.
      */
     override suspend fun init(): Unit {
-        initCommand(deadline)
+        deadline.schedule()
         cmds.forEach { it.schedule() }
     }
 

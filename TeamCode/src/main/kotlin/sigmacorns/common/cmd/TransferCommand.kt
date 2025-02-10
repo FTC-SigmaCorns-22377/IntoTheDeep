@@ -21,13 +21,13 @@ robot.armCommandSlot.lock() +
         (
             depoCommand(robot,Tuning.TRANSFER_HOVER_POSE,false) +
             robot.intake.follow(Tuning.IntakePosition.BACK) +
-            clawCommand(robot,false) +
+            clawCommand(robot,false) //+
             // stop rollers quickly, may want to replace this with running under encoders.
-            (
-                instant { robot.active.updatePort(Tuning.ACTIVE_STOP_POWER) } then
-                wait(Tuning.ACTIVE_STOP_TIME) then
-                instant { robot.active.updatePort(0.0) }
-            )
+//            (
+//                instant { robot.active.updatePort(Tuning.ACTIVE_STOP_POWER) } then
+//                wait(Tuning.ACTIVE_STOP_TIME) then
+//                instant { robot.active.updatePort(0.0) }
+//            )
         ).name("pre-transfer").timeout(2.s),
 
         // we've retracted past the bar, can flip intake to transfer pos now

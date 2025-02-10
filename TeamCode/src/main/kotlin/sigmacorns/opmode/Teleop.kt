@@ -92,7 +92,6 @@ class Teleop: SimOrHardwareOpMode() {
 
         Scheduler.reset()
 
-
         waitForStart()
 
         robot.update(0.0)
@@ -133,7 +132,7 @@ class Teleop: SimOrHardwareOpMode() {
                 } else {
                     clawCommand(robot,true).let {
                         if(atWallPosition())
-                            it then instant { scoringPosition = ScorePosition.LOW_SPECIMEN }
+                            it then instant { scoringPosition = ScorePosition.HIGH_SPECIMEN }
                         else
                             it
                     }
@@ -148,7 +147,10 @@ class Teleop: SimOrHardwareOpMode() {
                 instant { scoringPosition = null }
             ).schedule()
 
-            if(g1.x.isJustPressed) transferCommand(robot).schedule()
+            if(g1.x.isJustPressed) {
+                // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
+                transferCommand(robot).schedule()
+            }
 
             if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
 
@@ -156,11 +158,16 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(SIM) Thread.sleep(50)
 
+//            telemetry.addData("distance",io.distance())
+//            telemetry.update()
+
             g1.periodic()
             g2.periodic()
             robot.update(dt.value)
         }
     }
+
+    private var wasManuallyControllingActive = false
 
     fun manualControls(dt: Second) {
         val v = vec2(-gamepad1.left_stick_y, gamepad1.left_stick_x)
@@ -168,7 +175,10 @@ class Teleop: SimOrHardwareOpMode() {
 
         val activePower =
             gamepad1.left_trigger - gamepad1.right_trigger + gamepad2.left_trigger - gamepad2.right_trigger
-        robot.active.updatePort(activePower * Tuning.ACTIVE_POWER)
+        val controllingActive = activePower.absoluteValue>0.05
+        if(controllingActive) robot.active.updatePort(activePower * Tuning.ACTIVE_POWER)
+        if(!controllingActive && wasManuallyControllingActive) robot.active.updatePort(0.0)
+        wasManuallyControllingActive = controllingActive
 
         // MANUAL SLIDES/ARM
         var slidesTarget = robot.slides.t
