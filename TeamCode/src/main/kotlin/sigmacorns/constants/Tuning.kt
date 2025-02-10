@@ -14,6 +14,7 @@ import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.inches
 import sigmacorns.common.kinematics.LiftPose
 
 object Tuning {
@@ -29,8 +30,8 @@ object Tuning {
     var ARM_SERVO_VEL: Expression = 30.degrees/(0.2.s)
     var ARM_SERVO_TOLERANCE: Radian = 3.degrees
 
-    var HOVER_DIST: Metre = 15.cm
-    var EXTRACT_DIST = 20.cm
+    var HOVER_DIST: Metre = 7.cm
+    var EXTRACT_DIST = 12.cm
     var TRANSFER_POSE: LiftPose = LiftPose(2.cm,140.degrees,43.degrees)
     var TRANSFER_HOVER_POSE: LiftPose = TRANSFER_POSE
         .let { LiftPose((it.lift + HOVER_DIST).cast(m),it.arm,it.wrist) }
@@ -58,9 +59,9 @@ object Tuning {
 
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
     var specimenHighPose = LiftPose(110.mm,(30).degrees, (30).degrees)
-    var specimenLowPose = LiftPose(170.mm,(30).degrees, (30).degrees)
-    var bucketHighPose: LiftPose = LiftPose(750.mm,(-45).degrees,(-25).degrees)
-    var bucketLowPose: LiftPose = LiftPose(400.mm,(-45).degrees,(-25).degrees)
+    var specimenLowPose = LiftPose((specimenHighPose.lift-13.inches).cast(m),(30).degrees, (30).degrees)
+    var bucketHighPose: LiftPose = LiftPose(740.mm,(-45).degrees,(-25).degrees)
+    var bucketLowPose: LiftPose = LiftPose((bucketHighPose.lift-44.cm).cast(m),(-45).degrees,(-25).degrees)
 
     var postTransferPose = LiftPose(TRANSFER_EXTRACT_POSE.lift, bucketLowPose.arm, bucketLowPose.wrist)
     var asdf = LiftPose(150.mm,(30).degrees, (50).degrees)
@@ -68,7 +69,13 @@ object Tuning {
     enum class TiltPositions(val x: Double) {
         STRAIGHT(0.65),
         UP(0.0),
-        DOWN(1.0)
+        DOWN(1.0);
+
+        fun next() = when(this) {
+            STRAIGHT -> DOWN
+            UP -> STRAIGHT
+            DOWN -> UP
+        }
     }
 
     var specimentScoreOffset = 200.mm

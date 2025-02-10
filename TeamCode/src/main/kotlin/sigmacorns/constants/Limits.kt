@@ -15,7 +15,7 @@ import net.unnamedrobotics.lib.math2.mapRanges
 
 object Limits {
     val EXTENSION: Bounds<Metre> = Bounds((-10).mm,600.mm)
-    val LIFT: Bounds<Metre> = Bounds(0.mm,700.mm)
+    val LIFT: Bounds<Metre> = Bounds(0.mm,770.mm)
 
     val EXTENSION_SAFE_THRESH: Metre = 5.cm
     val EXTENSION_SAFE_POWER: Volt = 8.V

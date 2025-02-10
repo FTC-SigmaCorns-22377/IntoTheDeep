@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.Expression
 import eu.sirotin.kotunil.core.div
@@ -22,12 +23,13 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
 import sigmacorns.common.Robot
-import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.ScorePosition
+import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.instant
 import sigmacorns.common.cmd.score
+import sigmacorns.common.cmd.transferCommand
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
@@ -48,11 +50,24 @@ class Teleop: SimOrHardwareOpMode() {
             field = value
         }
 
+    var tiltPosition = Tuning.TiltPositions.STRAIGHT
+        set(value) {
+            io!!.tilt1 = value.x
+            io!!.tilt2 = value.x
+            field = value
+        }
+
     fun atWallPosition() = robot.slides.t.axis2 == Tuning.specimenWallPose.lift && robot.arm.t.axis1.value.sign < 0.0
 
     fun clawClosed() = robot.io.claw.let { (it-Tuning.CLAW_CLOSED).absoluteValue < (it-Tuning.CLAW_OPEN).absoluteValue }
 
+    lateinit var g1: GamepadEx
+    lateinit var g2: GamepadEx
+
     override fun runOpMode(io: SigmaIO) {
+        g1 = GamepadEx(gamepad1)
+        g2 = GamepadEx(gamepad2)
+
         robot = Robot(
             io,
             DiffyOutputPose(90.degrees, 0.rad),
@@ -74,8 +89,6 @@ class Teleop: SimOrHardwareOpMode() {
         // y: extend
         // a: claw
 
-        val g1 = GamepadEx(gamepad1)
-//        val g2 = GamepadEx(gamepad2)
 
         Scheduler.reset()
 
@@ -116,12 +129,7 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g1.a.isJustPressed) {
                 val cmd = if(clawClosed())  {
-                    val returnDepo = when(scoringPosition) {
-                        ScorePosition.HIGH_SPECIMEN,ScorePosition.LOW_SPECIMEN -> instant { } //depoCommand(robot,Tuning.specimenWallPose)
-                        else -> depoCommand(robot,Tuning.TRANSFER_HOVER_POSE)
-                    }
-
-                    score(robot,scoringPosition) then instant { scoringPosition=null } then returnDepo
+                    score(robot,scoringPosition) then instant { scoringPosition=null }
                 } else {
                     clawCommand(robot,true).let {
                         if(atWallPosition())
@@ -140,12 +148,16 @@ class Teleop: SimOrHardwareOpMode() {
                 instant { scoringPosition = null }
             ).schedule()
 
+            if(g1.x.isJustPressed) transferCommand(robot).schedule()
+
+            if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
+
             Scheduler.tick()
 
             if(SIM) Thread.sleep(50)
 
             g1.periodic()
-//            g2.periodic()
+            g2.periodic()
             robot.update(dt.value)
         }
     }
@@ -184,5 +196,10 @@ class Teleop: SimOrHardwareOpMode() {
         }
 
         robot.slides.t = slidesTarget
+
+        // tilt
+        if(g2.y.isJustPressed) {
+            tiltPosition = tiltPosition.next()
+        }
     }
 }
