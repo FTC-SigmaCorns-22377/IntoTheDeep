@@ -63,7 +63,7 @@ class RobotIO(
     init {
         fl.direction = DcMotorSimple.Direction.REVERSE
         bl.direction = DcMotorSimple.Direction.REVERSE
-        m1.direction = DcMotorSimple.Direction.REVERSE
+        m1.direction = DcMotorSimple.Direction.FORWARD
         m2.direction = DcMotorSimple.Direction.REVERSE
 
         m1.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER

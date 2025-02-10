@@ -45,11 +45,6 @@ fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControlLoop<DiffyInpu
             val extensionError = (tBounded.axis1-cur.axis1)
             val liftError = (tBounded.axis2-cur.axis2)
 
-            rerun(io.rerunConnection) {
-                scalar("DEBUG/extensionError",extensionError.value)
-                scalar("DEBUG/liftError",liftError.value)
-            }
-
             (
                     extensionError.map { it.absoluteValue } < Tuning.EXTENSION_TOLERANCE &&
                     liftError.map { it.absoluteValue } < Tuning.LIFT_TOLERANCE

@@ -29,8 +29,8 @@ object Tuning {
     var ARM_SERVO_VEL: Expression = 30.degrees/(0.2.s)
     var ARM_SERVO_TOLERANCE: Radian = 3.degrees
 
-    var HOVER_DIST: Metre = 10.cm
-    var EXTRACT_DIST = 15.cm
+    var HOVER_DIST: Metre = 15.cm
+    var EXTRACT_DIST = 20.cm
     var TRANSFER_POSE: LiftPose = LiftPose(2.cm,140.degrees,43.degrees)
     var TRANSFER_HOVER_POSE: LiftPose = TRANSFER_POSE
         .let { LiftPose((it.lift + HOVER_DIST).cast(m),it.arm,it.wrist) }

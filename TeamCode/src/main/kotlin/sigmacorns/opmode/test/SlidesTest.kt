@@ -33,8 +33,6 @@ class SlidesTest: SimOrHardwareOpMode() {
 
         var lastT = io.time()
 
-        val visualizer = RobotVisualizer(io)
-        visualizer.init()
 
         while (opModeIsActive()) {
             val t = io.time()
@@ -58,7 +56,6 @@ class SlidesTest: SimOrHardwareOpMode() {
 
             robot.update(dt.value)
             Scheduler.tick()
-            visualizer.log()
         }
     }
 }

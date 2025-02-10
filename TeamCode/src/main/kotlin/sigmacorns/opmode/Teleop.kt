@@ -63,7 +63,6 @@ class Teleop: SimOrHardwareOpMode() {
         maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
         maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
 
-        val visualizer = RobotVisualizer(io)
 
         // sample sequence: extend -> transfer -> move -> score
         // specimen sequence: wall pickup -> move -> score
@@ -80,7 +79,6 @@ class Teleop: SimOrHardwareOpMode() {
 
         Scheduler.reset()
 
-        visualizer.init()
 
         waitForStart()
 
@@ -149,11 +147,6 @@ class Teleop: SimOrHardwareOpMode() {
             g1.periodic()
 //            g2.periodic()
             robot.update(dt.value)
-            visualizer.log()
-//            println(scoringPosition?.name ?: "null")
-//            println("wall pos = $atWallPosition")
-//            println("arm = ${robot.arm.t.axis1}")
-//            println("wrist = ${robot.arm.t.axis2}")
         }
     }
 
