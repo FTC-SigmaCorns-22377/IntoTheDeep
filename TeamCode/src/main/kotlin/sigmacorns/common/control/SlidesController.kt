@@ -1,11 +1,14 @@
 package sigmacorns.common.control
 
+import eu.sirotin.kotunil.base.m
 import sigmacorns.common.io.SigmaIO
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.Volt
 import net.unnamedrobotics.lib.math2.Bounds
+import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.checkedUnitless
 import net.unnamedrobotics.lib.math2.map
+import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyKinematics
 import sigmacorns.common.kinematics.DiffyOutputPose
@@ -38,8 +41,19 @@ fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControlLoop<DiffyInpu
         },
         { x, t ->
             val cur = kinematics.forward(x)
-            ((t.axis1-cur.axis1).map { it.absoluteValue } < Tuning.EXTENSION_TOLERANCE &&
-                (t.axis2-cur.axis2).map { it.absoluteValue } < Tuning.LIFT_TOLERANCE)
+            val tBounded = DiffyOutputPose(Limits.EXTENSION.apply(t.axis1.cast(m)),Limits.LIFT.apply(t.axis2.cast(m)))
+            val extensionError = (tBounded.axis1-cur.axis1)
+            val liftError = (tBounded.axis2-cur.axis2)
+
+            rerun(io.rerunConnection) {
+                scalar("DEBUG/extensionError",extensionError.value)
+                scalar("DEBUG/liftError",liftError.value)
+            }
+
+            (
+                    extensionError.map { it.absoluteValue } < Tuning.EXTENSION_TOLERANCE &&
+                    liftError.map { it.absoluteValue } < Tuning.LIFT_TOLERANCE
+            )
         }
     ).also { it.t = init }
 }

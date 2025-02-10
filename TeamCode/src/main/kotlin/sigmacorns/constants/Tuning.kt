@@ -62,10 +62,13 @@ object Tuning {
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
     var specimenHighPose = LiftPose(110.mm,(30).degrees, (30).degrees)
     var specimenLowPose = LiftPose(170.mm,(30).degrees, (30).degrees)
+    var bucketHighPose: LiftPose = LiftPose(750.mm,(-45).degrees,(-25).degrees)
+    var bucketLowPose: LiftPose = LiftPose(400.mm,(-45).degrees,(-25).degrees)
+
+    var postTransferPose = LiftPose(TRANSFER_EXTRACT_POSE.lift, bucketLowPose.arm, bucketLowPose.wrist)
     var asdf = LiftPose(150.mm,(30).degrees, (50).degrees)
 
     var specimentScoreOffset = 200.mm
 
-    var bucketHighPose: LiftPose = LiftPose(750.mm,(-45).degrees,(-25).degrees)
-    var bucketLowPose: LiftPose = LiftPose(400.mm,(-45).degrees,(-25).degrees)
+
 }

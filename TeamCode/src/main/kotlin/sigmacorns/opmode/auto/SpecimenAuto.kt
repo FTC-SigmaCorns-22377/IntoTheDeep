@@ -26,7 +26,6 @@ import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.common.kinematics.LiftPose
 import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
-import sigmacorns.opmode.Teleop.ScorePositions
 
 @Autonomous
 class SpecimenAuto: SimOrHardwareOpMode() {

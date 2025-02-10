@@ -49,7 +49,7 @@ struct SimConstants {
     double halfLength = 0.35; // m
     double halfWidth = 0.35; // m
 
-    double weight = 10; //kg
+    double weight = 15; //kg
 
     //cuboid approximation
     double moment = 1.0/12.0*weight*(std::pow(halfWidth * 2,2) + std::pow(halfLength * 2,2) ); //kg m m
@@ -65,10 +65,10 @@ struct SimConstants {
     double wheelMoment = 0.00035908978; //kg m m
 
     //EXTEND
-    double extendGearRatio = (1.0+(46.0/11.0)) / 2.0;
+    double extendGearRatio = pow(1.0+(46.0/17.0),2) / 2.0;
     double extendViscousFriction = 0.05; //Nm/(rad/s)
     double extendStaticFriction = 2.0; //N
-    double extendWeight = 5; //kg
+    double extendWeight = 3; //kg
     double extendPulleyRadius = 0.0359/2.0; //m
 
     double extendMin = 0.0; // rad
@@ -76,7 +76,7 @@ struct SimConstants {
     double extendBoundsStiffness = 10; // Nm/rad past bounds
 
     //LIFT
-    double liftGearRatio = 1.0+(46.0/11.0);
+    double liftGearRatio = pow(1.0+(46.0/17.0),2);
     double liftViscousFriction = 0.005; //Nm/(rad/s)
     double liftStaticFriction = 2.0; // N
     double liftWeight = 4; //kg
@@ -313,7 +313,7 @@ inline SimState dState(SimState x, SimInput u) {
     }
 
     for(int i=0; i<2; i++) {
-        auto factor = i==0 ? -1 : 1;
+        auto factor = i==0 ? 1 : -1;
         auto vel = x.extendVel*constants.extendGearRatio/constants.extendPulleyRadius + factor * x.liftVel*constants.liftGearRatio/constants.liftPulleyRadius;
         dx.slideMotorCurrents[i] = motorDCurrent(
                 1.0,

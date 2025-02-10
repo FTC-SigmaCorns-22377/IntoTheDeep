@@ -67,7 +67,7 @@ class SimpleServoController(
     override fun read() = x
 
     override fun reached(x: ServoControlLoopState, t: Radian)
-            = (x.estimatedPos-t).map { it.absoluteValue } < tolerance
+            = (x.estimatedPos-bounds.apply(t)).map { it.absoluteValue } < tolerance
 
     override fun write(u: Double) {
         servo.updatePort(u)

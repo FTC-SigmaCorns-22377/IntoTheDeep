@@ -1,8 +1,10 @@
 package sigmacorns.common.io
 
 import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.cm
-import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.core.*
+import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.Expression
 import eu.sirotin.kotunil.core.*
@@ -13,30 +15,48 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.sim.SimInput
 import sigmacorns.common.sim.SimNative
 import sigmacorns.constants.SimLoopTimes
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.random.Random
 
 class SimIO(
     private val sim: SimNative,
     rerunName: String,
-    val simV: Volt = 12.V
+    val simV: Volt = 12.V,
+    val realtime: Boolean = false
 ): SigmaIO() {
     override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
 
+    val simStep: Second = 2.ms
+    private var realStartTime: Expression = Clock.seconds.s
     private var time: Expression = 0.s
+
     @Suppress("NAME_SHADOWING")
     private fun step(dt: Expression) {
-        val dt = (dt + dt*Random.nextDouble(-SimLoopTimes.uncertainty,SimLoopTimes.uncertainty)).map {
-            max(it,SimLoopTimes.base.value)
-        }
+        val estimatedDt =
+            (dt + dt*Random.nextDouble(-SimLoopTimes.uncertainty,SimLoopTimes.uncertainty)).map {
+                max(it,SimLoopTimes.base.value)
+            }
+        val dt = if(realtime)
+                (Clock.seconds.s-realStartTime)-time
+            else estimatedDt
 
         time += dt
-        sim.step(dt.value, SimInput(
+
+        val numSteps = floor((dt/simStep).value).toInt()
+        val input = SimInput(
             driveFL,driveBL,driveBR,driveFR,motor1,motor2
-        ))
+        )
+        repeat(numSteps) {
+            sim.step(simStep.value, input)
+        }
+        val rem = dt-numSteps*simStep
+        sim.step(rem.value,input)
+
     }
 
     override fun position() = sim.output.pos.also { step(SimLoopTimes.pinpointRead) }

@@ -1,6 +1,7 @@
 package sigmacorns.common.cmd
 
 import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.Radian
 import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.plus
@@ -25,9 +26,9 @@ fun clawCommand(robot: Robot, closed: Boolean)
     = instant { robot.claw.updatePort(if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN) } + wait(Tuning.CLAW_TIME)
 
 fun depoCommand(robot: Robot, liftPose: LiftPose, lock: Boolean = true)
-    = armCommand(robot,liftPose.arm,liftPose.wrist,lock) + liftCommand(robot, liftPose.lift,lock)
+    = (armCommand(robot,liftPose.arm,liftPose.wrist,lock).name("arm").timeout(15.s) + liftCommand(robot, liftPose.lift,lock).name("lift").timeout(5.s)).name("depo")
 
-fun depoCommand(robot: Robot, positions: ScorePositions) = depoCommand(robot,positions.x)
+fun depoCommand(robot: Robot, positions: ScorePosition) = depoCommand(robot,positions.x)
 
 fun instant(f: ()->Unit) = cmd {instant(f)}
 

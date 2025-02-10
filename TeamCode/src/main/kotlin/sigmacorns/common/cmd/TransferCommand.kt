@@ -29,7 +29,9 @@ robot.armCommandSlot.lock() +
                 instant { robot.active.updatePort(0.0) }
             )
         ).name("pre-transfer").timeout(2.s),
+
         // we've retracted past the bar, can flip intake to transfer pos now
+        retract(robot),
         robot.intake.follow(Robot.IntakePositions.OVER),
         // push the sample out of the top into the open claw
         (depoCommand(robot,Tuning.TRANSFER_POSE) +
@@ -38,12 +40,15 @@ robot.armCommandSlot.lock() +
                     wait(Tuning.TRANSFER_ACTIVE_TIME) then
                     instant { robot.active.updatePort(0.0) }
                 )).name("transfer-push").timeout(2.s),
+
         // grab the sample
         clawCommand(robot,true),
+
         // pull out the sample
-        depoCommand(robot,Tuning.TRANSFER_EXTRACT_POSE).name("transfer-extract").timeout(3.s)
+        depoCommand(robot,Tuning.TRANSFER_EXTRACT_POSE).name("transfer-extract").timeout(3.s),
+        depoCommand(robot, Tuning.postTransferPose).name("awesome-pose").timeout(2.s)
     )
 ).name("transfer").timeout(5.s)
 
-fun Command.timeout(t: Second) = race(this, wait(t) then instant { println("WARNING: COMMAND ${this.name} TIMED OUT") })
+fun Command.timeout(t: Second) = race(this, wait(t) then instant { println("WARNING: COMMAND  ${this.name}(${this.hashCode()}) TIMED OUT") })
 fun Command.name(name: String) = this.also { it.name = name }

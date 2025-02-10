@@ -10,6 +10,7 @@ import sigmacorns.common.io.SimIO
 import sigmacorns.common.sim.SimNative
 
 var SIM = false
+var REALTIME = false
 
 abstract class SimOrHardwareOpMode: LinearOpMode() {
     abstract fun runOpMode(io: SigmaIO)
@@ -20,7 +21,7 @@ abstract class SimOrHardwareOpMode: LinearOpMode() {
 
     override fun runOpMode() {
         io = if (SIM)
-            SimIO(SimNative(0.0,0.0, Transform2D(0.m,0.m,0.rad)), "SIM")
+            SimIO(SimNative(0.0,0.0, Transform2D(0.m,0.m,0.rad)), "SIM", realtime = REALTIME)
         else
             RobotIO(
                 hardwareMap,

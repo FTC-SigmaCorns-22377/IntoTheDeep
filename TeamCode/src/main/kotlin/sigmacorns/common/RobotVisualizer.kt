@@ -5,10 +5,12 @@ import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.rad
+import net.unnamedrobotics.lib.math.RGBA
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.Vector3
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.inverseLerp
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.mapRanges
 import net.unnamedrobotics.lib.math2.rotateY
@@ -29,6 +31,7 @@ import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Physical.EXTEND_M_PER_TICK
 import sigmacorns.constants.Physical.LIFT_M_PER_TICK
+import sigmacorns.constants.Tuning
 import sigmacorns.constants.Visualization
 import kotlin.math.absoluteValue
 
@@ -87,7 +90,9 @@ class RobotVisualizer(
         val clawEnd = armEnd + spherical(Physical.CLAW_LENGTH,0.rad,wrist.cast(rad))
 
         logRectP2P("arm",armStart,armEnd,Visualization.ARM_HEIGHT,Visualization.ARM_WIDTH)
-        logRectP2P("claw",armEnd,clawEnd,Visualization.ARM_HEIGHT,Visualization.ARM_WIDTH)
+
+        val clawClosedT = (Tuning.CLAW_OPEN..Tuning.CLAW_OPEN).inverseLerp(io.claw)
+        logRectP2P("claw",armEnd,clawEnd,Visualization.ARM_HEIGHT,Visualization.ARM_WIDTH, color = RGBA((1-clawClosedT),clawClosedT,0.0,0.0))
 
         val intakeEnd = (Visualization.INTAKE_LEFT_END_POS + spherical(extension, 0.rad, 90.degrees)).let {
             vec3(it.x, 0.m, it.z)
@@ -229,7 +234,8 @@ class RobotVisualizer(
         p2: Vector3,
         height: Metre,
         width: Metre,
-        roll: Radian = 0.rad
+        roll: Radian = 0.rad,
+        color: RGBA? = null
     ) {
         val center = (p1+p2)/2.0
         val v = p1-p2
@@ -243,7 +249,8 @@ class RobotVisualizer(
             Boxes3D(
                 listOf(vec3(halfLength,width/2.0,height/2.0)),
                 listOf(center),
-                rotations = listOf(rotation)
+                rotations = listOf(rotation),
+                colors = color?.let { listOf(it) }
             )
         }
     }

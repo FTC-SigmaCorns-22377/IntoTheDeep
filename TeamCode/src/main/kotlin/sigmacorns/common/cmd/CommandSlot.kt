@@ -1,6 +1,7 @@
 package sigmacorns.common.cmd
 
 import net.unnamedrobotics.lib.command.Command
+import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.Status
 import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.schedule
@@ -8,8 +9,13 @@ import net.unnamedrobotics.lib.command.schedule
 class CommandSlot: Command() {
     private var curCmd: Command? = null
     private var interruptible = true
+    private var runningProxy: Command? = null
 
     override suspend fun run(): Boolean {
+        if(runningProxy?.status==Status.CANCELLED) {
+            curCmd!!.status = Status.CANCELLED
+            runningProxy = null
+        }
         return false
     }
 
@@ -23,7 +29,8 @@ class CommandSlot: Command() {
     }
 
     fun register(command: Command, interruptible: Boolean = true) = cmd {
-        init { tryPut(command, interruptible) }
+        init { tryPut(command, interruptible); runningProxy = this }
+        loop { if(command.status==Status.CANCELLED) status=Status.CANCELLED }
         finishWhen { command.status==Status.FINISHED }
     }
 

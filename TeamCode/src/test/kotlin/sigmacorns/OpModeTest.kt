@@ -7,26 +7,39 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import sigmacorns.common.simutil.GamepadInput
 import sigmacorns.common.simutil.KeyboardGamepads
+import sigmacorns.opmode.REALTIME
 import sigmacorns.opmode.SIM
 import sigmacorns.opmode.SimOrHardwareOpMode
 import sigmacorns.opmode.Teleop
 import sigmacorns.opmode.TransferTest
 
-abstract class OpModeTest {
-    abstract val opMode: SimOrHardwareOpMode
-    open val useKeyboardInput = false
-    open val maxTime = 20.s
+class OpModeTest {
+    val useKeyboardInput = false
+    val useGamepadInput = true
+    val maxTime = 200.s
 
 
+    @Test
     fun test() {
         SIM = true
+        REALTIME = true
+        val opMode = Teleop()
 
         opMode.gamepad1 = Gamepad()
         opMode.gamepad2 = Gamepad()
+        var keyListener: KeyboardGamepads? = null
+        var gamepadInput: GamepadInput? = null
 
-        val keyListener = KeyboardGamepads(opMode.gamepad1, opMode.gamepad2)
-        keyListener.startListener()
+        if(useKeyboardInput) {
+            keyListener = KeyboardGamepads(opMode.gamepad1, opMode.gamepad2)
+            keyListener.startListener()
+        }
+
+        if(useGamepadInput) {
+            gamepadInput = GamepadInput(opMode.gamepad1,opMode.gamepad2)
+        }
 
         val job = GlobalScope.launch {
             opMode.runOpMode()
@@ -43,7 +56,12 @@ abstract class OpModeTest {
             stopRequested.isAccessible = true
 
             while (!job.isCompleted && (opMode.io?.time() ?: 0.s) < maxTime) {
-                Thread.sleep(1000)
+                if(useGamepadInput) {
+                    gamepadInput!!.update()
+                    Thread.sleep(5)
+                } else {
+                    Thread.sleep(1000)
+                }
             }
 
             stopRequested.set(opMode,true)
@@ -52,7 +70,7 @@ abstract class OpModeTest {
             println(e)
             throw e
         } finally {
-            keyListener.closeListener()
+            keyListener?.closeListener()
         }
     }
 }

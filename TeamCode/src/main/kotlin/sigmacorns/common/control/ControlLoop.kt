@@ -42,8 +42,9 @@ abstract class ControlLoop<X:Any, U: Any, T: Any>(
 
     fun follow(target: T) = follow { target }
     fun follow(target: () -> T) = cmd {
-        init { t = target(); println("BRO") }
-        finishWhen { reached() }
+        var t: T? = null
+        init { t = target(); this@ControlLoop.t = t!!; }
+        finishWhen { reached(x,t!!) }
     }
 }
 
