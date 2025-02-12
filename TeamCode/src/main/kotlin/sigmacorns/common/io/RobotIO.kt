@@ -41,6 +41,7 @@ class RobotIO(
 
     private val m1 = hardwareMap.get(DcMotor::class.java,"D1")
     private val m2 = hardwareMap.get(DcMotor::class.java,"D2")
+    private val m3 = hardwareMap.get(DcMotor::class.java,"D3")
 
     private val fl = hardwareMap.get(DcMotor::class.java,"FL")
     private val bl = hardwareMap.get(DcMotor::class.java,"BL")
@@ -176,6 +177,14 @@ class RobotIO(
         set(value) {
             if(value!=field) {
                 m2.power = value
+                field = value
+            }
+        }
+
+    override var motor3: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m3.power = value
                 field = value
             }
         }

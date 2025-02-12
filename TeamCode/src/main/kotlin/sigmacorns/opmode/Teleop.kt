@@ -23,11 +23,13 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
 import sigmacorns.common.Robot
+import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.ScorePosition
 import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.instant
+import sigmacorns.common.cmd.numAutoIntakes
 import sigmacorns.common.cmd.score
 import sigmacorns.common.cmd.transferCommand
 import sigmacorns.common.io.SigmaIO
@@ -75,6 +77,8 @@ class Teleop: SimOrHardwareOpMode() {
             Tuning.IntakePosition.OVER
         )
 
+        val visualizer = if(SIM) RobotVisualizer(io) else null
+
         maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
         maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
 
@@ -90,6 +94,7 @@ class Teleop: SimOrHardwareOpMode() {
         // a: claw
 
 
+        visualizer?.init()
         Scheduler.reset()
 
         waitForStart()
@@ -154,6 +159,13 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
 
+            println("RUNNING COMMANDS")
+            for(cmd in Scheduler.cmds) {
+                print("${cmd.name}(${cmd.status}), ")
+            }
+            println("--------------")
+            println("numAutoIntakes = $numAutoIntakes")
+
             Scheduler.tick()
 
             if(SIM) Thread.sleep(50)
@@ -164,6 +176,7 @@ class Teleop: SimOrHardwareOpMode() {
             g1.periodic()
             g2.periodic()
             robot.update(dt.value)
+            visualizer?.log()
         }
     }
 

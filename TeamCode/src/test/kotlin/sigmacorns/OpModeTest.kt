@@ -18,8 +18,8 @@ import sigmacorns.opmode.Teleop
 import sigmacorns.opmode.TransferTest
 
 class OpModeTest {
-    val useKeyboardInput = false
-    val useGamepadInput = true
+    val useKeyboardInput = true
+    val useGamepadInput = false
     val maxTime = 200.s
 
 
@@ -27,7 +27,7 @@ class OpModeTest {
     fun test() {
         SIM = true
         REALTIME = true
-        val opMode = TransferTest()
+        val opMode = Teleop()
 
         opMode.gamepad1 = Gamepad()
         opMode.gamepad2 = Gamepad()
@@ -70,7 +70,7 @@ class OpModeTest {
                     Thread.sleep(1000)
                 }
 
-                if(Clock.seconds>1.0) (opMode.io as SimIO).triggerDistance = true
+//                if(Clock.seconds>1.0) (opMode.io as SimIO).triggerDistance = true
             }
 
             stopRequested.set(opMode,true)

@@ -40,7 +40,7 @@ class SimpleServoController(
         val diff = targetPos-x.estimatedPos
         val dx = diff.map { min(it.absoluteValue,dt*maxSpeed.value)*it.sign }
 
-        x = ServoControlLoopState(x.estimatedPos+dx,0.rad/s)
+        x = ServoControlLoopState(bounds.apply((x.estimatedPos+dx).cast(rad)),0.rad/s)
 
         var theta: Expression = t
         if(theta.value.isNaN()) {
@@ -58,7 +58,7 @@ class SimpleServoController(
             theta = if(minDist < maxDist) bounds.min else bounds.max
         }
 
-        val servoPos =  (posMap)(theta.value).toDouble()
+        val servoPos = (posMap)(theta.value).toDouble()
 
         return servoPos
     }
@@ -67,7 +67,7 @@ class SimpleServoController(
     override fun read() = x
 
     override fun reached(x: ServoControlLoopState, t: Radian)
-            = (x.estimatedPos-bounds.apply(t)).map { it.absoluteValue } < tolerance
+            = (x.estimatedPos-bounds.apply(t)).normalizeRadian().map { it.absoluteValue } < tolerance
 
     override fun write(u: Double) {
         servo.updatePort(u)

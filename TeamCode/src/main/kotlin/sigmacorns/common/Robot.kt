@@ -54,7 +54,7 @@ class Robot(
    }).also { it.t = intakePos  }
 
     val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
-    val active: Actuator<Double> = with(io) { Actuator { intake = it }}
+    val active: Actuator<Double> = with(io) { Actuator({ Exception().printStackTrace() }) { intake = it }}
 
     val extendCommandSlot = CommandSlot()
     val liftCommandSlot = CommandSlot()

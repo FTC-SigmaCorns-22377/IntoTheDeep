@@ -48,13 +48,13 @@ object Tuning {
 
     var ACTIVE_POWER: Double = 1.0
     var ACTIVE_STOP_POWER: Double = -0.7
-    var ACTIVE_STOP_TIME = 300.ms
+    var ACTIVE_STOP_TIME = 100.ms
     var TRANSFER_ACTIVE_TIME = 300.ms
 
     enum class IntakePosition(val x: Radian) {
         OVER(0.rad),
         BACK((-0.43).rad),
-        ACTIVE((-0.43).rad)
+        ACTIVE((-0.00).rad)
     }
 
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)

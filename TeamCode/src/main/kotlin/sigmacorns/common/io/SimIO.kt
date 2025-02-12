@@ -92,7 +92,7 @@ class SimIO(
     var triggerDistance = false
 
     override fun distance(): Metre
-        = (if(time>5.s) 0.cm else 20.cm).also { step(SimLoopTimes.motorWrite) }
+        = (if(time>5.s) 20.cm else 20.cm).also { step(SimLoopTimes.motorWrite) }
 
     override fun voltage() = simV
 
@@ -128,8 +128,14 @@ class SimIO(
             field = value
             step(SimLoopTimes.motorWrite)
         }
+    override var motor3: Double = 0.0
+        set(value) {
+            field = value
+            step(SimLoopTimes.motorWrite)
+        }
     override var intake: Double = 0.0
         set(value) {
+            println("INTAKE=$value")
             field = value
             step(SimLoopTimes.motorWrite)
         }

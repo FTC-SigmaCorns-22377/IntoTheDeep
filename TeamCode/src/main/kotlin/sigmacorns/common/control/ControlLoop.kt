@@ -93,9 +93,12 @@ class Sensor<T: Any>(
 
 context(SigmaIO)
 class Actuator<T: Any>(
+    private val onUpdate: () -> Unit,
     private val f: context(SigmaIO) (T) -> Unit,
 ): PortIn<T, UPortKind>() {
     var v: T? = null
+
+    constructor(f: context(SigmaIO) (T) -> Unit): this({},f)
 
     override val node = object : ControlNode {
         override fun tickControlNode(dt: Double): Unit {
@@ -103,5 +106,5 @@ class Actuator<T: Any>(
         }
     }
 
-    override fun updatePort(v: T) { this.v = v }
+    override fun updatePort(v: T) {  this.v = v; onUpdate(); }
 }

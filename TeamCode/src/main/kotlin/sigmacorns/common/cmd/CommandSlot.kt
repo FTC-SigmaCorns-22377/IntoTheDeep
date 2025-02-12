@@ -12,10 +12,10 @@ class CommandSlot: Command() {
     private var runningProxy: Command? = null
 
     override suspend fun run(): Boolean {
-        if(runningProxy?.status==Status.CANCELLED) {
-            curCmd!!.status = Status.CANCELLED
-            runningProxy = null
-        }
+//        if(runningProxy?.status==Status.CANCELLED) {
+//            curCmd!!.status = Status.CANCELLED
+//            runningProxy = null
+//        }
         return false
     }
 
@@ -29,7 +29,8 @@ class CommandSlot: Command() {
     }
 
     fun register(command: Command, interruptible: Boolean = true) = cmd {
-        init { tryPut(command, interruptible); runningProxy = this }
+        onCancel = { if(command.status!=Status.FINISHED) command.status = Status.CANCELLED }
+        init { if(!tryPut(command, interruptible)) status = Status.CANCELLED; }
         loop { if(command.status==Status.CANCELLED) status=Status.CANCELLED }
         finishWhen { command.status==Status.FINISHED }
     }

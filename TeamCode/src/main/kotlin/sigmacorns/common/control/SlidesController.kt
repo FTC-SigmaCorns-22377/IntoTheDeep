@@ -38,6 +38,8 @@ fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControlLoop<DiffyInpu
         { u ->
             io.motor1 = (u[0]/io.voltage()).checkedUnitless()
             io.motor2 = (u[1]/io.voltage()).checkedUnitless()
+            val third = (u[0]-u[1])/2.0
+            io.motor3 = (third/io.voltage()).checkedUnitless()
         },
         { x, t ->
             val cur = kinematics.forward(x)

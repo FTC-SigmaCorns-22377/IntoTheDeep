@@ -30,8 +30,8 @@ class TransferTest: SimOrHardwareOpMode() {
             Tuning.IntakePosition.OVER
         )
 
-//        val visualizer = RobotVisualizer(io)
-//        visualizer.init()
+        val visualizer = RobotVisualizer(io)
+        visualizer.init()
 
         waitForStart()
 
@@ -46,8 +46,14 @@ class TransferTest: SimOrHardwareOpMode() {
             val dt = t-lastT
             lastT = t
 
+            println("RUNNING COMMANDS")
+            for(cmd in Scheduler.cmds) {
+                print("${cmd.name}(${cmd.status}), ")
+            }
+            println("--------------")
+
             robot.update(dt)
-//            visualizer.log()
+            visualizer.log()
         }
     }
 }
