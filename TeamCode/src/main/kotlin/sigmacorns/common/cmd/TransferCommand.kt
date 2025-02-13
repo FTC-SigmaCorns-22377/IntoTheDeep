@@ -21,7 +21,8 @@ robot.armCommandSlot.lock() +
         (
             depoCommand(robot,Tuning.TRANSFER_HOVER_POSE,false) +
             robot.intake.follow(Tuning.IntakePosition.BACK) +
-            clawCommand(robot,false) //+
+            clawCommand(robot,false) +
+            flapCommand(robot, false)
         ).name("pre-transfer"),
 
         // we've retracted past the bar, can flip intake to transfer pos now

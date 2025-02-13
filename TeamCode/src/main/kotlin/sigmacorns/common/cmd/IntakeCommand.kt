@@ -38,7 +38,8 @@ fun flapCommand(robot: Robot, closed: Boolean) = instant {
 fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) =
     (extendCommand(robot,dist, lock) +
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER) +
-    robot.intake.follow(Tuning.IntakePosition.ACTIVE)).name("intakeCommand($dist)")
+    robot.intake.follow(Tuning.IntakePosition.ACTIVE)).name("intakeCommand($dist)") +
+    flapCommand(robot, true)
 
 //fun detectCommand(robot: Robot) = cmd {
 //    finishWhen { robot.io.distance() < Color.DIST_THRESHOLD || }
