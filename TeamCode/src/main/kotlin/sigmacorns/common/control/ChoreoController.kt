@@ -8,6 +8,7 @@ import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.control.controller.Controller
+import net.unnamedrobotics.lib.control.controller.PIDController
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
@@ -46,18 +47,24 @@ class ChoreoController(
 
     lateinit var sample: SwerveSample
 
+    val xController = PIDController(coeff)
+    val yController = PIDController(coeff)
+    val angController = PIDController(angCoeff)
+
     override fun copy() = TODO()
 
     override fun update(deltaTime: Double): Transform2D {
         if(lastTraj == target) t += deltaTime else t = 0.0
         lastTraj = target
+
 //        sample = target.getClosestSample(position.pos.toPose2d())
 //        sample = target.sampleAt(sample.t + 1.ms.value)
+
         sample = target.sampleAt(t)
         val endSample = target.finalSample.pose
 
-        if((sample.pose.toTransform2d() - endSample.toTransform2d()).vector().magnitude() < 5.cm)
-            sample = target.finalSample
+//        if((sample.pose.toTransform2d() - endSample.toTransform2d()).vector().magnitude() < 5.cm)
+//            sample = target.finalSample
 
         val posErr = sample.pose.toTransform2d()-position.pos
         val robotRelPosErr = posErr.vector().rotate((-position.pos.angle).cast(rad))/s
@@ -72,39 +79,18 @@ class ChoreoController(
         )
         val velErr = (velBase - position.vel.let { Twist2D(it.vector().rotate((-position.pos.angle).cast(rad)),it.dAngle) })
 
-        val res =
-            Transform2D(robotRelPosErr*coeff.p, headingErr*angCoeff.p) +
-            (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
-            Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
+//        val res =
+//            Transform2D(robotRelPosErr*coeff.p, headingErr*angCoeff.p) +
+//            (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
+//            Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
 
-//        if(position.vel.vector().magnitude() < 0.01.m/s)
+        val res = Transform2D(
+            xController.updateStateless(deltaTime,0.0,robotRelPosErr.x.value).m/s,
+            yController.updateStateless(deltaTime,0.0,robotRelPosErr.y.value).m/s,
+            angController.updateStateless(deltaTime,0.0,headingErr.value).rad/s
+        )
 
         return res.let { Transform2D(it.x,-it.y,it.angle) }
-
-//        val acc = Transform2D(vec2(sample.ax.m/s,sample.ay.m/s).rotate((-position.pos.angle).cast(
-//            rad)),sample.alpha.rad/s)*0.25
-//
-//        val posErr = sample.pose.toTransform2d()-position.pos
-//        val robotRelPosErr = posErr.vector().rotate((-position.pos.angle).cast(rad))
-//        val headingErr = posErr.angle
-//
-//        var d = Transform2D(
-//            vec2(sample.vx.m/s,sample.vy.m/s)
-//                .rotate((-position.pos.angle).cast(rad)),
-//            sample.omega.rad/s*10
-//        )*1.0
-//
-////        d *= (if(robotRelPosErr.magnitude()>getToPathRange || headingErr.value.absoluteValue > getToPathAngle.value) 0.0 else 1.0)
-//
-//        val vel = acc + d + Transform2D(robotRelPosErr*p/s,headingErr*pAng/s)
-//
-////        println("vel = (${vel.x.value},${vel.y.value})")
-//
-//        vel.x.cast(m/s)
-//        vel.y.cast(m/s)
-//        vel.angle.cast(rad/s)
-//
-//        return SwerveController.Target(vel,false)
     }
 }
 
