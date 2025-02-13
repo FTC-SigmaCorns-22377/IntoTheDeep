@@ -40,7 +40,7 @@ import sigmacorns.constants.Tuning
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
-@TeleOp
+@TeleOp(name = "_TELEOP_")
 class Teleop: SimOrHardwareOpMode() {
     lateinit var robot: Robot
     lateinit var maxSpeed: Expression

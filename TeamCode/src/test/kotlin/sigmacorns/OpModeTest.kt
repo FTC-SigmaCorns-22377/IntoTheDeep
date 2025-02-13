@@ -16,6 +16,7 @@ import sigmacorns.opmode.SIM
 import sigmacorns.opmode.SimOrHardwareOpMode
 import sigmacorns.opmode.Teleop
 import sigmacorns.opmode.TransferTest
+import sigmacorns.opmode.test.ChoreoTest
 
 class OpModeTest {
     val useKeyboardInput = true
@@ -27,7 +28,7 @@ class OpModeTest {
     fun test() {
         SIM = true
         REALTIME = true
-        val opMode = Teleop()
+        val opMode = ChoreoTest()
 
         opMode.gamepad1 = Gamepad()
         opMode.gamepad2 = Gamepad()

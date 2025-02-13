@@ -43,7 +43,9 @@ class Robot(
     )
 
     val mecanum = MecanumController(drivebase,io)
-    val choreo = choreoControllerLoop(ChoreoController(Tuning.choreoPosPID,Tuning.choreoAngPID,Physical.DRIVEBASE_SIZE.xy,0),this)
+    private val choreoController = ChoreoController(Tuning.choreoPosPID,Tuning.choreoAngPID,Physical.DRIVEBASE_SIZE.xy,0)
+    val choreo = choreoControllerLoop(choreoController,this)
+    val trajLogger = choreoController.trajectoryLogger
     val slides = slidesControlLoop(io,initSlidesPose)
     val arm = with(io) { ArmControlLoop(Actuator { armL = it }, Actuator { armR = it }, initArmPose, io) }
 
@@ -76,6 +78,7 @@ class Robot(
         intake.tickControlNode(dt)
         active.node.tickControlNode(dt)
         claw.node.tickControlNode(dt)
+        flap.node.tickControlNode(dt)
         io.updateColor()
         io.updatePinpoint()
     }

@@ -75,7 +75,7 @@ fun autoIntake(robot: Robot, dist: Metre): Command {
             onFinish { numAutoIntakes -= 1 }
         },
         intakeCommand(robot, dist).name("autoIntakeIntakeCommand")
-    ) then brakeIntakeRollers(robot) then transferCommand(robot)).name("autoIntake")
+    ) /*then brakeIntakeRollers(robot)*/ then powerIntakeCommand(robot,0.0) then transferCommand(robot)).name("autoIntake")
 
     return instant {
         runningAutoInputCmd?.status = Status.CANCELLED;

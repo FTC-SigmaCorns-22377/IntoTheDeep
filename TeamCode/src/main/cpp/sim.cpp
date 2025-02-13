@@ -251,14 +251,14 @@ inline std::array<double,4> mecanumTireSlip(double vels[], Pose vel, double thet
         auto groundY = (vel.x*c + vel.y*s) * vel.theta * (rotDirs[i][1] / norm * wheelPos[i][1]);
 
         auto groundVel = groundX*wheelDirs[i][0] + groundY*wheelDirs[i][1];
-        slips[i] = (groundVel - vels[i])/(std::max(std::abs(groundVel), std::abs(vels[i])));
+        slips[i] = (groundVel - vels[i])/(std::fmax(std::fmax(std::fabs(groundVel), std::fabs(vels[i])),0.1));
     }
 
     return slips;
 }
 
 inline double linearTireModel(double longSlip) {
-    return copysign(std::min(std::abs(longSlip) * constants.tireModelStiffness, constants.tireModelMax), longSlip);
+    return copysign(std::fmin(std::fabs(longSlip) * constants.tireModelStiffness, constants.tireModelMax), longSlip);
 }
 
 inline Pose mecanum(std::array<double,4> torques) {
@@ -271,7 +271,7 @@ inline Pose mecanum(std::array<double,4> torques) {
 }
 
 inline double adjustForStaticFriction(double vel, double torque, double staticFriction) {
-    return std::abs(vel) < constants.staticVelocity && std::abs(torque) < staticFriction ? -vel*10 : torque;
+    return std::fabs(vel) < constants.staticVelocity && std::fabs(torque) < staticFriction ? -vel*10 : torque;
 }
 
 inline double boundsSprings(double min, double max, double stiffness, double pos) {
@@ -284,12 +284,14 @@ inline SimState dState(SimState x, SimInput u) {
 
     //atp torques is slips, on the next line it gets converted to torques.
     auto torques = mecanumTireSlip(dx.driveMotorVels,x.vel,x.pos.theta);
+
+//    std::cout << torques[0] << "," << torques[1]<< "," << torques[2]<< "," << torques[3];
     for(auto& torque : torques) torque = linearTireModel(torque);
 
-    auto dVel = mecanum(torques);
-    dVel.x /= constants.weight;
-    dVel.y /= constants.weight;
-    dVel.theta /= constants.moment;
+    dx.vel = mecanum(torques);
+    dx.vel.x /= constants.weight;
+    dx.vel.y /= constants.weight;
+    dx.vel.theta /= constants.moment;
 
     for(int i=0; i<4; i++) {
         auto v = x.driveMotorVels[i];

@@ -33,7 +33,9 @@ class ChoreoController(
     val rerunDownscale: Int = 1
 ): Controller<RobotMovementState, Transform2D, Trajectory<SwerveSample>>() {
     override var output: Transform2D = Transform2D(0.m/s,0.m/s,0.rad/s)
-    override lateinit var position: RobotMovementState
+    override var position: RobotMovementState = RobotMovementState(Transform2D(0.m,0.m,0.rad),
+        Twist2D(0.m/s,0.m/s,0.rad/s)
+    )
     override lateinit var target: Trajectory<SwerveSample>
 
     val trajectoryLogger = TrajectoryLogger(drivebaseSize.x.cast(m),drivebaseSize.y.cast(m))
@@ -75,7 +77,9 @@ class ChoreoController(
             (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
             Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
 
-        return res
+//        if(position.vel.vector().magnitude() < 0.01.m/s)
+
+        return res.let { Transform2D(it.x,-it.y,it.angle) }
 
 //        val acc = Transform2D(vec2(sample.ax.m/s,sample.ay.m/s).rotate((-position.pos.angle).cast(
 //            rad)),sample.alpha.rad/s)*0.25
