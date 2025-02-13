@@ -23,10 +23,18 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 
 repositories {
     maven { url = 'https://jitpack.io' }
-    mavenLocal()
     maven {
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/FtC-SigmaCorns-22377/library")
+        credentials {
+            username = properties.getProperty('username')
+            password = properties.getProperty('apiKey')
+        }
+    }
+
+    maven {
+        name = "choreolib"
+        url = uri("https://maven.pkg.github.com/Null-Robotics/choreolib")
         credentials {
             username = properties.getProperty('username')
             password = properties.getProperty('apiKey')
