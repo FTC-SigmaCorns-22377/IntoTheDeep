@@ -61,6 +61,7 @@ class RobotIO(
     private val sClaw = hardwareMap.get(Servo::class.java, "claw")
     private val sIntake1 = hardwareMap.get(Servo::class.java, "I1")
     private val sIntake2 = hardwareMap.get(Servo::class.java, "I2")
+    private val sFlap = hardwareMap.get(Servo::class.java, "flap")
 
     private val t1 = hardwareMap.get(Servo::class.java,"T1")
     private val t2 = hardwareMap.get(Servo::class.java,"T2")
@@ -230,6 +231,13 @@ class RobotIO(
         set(value) {
             if(value!=field) {
                 sClaw.position = value
+                field = value
+            }
+        }
+    override var flap: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sFlap.position = value
                 field = value
             }
         }

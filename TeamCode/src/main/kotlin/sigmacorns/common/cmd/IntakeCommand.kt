@@ -31,6 +31,10 @@ fun powerIntakeCommand(robot: Robot, power: Double) = cmd {
     instant { robot.active.updatePort(power) }
 }.name("powerIntakeCommand($power)")
 
+fun flapCommand(robot: Robot, closed: Boolean) = instant {
+    robot.flap.updatePort(if(closed) Tuning.FLAP_CLOSED else Tuning.FLAP_OPEN)
+} + wait(Tuning.FLAP_TIME)
+
 fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) =
     (extendCommand(robot,dist, lock) +
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER) +

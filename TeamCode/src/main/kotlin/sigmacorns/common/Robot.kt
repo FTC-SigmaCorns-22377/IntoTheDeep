@@ -55,6 +55,7 @@ class Robot(
 
     val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
     val active: Actuator<Double> = with(io) { Actuator({ Exception().printStackTrace() }) { intake = it }}
+    val flap: Actuator<Double> = with(io) { Actuator { flap = it }}
 
     val extendCommandSlot = CommandSlot()
     val liftCommandSlot = CommandSlot()

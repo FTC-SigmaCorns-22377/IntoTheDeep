@@ -46,6 +46,11 @@ object Tuning {
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
+
+    var FLAP_TIME: Second = 300.ms
+    var FLAP_CLOSED: Double = 0.6375
+    var FLAP_OPEN: Double = 0.12
+
     var ACTIVE_POWER: Double = 1.0
     var ACTIVE_STOP_POWER: Double = -0.7
     var ACTIVE_STOP_TIME = 100.ms
