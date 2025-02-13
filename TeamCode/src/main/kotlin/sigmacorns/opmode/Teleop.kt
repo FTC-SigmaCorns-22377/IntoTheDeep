@@ -1,179 +1,228 @@
 package sigmacorns.opmode
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
-import com.qualcomm.robotcore.hardware.Gamepad
+import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.cm
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.s
-import eu.sirotin.kotunil.core.*
-import eu.sirotin.kotunil.derived.Radian
+import eu.sirotin.kotunil.core.Expression
+import eu.sirotin.kotunil.core.div
+import eu.sirotin.kotunil.core.minus
+import eu.sirotin.kotunil.core.plus
+import eu.sirotin.kotunil.core.times
+import eu.sirotin.kotunil.core.unaryMinus
 import eu.sirotin.kotunil.derived.rad
-import kotlinx.coroutines.runBlocking
-import net.unnamedrobotics.lib.control.controller.PIDController
+import net.unnamedrobotics.lib.command.Scheduler
+import net.unnamedrobotics.lib.command.groups.parallel
+import net.unnamedrobotics.lib.command.groups.then
+import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.gamepad.GamepadEx
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.clampMagnitude
 import net.unnamedrobotics.lib.math2.degrees
-import net.unnamedrobotics.lib.math2.map
-import net.unnamedrobotics.lib.math2.normalizeRadian
-import net.unnamedrobotics.lib.math2.polar
-import net.unnamedrobotics.lib.math2.rotate
-import net.unnamedrobotics.lib.math2.unitless
 import net.unnamedrobotics.lib.math2.vec2
-import net.unnamedrobotics.lib.math2.vec3
-import net.unnamedrobotics.lib.math2.vector
-import net.unnamedrobotics.lib.math2.z
-import sigmacorns.common.Constants
 import sigmacorns.common.Robot
-import sigmacorns.common.ScoringPresets
-import sigmacorns.common.Tuning
-import sigmacorns.common.io.RobotIO
+import sigmacorns.common.RobotVisualizer
+import sigmacorns.common.cmd.ScorePosition
+import sigmacorns.common.cmd.autoIntake
+import sigmacorns.common.cmd.clawCommand
+import sigmacorns.common.cmd.depoCommand
+import sigmacorns.common.cmd.instant
+import sigmacorns.common.cmd.numAutoIntakes
+import sigmacorns.common.cmd.score
+import sigmacorns.common.cmd.transferCommand
 import sigmacorns.common.io.SigmaIO
-import sigmacorns.common.subsystems.arm.ArmTarget
-import sigmacorns.common.subsystems.arm.ScoringKinematics
-import sigmacorns.common.subsystems.arm.ScoringPose
-import sigmacorns.common.subsystems.swerve.FlippingSlewRateLimiter
-import sigmacorns.common.subsystems.swerve.SwerveController
+import sigmacorns.common.kinematics.DiffyInputPose
+import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.constants.Limits
+import sigmacorns.constants.Tuning
+import kotlin.math.absoluteValue
+import kotlin.math.sign
 
-@TeleOp
+@TeleOp(name = "_TELEOP_")
 class Teleop: SimOrHardwareOpMode() {
-    override val initialScoringPose = ScoringPose(
-        vec2(0.m,0.m),
-        90.degrees,
-        406.4.mm,
-        90.degrees,
-        0.rad,0.rad
-    )
+    lateinit var robot: Robot
+    lateinit var maxSpeed: Expression
+    lateinit var maxAngSpeed: Expression
 
-    private val slewRateLimiter = FlippingSlewRateLimiter(Tuning.SWERVE_MAX_SLEW_RATE)
-    private val headingController = PIDController(Tuning.TELEOP_HEADING_PID)
-
-    var targetHeading: Expression = initialScoringPose.theta
-
-    override fun runOpMode(io: SigmaIO) {
-//        io.rerunConnection.disabled = true
-
-        val robot = Robot(io)
-
-        runBlocking {
-            robot.armControlLoop.target(ArmTarget(
-                initialScoringPose.pivot,
-                initialScoringPose.extension,
-                0.rad,
-                0.rad,
-                false
-            ))
+    var scoringPosition: ScorePosition? = null
+        set(value) {
+            if(field!=value && value!=null) depoCommand(robot,value).schedule()
+            field = value
         }
 
-        val normalMaxSpeed = 1.0 * robot.topSpeed()
-        val slowMaxSpeed = (0.5) * normalMaxSpeed
+    var tiltPosition = Tuning.TiltPositions.STRAIGHT
+        set(value) {
+            io!!.tilt1 = value.x
+            io!!.tilt2 = value.x
+            field = value
+        }
 
-        val normalAngularMaxSpeed = 0.4 * robot.topAngularSpeed()
-        val slowAngularMaxSpeed = (0.5) * normalAngularMaxSpeed
+    fun atWallPosition() = robot.slides.t.axis2 == Tuning.specimenWallPose.lift && robot.arm.t.axis1.value.sign < 0.0
 
-        val armPivotNormalSpeed = 0.5.rad/s
-        val armPivotSlowSpeed = armPivotNormalSpeed * 0.5
+    fun clawClosed() = robot.io.claw.let { (it-Tuning.CLAW_CLOSED).absoluteValue < (it-Tuning.CLAW_OPEN).absoluteValue }
 
-        val armExtensionNormalSpeed = 25.cm/s
-        val armExtensionSlowSpeed = armExtensionNormalSpeed * 0.5
+    lateinit var g1: GamepadEx
+    lateinit var g2: GamepadEx
 
-        val clawRollSpeed = 6.rad/s
+    override fun runOpMode(io: SigmaIO) {
+        g1 = GamepadEx(gamepad1)
+        g2 = GamepadEx(gamepad2)
 
-        gamepad1.type = Gamepad.Type.LOGITECH_F310
-        gamepad2.type = Gamepad.Type.LOGITECH_F310
+        robot = Robot(
+            io,
+            DiffyOutputPose(90.degrees, 0.rad),
+            DiffyOutputPose(0.m, 0.m),
+            Tuning.IntakePosition.OVER
+        )
 
-        val gm1 = GamepadEx(gamepad1)
-        val gm2 = GamepadEx(gamepad2)
+        val visualizer = if(SIM) RobotVisualizer(io) else null
 
-        val armLoop = robot.armControlLoop
-        val swerve = robot.swerveControlLoop
+        maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
+        maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
 
-        io.addLoop(swerve)
-        io.addLoop(armLoop)
-        io.addLoop(robot.swerveLogPosControlLoop)
-        io.addLoop(robot.swerveLogVelControlLoop)
 
-        var isSlowMode = false
+        // sample sequence: extend -> transfer -> move -> score
+        // specimen sequence: wall pickup -> move -> score
 
-        var isArmSlowMode = false
-        var armTarget = initialScoringPose.armTarget(true)
+        // dpad l/r: toggle specimen/sample
+        // dpad u/d: toggle high/low
+        // x: manual transfer
+        // b: pickup from wall
+        // y: extend
+        // a: claw
 
-        val baseDistance = 400.mm
+
+        visualizer?.init()
+        Scheduler.reset()
 
         waitForStart()
-        robot.launchIOLoop()
 
-        var wasA1Pressed = false
-        var wasA2Pressed = false
+        robot.update(0.0)
 
-        var wasXPressed = false
+        var lastT = io.time()
+        while (opModeIsActive()) {
+            val t = io.time()
+            val dt = (t - lastT).cast(s)
+            lastT = t
 
-        robot.inputLoop { dt ->
-            gm1.periodic()
-            gm2.periodic()
-            runBlocking {
-                slewRateLimiter.maxRate = Tuning.SWERVE_MAX_SLEW_RATE
-                headingController.coefficients = Tuning.TELEOP_HEADING_PID
+            manualControls(dt)
 
-                //swerve speed controls
-                if(gamepad1.x && !wasXPressed) isSlowMode = !isSlowMode
-                wasXPressed = gamepad1.x
+            if(g1.dpadUp.isJustPressed) scoringPosition = when(scoringPosition) {
+                ScorePosition.LOW_SPECIMEN -> ScorePosition.HIGH_SPECIMEN
+                ScorePosition.LOW_BUCKET -> ScorePosition.HIGH_BUCKET
+                null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.HIGH_SPECIMEN else ScorePosition.HIGH_BUCKET
+                else -> scoringPosition
+            }
 
-                val maxSpeed = if(isSlowMode) slowMaxSpeed else normalMaxSpeed
-                val angularMaxSpeed = if(isSlowMode) slowAngularMaxSpeed else normalAngularMaxSpeed
+            if(g1.dpadDown.isJustPressed) scoringPosition = when(scoringPosition) {
+                ScorePosition.HIGH_SPECIMEN -> ScorePosition.LOW_SPECIMEN
+                ScorePosition.HIGH_BUCKET -> ScorePosition.LOW_BUCKET
+                null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.LOW_SPECIMEN else ScorePosition.LOW_BUCKET
+                else -> scoringPosition
+            }
 
-                //swerve controls
-                val xSpeed = -gm1.leftStick.yAxis * maxSpeed
-                val ySpeed = -gm1.leftStick.xAxis * maxSpeed
-                val angularSpeed = -gamepad1.right_stick_x.toDouble() * angularMaxSpeed
-                val lockWheels = gamepad1.left_stick_button
+            if(g1.dpadRight.isJustPressed) scoringPosition = when(scoringPosition) {
+                ScorePosition.HIGH_SPECIMEN -> ScorePosition.HIGH_BUCKET
+                ScorePosition.LOW_SPECIMEN -> ScorePosition.LOW_BUCKET
+                ScorePosition.HIGH_BUCKET -> ScorePosition.HIGH_SPECIMEN
+                ScorePosition.LOW_BUCKET -> ScorePosition.LOW_SPECIMEN
+                null -> null
+            }
 
-                val speed = vec2(xSpeed,ySpeed)
-
-                // field relative wooo
-                swerve.mapTarget {
-                    val theta = -it.logPosition.angle
-                    SwerveController.Target(Transform2D(speed.rotate(theta.cast(rad)), angularSpeed), lockWheels)
+            if(g1.a.isJustPressed) {
+                val cmd = if(clawClosed())  {
+                    score(robot,scoringPosition) then instant { scoringPosition=null }
+                } else {
+                    clawCommand(robot,true).let {
+                        if(atWallPosition())
+                            it then instant { scoringPosition = ScorePosition.HIGH_SPECIMEN }
+                        else
+                            it
+                    }
                 }
 
-                if(gamepad1.start)
-                    if(!SIM) (io as RobotIO).pinpoint.reset()
-
-                armTarget.extension = Constants.ARM_EXTENSION_BOUNDS.apply((armTarget.extension - gamepad2.left_stick_y*armExtensionNormalSpeed*dt).cast(m))
-                armTarget.pivot = Constants.ARM_PIVOT_BOUNDS.apply((armTarget.pivot + gamepad2.right_stick_y*armPivotNormalSpeed*dt).cast(rad))
-
-                //roll
-                if(gamepad1.left_bumper || gamepad2.left_bumper)
-                    armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll - clawRollSpeed*dt).cast(rad))
-                if(gamepad1.right_bumper || gamepad2.right_bumper)
-                    armTarget.roll = Constants.CLAW_ROLL_BOUNDS.apply((armTarget.roll + clawRollSpeed*dt).cast(rad))
-
-                //claw
-                if((gamepad1.a && !wasA1Pressed) || (gamepad2.a && !wasA2Pressed))
-                    armTarget.isOpen = !armTarget.isOpen
-
-                wasA1Pressed = gamepad1.a
-                wasA2Pressed = gamepad2.a
-
-                if(gamepad1.b || gamepad2.b)
-                    armTarget = ScoringPresets.placeLowSpecimen().armTarget(armTarget.isOpen).also { println("SET LOW")}
-
-                if(gamepad1.y || gamepad2.y)
-                    armTarget = ScoringPresets.placeHighSpecimen().armTarget(armTarget.isOpen).also { println("SET HIGH")}
-                if(gamepad2.x)
-                    armTarget = ScoringPresets.placeOverSubmersible(baseDistance).armTarget(armTarget.isOpen)
-
-                if(gamepad1.dpad_down || gamepad2.dpad_down)
-                    armTarget = ScoringPresets.placeLowSample().armTarget(armTarget.isOpen)
-                if(gamepad1.dpad_up || gamepad2.dpad_up)
-                    armTarget = ScoringPresets.placeHighSample().armTarget(armTarget.isOpen)
-//                println("ARM TARGET: ${armTarget.pivot}, ${armTarget.extension}")
-
-                armLoop.target(armTarget)
+                cmd.schedule()
             }
+
+            if(g1.b.isJustPressed) parallel(
+                clawCommand(robot,false),
+                depoCommand(robot, Tuning.specimenWallPose),
+                instant { scoringPosition = null }
+            ).schedule()
+
+            if(g1.x.isJustPressed) {
+                // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
+                transferCommand(robot).schedule()
+            }
+
+            if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
+
+            println("RUNNING COMMANDS")
+            for(cmd in Scheduler.cmds) {
+                print("${cmd.name}(${cmd.status}), ")
+            }
+            println("--------------")
+            println("numAutoIntakes = $numAutoIntakes")
+
+            Scheduler.tick()
+
+            if(SIM) Thread.sleep(50)
+
+//            telemetry.addData("distance",io.distance())
+//            telemetry.update()
+
+            g1.periodic()
+            g2.periodic()
+            robot.update(dt.value)
+            visualizer?.log()
         }
     }
 
+    private var wasManuallyControllingActive = false
+
+    fun manualControls(dt: Second) {
+        val v = vec2(-gamepad1.left_stick_y, gamepad1.left_stick_x)
+        robot.mecanum.t = Transform2D(v * maxSpeed, -maxAngSpeed * gamepad1.right_stick_x)
+
+        val activePower =
+            gamepad1.left_trigger - gamepad1.right_trigger + gamepad2.left_trigger - gamepad2.right_trigger
+        val controllingActive = activePower.absoluteValue>0.05
+        if(controllingActive) robot.active.updatePort(activePower * Tuning.ACTIVE_POWER)
+        if(!controllingActive && wasManuallyControllingActive) robot.active.updatePort(0.0)
+        wasManuallyControllingActive = controllingActive
+
+        // MANUAL SLIDES/ARM
+        var slidesTarget = robot.slides.t
+        slidesTarget = DiffyOutputPose(
+            slidesTarget.axis1 - gamepad2.left_stick_y * dt * 20.cm / s,
+            slidesTarget.axis2 - gamepad2.right_stick_y * dt * 20.cm / s,
+        )
+
+        slidesTarget.axis1 = Limits.EXTENSION.apply(slidesTarget.axis1.cast(m))
+        slidesTarget.axis2 = Limits.LIFT.apply(slidesTarget.axis2.cast(m))
+
+        val armPower = gamepad2.dpad_up.toInt() - gamepad2.dpad_down.toInt()
+        val wristPower = gamepad2.dpad_right.toInt() - gamepad2.dpad_left.toInt()
+
+        robot.arm.t = robot.arm.kinematics.underInverse(robot.arm.t.let {
+            DiffyOutputPose(
+                it.axis1 - armPower * dt * 0.5.rad / s,
+                it.axis2 - wristPower * dt * 0.5.rad / s
+            )
+        }) {
+            DiffyInputPose(
+                Limits.ARM_SERVO_1.apply(it.axis1.cast(rad)),
+                Limits.ARM_SERVO_2.apply(it.axis2.cast(rad))
+            )
+        }
+
+        robot.slides.t = slidesTarget
+
+        // tilt
+        if(g2.y.isJustPressed) {
+            tiltPosition = tiltPosition.next()
+        }
+    }
 }

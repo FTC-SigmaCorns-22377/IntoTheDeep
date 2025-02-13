@@ -39,10 +39,10 @@ class KeyboardGamepads(val gm1: Gamepad, val gm2: Gamepad): NativeKeyListener {
 
     override fun nativeKeyPressed(nativeEvent: NativeKeyEvent) {
         val code = nativeEvent.keyCode
-        if(code == VC_TAB) sendingToGamepad1 = !sendingToGamepad1
+        if(code == VC_TAB && nativeEvent.modifiers.and(SHIFT_MASK) != 0) sendingToGamepad1 = !sendingToGamepad1
         if(code in loggedKeys) pressedKeys.add(code)
 
-        if (code == VC_ESCAPE) {
+        if (code == VC_ESCAPE && nativeEvent.modifiers.and(SHIFT_MASK) != 0) {
             try {
                 GlobalScreen.unregisterNativeHook()
             } catch (nativeHookException: NativeHookException) {

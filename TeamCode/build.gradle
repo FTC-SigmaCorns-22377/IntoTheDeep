@@ -23,10 +23,18 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 
 repositories {
     maven { url = 'https://jitpack.io' }
-    mavenLocal()
     maven {
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/FtC-SigmaCorns-22377/library")
+        credentials {
+            username = properties.getProperty('username')
+            password = properties.getProperty('apiKey')
+        }
+    }
+
+    maven {
+        name = "choreolib"
+        url = uri("https://maven.pkg.github.com/Null-Robotics/choreolib")
         credentials {
             username = properties.getProperty('username')
             password = properties.getProperty('apiKey')
@@ -36,6 +44,14 @@ repositories {
 
 android {
 
+
+//    defaultConfig {
+//        externalNativeBuild {
+//            cmake {
+//                cppFlags ''
+//            }
+//        }
+//    }
     buildTypes {
         release {
 
@@ -66,6 +82,35 @@ android {
             jvmTarget = '11'
         }
     }
+//    externalNativeBuild {
+//        cmake {
+//            path file('src/main/cpp/CMakeLists.txt')
+//            version '3.22.1'
+//        }
+//    }
+}
+
+tasks.register("buildNativeLib", Exec) {
+    workingDir file("src/main/cpp/build")
+    commandLine "cmake", "..", "-DCMAKE_BUILD_TYPE=Release"
+    doFirst {
+        file("src/main/cpp/build").mkdirs()
+    }
+}
+
+tasks.register("compileNativeLib", Exec) {
+    workingDir file("src/main/cpp/build")
+    commandLine "cmake", "--build", "."
+    dependsOn "buildNativeLib"
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn "compileNativeLib"
+
+    doFirst {
+        def libPath = file("src/main/cpp/build/Debug/").absolutePath
+        System.setProperty("java.library.path", libPath)
+    }
 }
 
 project.afterEvaluate {
@@ -78,7 +123,7 @@ project.afterEvaluate {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.2-ALPHA'
-    implementation ("net.unnamedrobotics:library:1.0.29k@aar")
+    implementation ("net.unnamedrobotics:library:1.0.29r@aar")
     implementation 'dev.nullrobotics:choreolib:0.04'
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9'
@@ -86,6 +131,7 @@ dependencies {
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'com.github.kwhat:jnativehook:2.2.2'
+    testImplementation 'com.github.strikerx3:jxinput:1.0.0'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'

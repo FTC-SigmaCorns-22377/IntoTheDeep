@@ -2,89 +2,46 @@ package sigmacorns.opmode.test
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.base.mm
-import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.rad
-import kotlinx.coroutines.runBlocking
-import net.unnamedrobotics.lib.command.Scheduler
-import net.unnamedrobotics.lib.command.cmd
-import net.unnamedrobotics.lib.gamepad.GamepadEx
-import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.degrees
-import net.unnamedrobotics.lib.math2.vec2
-import sigmacorns.common.Constants
 import sigmacorns.common.Robot
-import sigmacorns.common.Tuning
-import sigmacorns.common.io.RobotIO
 import sigmacorns.common.io.SigmaIO
-import sigmacorns.common.subsystems.arm.ArmTarget
-import sigmacorns.common.subsystems.arm.ScoringPose
-import sigmacorns.common.subsystems.arm.boxTubeKinematics
+import sigmacorns.common.kinematics.DiffyInputPose
+import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.constants.Limits
 import sigmacorns.opmode.SimOrHardwareOpMode
 
 @TeleOp
 class ArmTest: SimOrHardwareOpMode() {
-    override val initialScoringPose = ScoringPose(
-        vec2(0.m,0.m),
-        0.degrees,
-        400.mm,
-        90.degrees,
-        0.rad,0.rad
-    )
-
     override fun runOpMode(io: SigmaIO) {
-        val armManualPivotSpeed = 30.degrees/s
-        val armManualExtensionSpeed = 0.1.m/s
+        val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m), )
 
-        val robot = Robot(io)
-
-        runBlocking {
-            robot.armControlLoop.target(ArmTarget(
-                initialScoringPose.pivot,
-                initialScoringPose.extension,
-                0.rad,
-                0.rad,
-                false
-            ))
-        }
-
-        robot.addLoop(robot.armControlLoop)
-
-        val gm1 = GamepadEx(gamepad1)
+        robot.slides.disabled = true
+        robot.intake.disabled = true
 
         waitForStart()
 
-        robot.launchIOLoop()
+        var lastT = io.time()
 
+        while (opModeIsActive()) {
+            val t = io.time()
+            val dt = t-lastT
+            lastT = t
 
-        gm1.a.onToggle(cmd {
-            init { robot.armControlLoop.target(ArmTarget(
-                0.rad,600.mm,0.rad,0.rad,false
-            )) }
-        })
-
-        gm1.a.onUntoggle(cmd {
-            init { robot.armControlLoop.target(ArmTarget(
-                65.rad,400.mm,0.rad,0.rad,false
-            )) }
-        })
-
-        robot.inputLoop { dt ->
-            gm1.periodic()
-            Scheduler.tick()
-
-            robot.armControlLoop.mapTarget {
-                it.target.let { target ->
-                    ArmTarget(
-                        Constants.ARM_PIVOT_BOUNDS.apply((target.pivot + gm1.leftStick.yAxis*armManualPivotSpeed*dt).cast(rad)),
-                        Constants.ARM_EXTENSION_BOUNDS.apply((target.extension + gm1.leftStick.xAxis*armManualExtensionSpeed*dt).cast(m)),
-                        target.pitch,
-                        target.roll,false
+            robot.arm.t = robot.arm.kinematics.underInverse(robot.arm.t.let {
+                 DiffyOutputPose(
+                    it.axis1 - gamepad1.left_stick_y*dt*0.1.rad/s,
+                    it.axis2 - gamepad1.right_stick_y*dt*0.1.rad/s
+                 ) } ) {
+                    DiffyInputPose(
+                        Limits.ARM_SERVO_1.apply(it.axis1.cast(rad)),
+                        Limits.ARM_SERVO_2.apply(it.axis2.cast(rad))
                     )
                 }
-            }
+
+            robot.update(dt.value)
         }
     }
 }

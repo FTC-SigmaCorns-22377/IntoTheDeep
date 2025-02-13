@@ -5,57 +5,66 @@ import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
 import dev.nullrobotics.trajectory.Trajectory
 import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.base.mm
+import eu.sirotin.kotunil.base.s
+import eu.sirotin.kotunil.core.minus
 import eu.sirotin.kotunil.derived.rad
-import kotlinx.coroutines.runBlocking
-import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
-import net.unnamedrobotics.lib.math2.degrees
-import net.unnamedrobotics.lib.math2.vec2
+import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.Robot
+import sigmacorns.common.RobotVisualizer
+import sigmacorns.common.control.TrajectoryLogger
 import sigmacorns.common.io.SigmaIO
-import sigmacorns.common.subsystems.arm.ScoringPose
-import sigmacorns.common.subsystems.path.ChoreoController
-import sigmacorns.common.subsystems.path.choreoControllerLoop
-import sigmacorns.common.subsystems.swerve.swerveLogPosControlLoop
+import sigmacorns.opmode.SIM
 import sigmacorns.opmode.SimOrHardwareOpMode
+import java.io.File
 
 @TeleOp
 class ChoreoTest: SimOrHardwareOpMode() {
-    val traj = (Choreo::loadTrajectory)("Pickup 3").get() as Trajectory<SwerveSample>
-    val pos = traj.initialSample.let { Transform2D(it.x.m,it.y.m,it.heading.rad) }
-    override val initialScoringPose = ScoringPose(
-        pos.vector(),pos.angle.cast(rad),
-        406.4.mm,
-        90.degrees,
-        0.rad,0.rad
-    )
-
     override fun runOpMode(io: SigmaIO) {
-//        io.rerunConnection.disabled = true
+        if(SIM) {
+            Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
+                it.isAccessible = true
+                it.set(null, File("C:\\Users\\chemi\\Documents\\choreo\\base"))
+            }
+            io.rerunConnection.setTimeSeconds("sim",0.s)
+            val dir = System.getProperty("user.dir")
+            io.rerunConnection.field("$dir/src/test/resources/field_image.png")
+        }
+
         val robot = Robot(io)
 
-        val choreoController = ChoreoController(
-            PIDCoefficients(1.5,0.00,0.0),
-            PIDCoefficients(2.0,0.0,0.0),
-            vec2(robot.drivebase.width,robot.drivebase.length),3
-        )
+        val viz = RobotVisualizer(io)
 
-        val choreoLoop = choreoControllerLoop(choreoController,robot.swerveControlLoop)
-
-        io.addLoop(robot.swerveControlLoop)
-        io.addLoop(choreoLoop)
-        io.addLoop(swerveLogPosControlLoop(robot.swerveControlLoop))
-
+        robot.io.setPinPos(Transform2D(0.m,0.m,0.rad))
         waitForStart()
 
-        robot.launchIOLoop()
+        robot.choreo.t = (Choreo::loadTrajectory)("HOPE").get() as Trajectory<SwerveSample>
 
-        runBlocking { choreoLoop.target(traj) }
+        robot.update(0.0)
 
+
+        viz.init()
+
+        var lastT = io.time()
         while (opModeIsActive()) {
-            idle()
+            val t = io.time()
+            val dt = (t - lastT).cast(s)
+            lastT = t
+
+            robot.choreo.tickControlNode(dt.value)
+            robot.update(dt.value)
+
+            val pos = robot.choreo.x.pos
+
+//            telemetry.addData("x",pos.x)
+//            telemetry.addData("y",pos.y)
+//            telemetry.addData("angle",pos.angle)
+//            telemetry.update()
+            rerun(robot.io.rerunConnection) {
+                robot.trajLogger.logTraj(robot.choreo.t,TrajectoryLogger.Mode.POINTS)
+            }
+            viz.log()
         }
     }
 }

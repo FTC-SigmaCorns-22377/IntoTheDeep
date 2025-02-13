@@ -1,141 +1,258 @@
 package sigmacorns.common.io
 
-import com.qualcomm.hardware.lynx.LynxModule
-import com.qualcomm.robotcore.hardware.AnalogInput
+import android.graphics.Color
+import android.graphics.ColorSpace
+import com.qualcomm.robotcore.hardware.ColorRangeSensor
+import com.qualcomm.robotcore.hardware.ColorSensor
+import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.HardwareMap
-import eu.sirotin.kotunil.base.Second
+import com.qualcomm.robotcore.hardware.Servo
+import eu.sirotin.kotunil.base.Metre
+import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
+import eu.sirotin.kotunil.derived.Volt
+import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.driver.gobilda.GoBildaPinpointDriver
-import net.unnamedrobotics.lib.hardware.impl.HardwareManagerImpl
-import net.unnamedrobotics.lib.hardware.interfaces.Servo
+import net.unnamedrobotics.lib.math.Pose
+import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
-import net.unnamedrobotics.lib.rerun.rerun
 import net.unnamedrobotics.lib.util.Clock
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
-import sigmacorns.common.LoopTimes
-import sigmacorns.common.subsystems.arm.DiffyOutputPose
-import sigmacorns.common.subsystems.arm.ScoringPose
-import sigmacorns.common.subsystems.arm.boxTubeKinematics
 
 class RobotIO(
     val hardwareMap: HardwareMap,
-    io: String = "192.168.43.122",
-    rerunName: String = "unnamed",
-    private val initialScoringPose: ScoringPose? = null
+    val ip: String = "192.168.43.122",
+    val rerunName: String = "unnamed",
+    val initialPos: Transform2D? = null
 ): SigmaIO() {
-    val hardwareManager = HardwareManagerImpl(hardwareMap)
-    val hubs: List<LynxModule>
+    //TODO: disable rerunconnection by default.
+    private var rerun: RerunConnection? = null
+    override val rerunConnection: RerunConnection
+        get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
 
-    private val wheels = listOf("FL","FR","BL","BR")
 
-    val drives = wheels.map { hardwareManager.motor("drive$it") }
-    val turns = wheels.map { hardwareManager.crservo("servo$it")}
-    val turnEncoders = wheels.map { hardwareMap.get(AnalogInput::class.java,"encoder$it") }
-    val diffyServos: List<Servo> = listOf(hardwareManager.servo( "diffyServoL"), hardwareManager.servo( "diffyServoR"))
-    val diffyServosReversed = listOf(true,false)
-    val armMotors = listOf(hardwareManager.motor("diffyMotorL"),hardwareManager.motor("diffyMotorR"))
-    val armEncoders = armMotors.map { it.encoder }
-    val clawServo: Servo? = hardwareManager.servo("clawServo")
-    val pinpointDriver = hardwareMap.get(
+    private val m1 = hardwareMap.get(DcMotor::class.java,"D1")
+    private val m2 = hardwareMap.get(DcMotor::class.java,"D2")
+    private val m3 = hardwareMap.get(DcMotor::class.java,"D3")
+
+    private val fl = hardwareMap.get(DcMotor::class.java,"FL")
+    private val bl = hardwareMap.get(DcMotor::class.java,"BL")
+    private val br = hardwareMap.get(DcMotor::class.java,"BR")
+    private val fr = hardwareMap.get(DcMotor::class.java,"FR")
+
+    private val mIntake = hardwareMap.get(DcMotor::class.java,"intake")
+
+    // arm: 01
+    // claw: 2
+    // intake: 34
+    // tilt: 56
+    //
+
+    private val sArmL = hardwareMap.get(Servo::class.java, "AL")
+    private val sArmR = hardwareMap.get(Servo::class.java, "AR")
+    private val sClaw = hardwareMap.get(Servo::class.java, "claw")
+    private val sIntake1 = hardwareMap.get(Servo::class.java, "I1")
+    private val sIntake2 = hardwareMap.get(Servo::class.java, "I2")
+    private val sFlap = hardwareMap.get(Servo::class.java, "flap")
+
+    private val t1 = hardwareMap.get(Servo::class.java,"T1")
+    private val t2 = hardwareMap.get(Servo::class.java,"T2")
+
+    private val colorSensor = hardwareMap.get(ColorRangeSensor::class.java, "color")
+
+    private val pinpointDriver = hardwareMap.get(
         GoBildaPinpointDriver::class.java,"pinpoint")
-    val pinpoint = PinpointLocalizer(pinpointDriver)
 
-    override val drivePowers = drives.map { drive ->
-        cachedActuator(LoopTimes.DRIVE_UPDATE_THRESHOLD) { drive.power = it }
-    }
-
-    override val turnPowers = turns.map { turn -> cachedActuator(LoopTimes.TURN_UPDATE_THRESHOLD) { power: Double -> turn.power = power } }
-    override val armMotorPowers = armMotors.map { cachedActuator(LoopTimes.ARM_UPDATE_THRESHOLD) { power -> it.power = power } }
-    override val diffyPos =
-        diffyServos
-            .zip(diffyServosReversed)
-            .map { cachedActuator(LoopTimes.DIFFY_UPDATE_THRESHOLD) { u ->
-                it.first.position = (if(it.second) 1-u else u)
-            } }
-
-    override fun time(): Second = Clock.seconds.s
-
-    override val clawPos = Actuator<Double> { clawServo?.position = it }
-
-    var armEncoderOffsets = listOf(0,0)
-    private val armEncoderSensor = sensor(bulkReadable = true) {
-        armEncoders
-            .zip(armEncoderOffsets)
-            .map { (it.first.getCounts() + it.second).tick }
-    }
-    context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun armPositions() = armEncoderSensor.get()
-
-    private val turnEncoderSensor = sensor(bulkReadable = true) { turnEncoders.map { it.voltage.V } }
-    context(ControlLoopContext<*,*,*,SigmaIO,*>) override fun turnVoltages() = turnEncoderSensor.get()
-
-    private val posSensor = sensor {
-        pinpoint.update(true)
-        pinpoint.getTransform()
-    }
-    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun position() = posSensor.get()
-
-    private val velSensor = sensor { pinpoint.velocity }
-    context(ControlLoopContext<*, *, *, SigmaIO,*>) override fun velocity(): Twist2D = velSensor.get()
-
-    override fun clearBulkCache() = hubs.forEach { it.clearBulkCache() }
-
-    override val rerunConnection = RerunConnection(rerunName,io)
+    private val pinpoint = PinpointLocalizer(pinpointDriver)
 
     init {
-        turns.forEach {
-            it.reverse(true)
-        }
+        fl.direction = DcMotorSimple.Direction.REVERSE
+        bl.direction = DcMotorSimple.Direction.REVERSE
+        m1.direction = DcMotorSimple.Direction.FORWARD
+        m2.direction = DcMotorSimple.Direction.REVERSE
 
-        drives.forEach {
-            it.reverse(true)
-        }
+        m1.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+        m2.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
 
-        armMotors[1].reverse(true)
-        armEncoders[1].reverse(true)
 
-        if(initialScoringPose!=null) {
-            val cur = boxTubeKinematics.inverse(
-                DiffyOutputPose(initialScoringPose.pivot,initialScoringPose.extension)
-            )
+        m1.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        m2.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
 
-            val offset1 = -armEncoders[0].getCounts().tick + cur.axis1
-            val offset2 = -armEncoders[1].getCounts().tick + cur.axis2
-
-            armEncoderOffsets = listOf(
-                offset1.value.toInt(),
-                offset2.value.toInt()
-            )
-        }
+        colorSensor.argb()
 
         pinpointDriver.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-        if(initialScoringPose!=null) pinpointDriver.setPosition(initialScoringPose.robotPos.let {
-            Pose2D(
-                DistanceUnit.METER,
-                it.x.value,it.y.value,
-                AngleUnit.RADIANS,
-                initialScoringPose.theta.value
-            )
-        })
-        pinpointDriver.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,GoBildaPinpointDriver.EncoderDirection.REVERSED)
-
-        rerun(rerunConnection) {
-            field(hardwareMap.appContext)
-            transform("field/image", mat = floatArrayOf(0f,1f,0f, 1f,0f,0f, 0f,0f,1f))
-        }
-
-        hubs = hardwareMap.getAll(LynxModule::class.java)
-
-        hubs.forEach {
-            it.bulkCachingMode = LynxModule.BulkCachingMode.MANUAL
-        }
+        if(initialPos!=null) pinpointDriver.setPosition(transToPose(initialPos))
     }
 
-    override fun voltage() = 12.V
+    private fun transToPose(t: Transform2D): Pose2D
+        = Pose2D(
+                DistanceUnit.METER,
+                t.x.value,t.y.value,
+                AngleUnit.RADIANS,
+                t.angle.value
+            )
 
+    override fun setPinPos(p: Transform2D) {
+        pinpointDriver.setPosition(transToPose(p))
+    }
+
+    override fun updatePinpoint() {
+        pinpoint.update(true)
+    }
+
+    override fun position() = pinpoint.getTransform()
+
+    override fun velocity() = pinpoint.velocity
+
+    //TODO: proper caching once per tick.
+
+    override fun motor1Pos() = m1.currentPosition.tick
+
+    override fun motor2Pos() = m2.currentPosition.tick
+
+    private var lastColorVal: Int = 0
+    private var distance: Metre = 0.m
+
+    override fun updateColor() {
+        lastColorVal = colorSensor.argb()
+        distance = colorSensor.getDistance(DistanceUnit.METER).m
+    }
+
+    override fun red() = Color.red(lastColorVal)
+    override fun green() = Color.green(lastColorVal)
+    override fun blue() = Color.blue(lastColorVal)
+    override fun alpha() = Color.alpha(lastColorVal)
+    override fun distance(): Metre = distance
+
+    override fun voltage(): Volt = 12.V
+
+    override fun time() = Clock.seconds.s
+
+    override var driveFL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                fl.power = value
+                field = value
+            }
+        }
+    override var driveBL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                bl.power = value
+                field = value
+            }
+        }
+    override var driveBR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                br.power = value
+                field = value
+            }
+        }
+
+    override var driveFR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                fr.power = value
+                field = value
+            }
+        }
+
+    override var motor1: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m1.power = value
+                field = value
+            }
+        }
+
+    override var motor2: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m2.power = value
+                field = value
+            }
+        }
+
+    override var motor3: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m3.power = value
+                field = value
+            }
+        }
+
+    override var intake: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                mIntake.power = value
+                field = value
+            }
+        }
+
+    override var intakeL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sIntake1.position = 1.0-value
+                field = value
+            }
+        }
+    override var intakeR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sIntake2.position = 1.0-value
+                field = value
+            }
+        }
+
+    override var armL: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sArmL.position = value
+                field = value
+            }
+        }
+    override var armR: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sArmR.position = value
+                field = value
+            }
+        }
+    override var claw: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sClaw.position = value
+                field = value
+            }
+        }
+    override var flap: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sFlap.position = value
+                field = value
+            }
+        }
+    override var tilt1: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                t1.position = value
+                field = value
+            }
+        }
+    override var tilt2: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                t2.position = value
+                field = value
+            }
+        }
 }
