@@ -2,12 +2,14 @@ package sigmacorns.common.io
 
 import android.graphics.Color
 import android.graphics.ColorSpace
+import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.ColorRangeSensor
 import com.qualcomm.robotcore.hardware.ColorSensor
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.hardware.Servo
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.m
@@ -67,6 +69,10 @@ class RobotIO(
     private val t2 = hardwareMap.get(Servo::class.java,"T2")
 
     private val colorSensor = hardwareMap.get(ColorRangeSensor::class.java, "color")
+
+    val limelight = hardwareMap.get(Limelight3A::class.java, "limelight")
+
+    val imu = hardwareMap.get(IMU::class.java, "imu")
 
     private val pinpointDriver = hardwareMap.get(
         GoBildaPinpointDriver::class.java,"pinpoint")
