@@ -84,13 +84,13 @@ class ChoreoController(
 //            (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
 //            Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
 
-        val res = Transform2D(
-            xController.updateStateless(deltaTime,0.0,robotRelPosErr.x.value).m/s,
-            yController.updateStateless(deltaTime,0.0,robotRelPosErr.y.value).m/s,
-            angController.updateStateless(deltaTime,0.0,headingErr.value).rad/s
-        )
+        val res = Twist2D(
+            vec2(xController.updateStateless(deltaTime,0.0,posErr.x.value).m/s,
+            yController.updateStateless(deltaTime,0.0,posErr.y.value).m/s).rotate((-position.pos.angle).cast(rad)),
+            angController.updateStateless(deltaTime,0.0,posErr.angle.value).rad/s
+        ).exp()
 
-        return res.let { Transform2D(it.x,-it.y,it.angle) }
+        return res
     }
 }
 

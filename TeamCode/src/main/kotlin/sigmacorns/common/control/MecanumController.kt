@@ -5,6 +5,7 @@ import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Transform2D
+import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.physics.MecanumDrivebase
 import sigmacorns.common.io.SigmaIO
 import kotlin.math.max
@@ -16,7 +17,7 @@ class MecanumController(
     io: SigmaIO
 ): ControlLoop<Unit, List<Double>, Transform2D>("drivebase",io) {
     val kinematics = drivebase.powerKinematics
-    override fun update(deltaTime: Double): List<Double> = kinematics.inverse(t.log())
+    override fun update(deltaTime: Double): List<Double> = kinematics.inverse(t.log().let { Twist2D(it.dx,-it.dy,it.dAngle) })
 
     override var x: Unit = Unit
     override var u: List<Double> = List(4) { 0.0 }

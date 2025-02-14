@@ -86,8 +86,8 @@ object Tuning {
     var specimentScoreOffset = 200.mm
 
 
-    var choreoPosPID = PIDCoefficients(5.0,0.0,2.0)
-    var choreoAngPID = PIDCoefficients(3.0,0.0,0.0)
+    var choreoPosPID = PIDCoefficients(20.0,0.0,1.5)
+    var choreoAngPID = PIDCoefficients(10.0,0.0,0.0)
 
     var choreoPosThresh = 3.cm
     var choreoAngThresh = 5.degrees

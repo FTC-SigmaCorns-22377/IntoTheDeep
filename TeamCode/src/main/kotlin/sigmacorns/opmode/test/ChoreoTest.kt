@@ -34,17 +34,17 @@ class ChoreoTest: SimOrHardwareOpMode() {
 
         val robot = Robot(io)
 
-        val viz = RobotVisualizer(io)
+//        val viz = RobotVisualizer(io)
 
         robot.io.setPinPos(Transform2D(0.m,0.m,0.rad))
         waitForStart()
 
-        robot.choreo.t = (Choreo::loadTrajectory)("HOPE").get() as Trajectory<SwerveSample>
+        robot.choreo.t = (Choreo::loadTrajectory)("COPE").get() as Trajectory<SwerveSample>
 
         robot.update(0.0)
 
 
-        viz.init()
+//        viz.init()
 
         var lastT = io.time()
         while (opModeIsActive()) {
@@ -55,16 +55,18 @@ class ChoreoTest: SimOrHardwareOpMode() {
             robot.choreo.tickControlNode(dt.value)
             robot.update(dt.value)
 
+            if(SIM) sleep(50)
             val pos = robot.choreo.x.pos
 
-//            telemetry.addData("x",pos.x)
-//            telemetry.addData("y",pos.y)
-//            telemetry.addData("angle",pos.angle)
-//            telemetry.update()
-            rerun(robot.io.rerunConnection) {
-                robot.trajLogger.logTraj(robot.choreo.t,TrajectoryLogger.Mode.POINTS)
-            }
-            viz.log()
+            telemetry.addData("x",pos.x)
+            telemetry.addData("y",pos.y)
+            telemetry.addData("angle",pos.angle)
+            telemetry.update()
+
+//            rerun(robot.io.rerunConnection) {
+//                robot.trajLogger.logTraj(robot.choreo.t,TrajectoryLogger.Mode.POINTS)
+//            }
+//            viz.log()
         }
     }
 }
