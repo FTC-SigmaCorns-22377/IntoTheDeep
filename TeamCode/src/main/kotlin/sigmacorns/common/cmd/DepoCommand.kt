@@ -6,6 +6,7 @@ import eu.sirotin.kotunil.derived.Radian
 import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
+import net.unnamedrobotics.lib.command.wait
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.common.kinematics.LiftPose

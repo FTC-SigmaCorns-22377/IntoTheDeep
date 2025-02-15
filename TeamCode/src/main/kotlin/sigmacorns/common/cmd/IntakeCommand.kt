@@ -97,13 +97,18 @@ fun eject(robot: Robot) =
         powerIntakeCommand(robot, 0.0)
     )
 
-fun getSample(robot: Robot) =
-    series(
-        robot.intake.follow(Tuning.IntakePosition.BACK),
-        powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
-        wait(200.ms),
-        powerIntakeCommand(robot, 0.0)
-    )
+fun getSample(robot: Robot) = series(
+    robot.intake.follow(IntakePosition.BACK) + flapCommand(robot,true),
+    powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
+    cmd { finishWhen { robot.io.distance() < Color.DIST_THRESHOLD } }.timeout(1.s),
+    powerIntakeCommand(robot, 0.0)
+)
+//    series(
+//        robot.intake.follow(IntakePosition.BACK),
+//        powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
+//        wait(200.ms),
+//        powerIntakeCommand(robot, 0.0)
+//    )
 
 fun wait(t: Second) = cmd {
     val curTime = ElapsedTime()

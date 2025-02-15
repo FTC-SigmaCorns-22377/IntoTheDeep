@@ -96,6 +96,9 @@ class Robot(
         if(fast) {
             choreoController.t = 0.15
             choreoController.tPreset = true
+        } else {
+            choreoController.t = 0.0
+            choreoController.tPreset = false
         }
         return cmd
     }

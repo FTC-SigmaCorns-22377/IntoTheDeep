@@ -35,7 +35,7 @@ class ChoreoTest: SimOrHardwareOpMode() {
             io.rerunConnection.field("$dir/src/test/resources/field_image.png")
         }
 
-        val traj = (Choreo::loadTrajectory)("push_specimen").get() as Trajectory<SwerveSample>
+        val traj = (Choreo::loadTrajectory)("HOPE").get() as Trajectory<SwerveSample>
         val robot = Robot(io, initPos = traj.initialPose.toTransform2d())
 
 //        val viz = RobotVisualizer(io)
