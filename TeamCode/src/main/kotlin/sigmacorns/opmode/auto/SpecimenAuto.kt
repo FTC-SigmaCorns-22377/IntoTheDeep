@@ -30,6 +30,7 @@ import sigmacorns.common.cmd.timeout
 import sigmacorns.common.cmd.wait
 import sigmacorns.common.cmd.eject
 import sigmacorns.common.cmd.extendCommand
+import sigmacorns.common.cmd.getSample
 import sigmacorns.common.cmd.intakeCommand
 import sigmacorns.common.cmd.powerIntakeCommand
 import sigmacorns.common.cmd.reset
@@ -106,14 +107,18 @@ fun dropoff(robot: Robot): Command{
         clawCommand(robot, true),
         choreoCommand(robot, "Preload") + depoCommand(robot, ScorePosition.HIGH_SPECIMEN),
         score(robot, ScorePosition.HIGH_SPECIMEN),
-        reset(robot),
-        choreoCommand(robot, "Post Preload") + extendCommand(robot, 0.1.m),
-        powerIntakeCommand(robot,Tuning.ACTIVE_POWER),
-        wait(200.ms),
-        powerIntakeCommand(robot,0.0),
+        choreoCommand(robot, "Post Preload") + reset(robot) + (wait(500.ms) then extendCommand(robot, 0.1.m)),
+        getSample(robot),
         choreoCommand(robot, "Dropoff 1"),
         eject(robot),
-        choreoCommand(robot, "")
+        choreoCommand(robot, "Dropoff 2"),
+        getSample(robot),
+        choreoCommand(robot, "Dropoff 3"),
+        eject(robot),
+        choreoCommand(robot, "Dropoff 4"),
+        getSample(robot),
+        choreoCommand(robot, "Dropoff 5"),
+        eject(robot)
     )
 }
 
