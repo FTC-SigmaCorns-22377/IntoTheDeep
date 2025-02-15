@@ -1,13 +1,13 @@
 package sigmacorns.common.cmd
 
 import eu.sirotin.kotunil.base.Second
-import eu.sirotin.kotunil.base.s
 import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.under
 import sigmacorns.common.Robot
+import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Tuning
 
 fun transferCommand(robot: Robot): Command = under(
@@ -20,14 +20,14 @@ robot.armCommandSlot.lock() +
         //before, get everything in the position to transfer
         (
             depoCommand(robot,Tuning.TRANSFER_HOVER_POSE,false) +
-            robot.intake.follow(Tuning.IntakePosition.BACK) +
+            robot.intake.follow(IntakePosition.BACK) +
             clawCommand(robot,false) +
             flapCommand(robot, false)
         ).name("pre-transfer"),
 
         // we've retracted past the bar, can flip intake to transfer pos now
         retract(robot,false),
-        robot.intake.follow(Tuning.IntakePosition.OVER),
+        robot.intake.follow(IntakePosition.OVER),
         // push the sample out of the top into the open claw
         (depoCommand(robot,Tuning.TRANSFER_POSE,false) +
                 (

@@ -55,7 +55,7 @@ fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLoop(
     fRead: context(ControlLoop<X,U,T>) () -> X,
     fWrite: context(ControlLoop<X,U,T>) (U) -> Unit,
     fReached: context(ControlLoop<X,U,T>) (X,T) -> Boolean = { _,_ -> true }
-) = object : ControlLoop<X,U,T>(name,io) {
+) = object : ControllerControlLoop<X,U,T>(name,io,this) {
     override fun update(deltaTime: Double): U {
         return updateStateless(deltaTime,x,t)
     }
@@ -75,6 +75,12 @@ fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLoop(
 
     override fun reached(x: X, t: T) = fReached(this,x,t)
 }
+
+abstract class ControllerControlLoop<X: Any,U: Any,T: Any>(
+    name: String,
+    io: SigmaIO,
+    val controller: Controller<X,U,T>
+): ControlLoop<X, U, T>(name,io)
 
 context(SigmaIO)
 class Sensor<T: Any>(

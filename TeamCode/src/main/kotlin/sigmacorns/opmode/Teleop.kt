@@ -12,6 +12,7 @@ import eu.sirotin.kotunil.core.minus
 import eu.sirotin.kotunil.core.plus
 import eu.sirotin.kotunil.core.times
 import eu.sirotin.kotunil.core.unaryMinus
+import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.groups.parallel
@@ -19,7 +20,6 @@ import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.gamepad.GamepadEx
-import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
@@ -30,14 +30,23 @@ import sigmacorns.common.cmd.ScorePosition
 import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
+import sigmacorns.common.cmd.extendCommand
+import sigmacorns.common.cmd.flapCommand
 import sigmacorns.common.cmd.instant
+import sigmacorns.common.cmd.liftCommand
 import sigmacorns.common.cmd.numAutoIntakes
+import sigmacorns.common.cmd.retract
 import sigmacorns.common.cmd.score
 import sigmacorns.common.cmd.transferCommand
+import sigmacorns.common.control.ControllerControlLoop
+import sigmacorns.common.control.PIDDiffyController
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.constants.ClimbPosition
+import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Limits
+import sigmacorns.constants.TiltPositions
 import sigmacorns.constants.Tuning
 import kotlin.math.absoluteValue
 import kotlin.math.sign
@@ -54,10 +63,16 @@ class Teleop: SimOrHardwareOpMode() {
             field = value
         }
 
-    var tiltPosition = Tuning.TiltPositions.STRAIGHT
+    var tiltPosition = TiltPositions.STRAIGHT
         set(value) {
             io!!.tilt1 = value.x
             io!!.tilt2 = value.x
+            field = value
+        }
+
+    private var climbPos: ClimbPosition? = null
+        set(value) {
+            if(field!=value && value!=null) liftCommand(robot,value.lift).schedule()
             field = value
         }
 
@@ -76,7 +91,7 @@ class Teleop: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(90.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
-            Tuning.IntakePosition.OVER
+            IntakePosition.OVER
         )
 
         val visualizer = if(SIM) RobotVisualizer(io) else null
@@ -162,17 +177,33 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g1.x.isJustPressed) {
                 // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
-                transferCommand(robot).schedule()
+                val c = if(robot.slides.t.axis2 > Tuning.TRANSFER_EXTRACT_POSE.lift)
+                    depoCommand(robot,Tuning.TRANSFER_HOVER_POSE)
+                else
+                    transferCommand(robot)
+                (c + instant { scoringPosition=null }).schedule()
             }
 
             if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
 
-            println("RUNNING COMMANDS")
-            for(cmd in Scheduler.cmds) {
-                print("${cmd.name}(${cmd.status}), ")
-            }
-            println("--------------")
-            println("numAutoIntakes = $numAutoIntakes")
+            if(g1.rightBumper.isJustPressed) robot.intake.follow(when(robot.intake.t) {
+                IntakePosition.OVER -> IntakePosition.BACK
+                IntakePosition.BACK -> IntakePosition.ACTIVE
+                IntakePosition.ACTIVE -> IntakePosition.BACK
+            }).schedule()
+
+            if(g1.leftBumper.isJustPressed) parallel(
+                instant { robot.active.updatePort(0.0) },
+                flapCommand(robot,false),
+                extendCommand(robot,0.m)
+            ).schedule()
+
+//            println("RUNNING COMMANDS")
+//            for(cmd in Scheduler.cmds) {
+//                print("${cmd.name}(${cmd.status}), ")
+//            }
+//            println("--------------")
+//            println("numAutoIntakes = $numAutoIntakes")
 
             Scheduler.tick()
 
@@ -191,8 +222,8 @@ class Teleop: SimOrHardwareOpMode() {
     private var wasManuallyControllingActive = false
 
     fun manualControls(dt: Second) {
-        val v = vec2(-gamepad1.left_stick_y, -gamepad1.left_stick_x)
-        robot.mecanum.t = Twist2D(v * maxSpeed, -maxAngSpeed * gamepad1.right_stick_x).exp()
+        val v = vec2(Tuning.stickProfile(-gamepad1.left_stick_y), Tuning.stickProfile(-gamepad1.left_stick_x))
+        robot.mecanum.t = Twist2D(v * maxSpeed, -maxAngSpeed * Tuning.stickProfile(gamepad1.right_stick_x)).exp()
 
         val activePower =
             gamepad1.left_trigger - gamepad1.right_trigger + gamepad2.left_trigger - gamepad2.right_trigger
@@ -216,8 +247,8 @@ class Teleop: SimOrHardwareOpMode() {
 
         robot.arm.t = robot.arm.kinematics.underInverse(robot.arm.t.let {
             DiffyOutputPose(
-                it.axis1 - armPower * dt * 0.5.rad / s,
-                it.axis2 - wristPower * dt * 0.5.rad / s
+                it.axis1 - armPower * dt * 1.5.rad / s,
+                it.axis2 - wristPower * dt * 1.5.rad / s
             )
         }) {
             DiffyInputPose(
@@ -231,6 +262,19 @@ class Teleop: SimOrHardwareOpMode() {
         // tilt
         if(g2.y.isJustPressed) {
             tiltPosition = tiltPosition.next()
+        }
+
+        //climb controls
+        if(tiltPosition==TiltPositions.DOWN) {
+            (robot.slides.controller as PIDDiffyController).limitPowerNearThresh = false
+            if(g2.dpadUp.isJustPressed) climbPos = when(climbPos) {
+                    null -> ClimbPosition.FIRST_RUNG
+                    else -> ClimbPosition.SECOND_RUNG
+                }
+
+            if(g2.dpadDown.isJustPressed) climbPos = ClimbPosition.FIRST_RUNG
+        } else {
+            (robot.slides.controller as PIDDiffyController).limitPowerNearThresh = true
         }
     }
 }

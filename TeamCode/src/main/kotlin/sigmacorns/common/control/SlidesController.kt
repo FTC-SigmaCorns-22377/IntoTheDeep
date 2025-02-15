@@ -17,7 +17,7 @@ import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
 import kotlin.math.absoluteValue
 
-fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControlLoop<DiffyInputPose, List<Volt>, DiffyOutputPose> {
+fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControllerControlLoop<DiffyInputPose, List<Volt>, DiffyOutputPose> {
     val kinematics = DiffyKinematics(Physical.EXTEND_M_PER_TICK, Physical.LIFT_M_PER_TICK)
 
     val controller = PIDDiffyController(

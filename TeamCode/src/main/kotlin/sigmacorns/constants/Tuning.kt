@@ -10,18 +10,17 @@ import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.Expression
 import eu.sirotin.kotunil.derived.Radian
-import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.control.controller.params.PIDCoefficients
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.inches
 import sigmacorns.common.kinematics.LiftPose
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.sign
 
 object Tuning {
-    //-50, 50
-//    var LIFT_PID: PIDCoefficients = PIDCoefficients(-50.0,0.0,0.0)
-//    var EXTENSION_PID: PIDCoefficients = PIDCoefficients(50.0,0.0,2.0)
-
     var LIFT_PID: PIDCoefficients = PIDCoefficients(100.0,0.0,0.0)
     var EXTENSION_PID: PIDCoefficients = PIDCoefficients(100.0,0.0,0.0)
     var LIFT_TOLERANCE: Metre = 3.cm
@@ -46,7 +45,6 @@ object Tuning {
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
-
     var FLAP_TIME: Second = 300.ms
     var FLAP_CLOSED: Double = 0.6375
     var FLAP_OPEN: Double = 0.12
@@ -56,32 +54,13 @@ object Tuning {
     var ACTIVE_STOP_TIME = 100.ms
     var TRANSFER_ACTIVE_TIME = 300.ms
 
-    enum class IntakePosition(val x: Radian) {
-        OVER(0.rad),
-        BACK((-0.43).rad),
-        ACTIVE((-0.00).rad)
-    }
-
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
     var specimenHighPose = LiftPose(150.mm,(30).degrees, (30).degrees)
     var specimenLowPose = LiftPose((specimenHighPose.lift-13.inches).cast(m),(30).degrees, (30).degrees)
     var bucketHighPose: LiftPose = LiftPose(740.mm,(-45).degrees,(-25).degrees)
     var bucketLowPose: LiftPose = LiftPose((bucketHighPose.lift-44.cm).cast(m),(-45).degrees,(-25).degrees)
 
-    enum class TiltPositions(val x: Double) {
-        STRAIGHT(0.65),
-        UP(0.0),
-        DOWN(1.0);
-
-        fun next() = when(this) {
-            STRAIGHT -> DOWN
-            UP -> STRAIGHT
-            DOWN -> UP
-        }
-    }
-
     var specimentScoreOffset = 220.mm
-
 
     var choreoPosPID = PIDCoefficients(25.0,0.0,2.0)
     var choreoAngPID = PIDCoefficients(10.0,0.0,0.0)
@@ -90,4 +69,14 @@ object Tuning {
     var choreoAngThresh = 5.degrees
     var choreoVelThresh = 10.cm/s
     var choreoAngVelThresh = 10.degrees/s
+
+    var STICK_DEADZONE = 0.1
+    var STICK_EXP = 2.0
+
+    var stickProfile: (Float) -> Double = {
+        val deadZoneAdjustedPow = max(0.0,(abs(it) - STICK_DEADZONE)/(1.0- STICK_DEADZONE))
+        sign(it).toDouble()*deadZoneAdjustedPow.pow(STICK_EXP)
+    }
+
+
 }

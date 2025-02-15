@@ -16,10 +16,10 @@ import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
-import net.unnamedrobotics.lib.command.schedule
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.Color
+import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Tuning
 
 fun extendCommand(robot: Robot, dist: Metre, lock: Boolean = true) = (robot.slides.follow {
@@ -36,11 +36,12 @@ fun flapCommand(robot: Robot, closed: Boolean) = instant {
     robot.flap.updatePort(if(closed) Tuning.FLAP_CLOSED else Tuning.FLAP_OPEN)
 } + wait(Tuning.FLAP_TIME)
 
-fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) =
-    (extendCommand(robot,dist, lock) +
-    powerIntakeCommand(robot, Tuning.ACTIVE_POWER) +
-    robot.intake.follow(Tuning.IntakePosition.ACTIVE)).name("intakeCommand($dist)") +
+fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) = parallel(
+    extendCommand(robot,dist, lock),
+    powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
+//    robot.intake.follow(IntakePosition.ACTIVE)).name("intakeCommand($dist)") +
     flapCommand(robot, true)
+)
 
 //fun detectCommand(robot: Robot) = cmd {
 //    finishWhen { robot.io.distance() < Color.DIST_THRESHOLD || }
@@ -85,11 +86,12 @@ fun autoIntake(robot: Robot, dist: Metre): Command {
 }
 
 fun retract(robot: Robot, lock: Boolean = true) =
-    parallel(extendCommand(robot,0.m,lock), powerIntakeCommand(robot,0.0), robot.intake.follow(Tuning.IntakePosition.OVER)).name("retractCommand")
+    parallel(extendCommand(robot,0.m,lock), powerIntakeCommand(robot,0.0), robot.intake.follow(
+        IntakePosition.OVER)).name("retractCommand")
 
 fun eject(robot: Robot) =
     series(
-        robot.intake.follow(Tuning.IntakePosition.BACK),
+        robot.intake.follow(IntakePosition.BACK),
         powerIntakeCommand(robot, -Tuning.ACTIVE_POWER),
         wait(200.ms),
         powerIntakeCommand(robot, 0.0)

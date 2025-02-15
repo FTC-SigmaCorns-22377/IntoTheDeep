@@ -38,6 +38,8 @@ class PIDDiffyController(
     override lateinit var position: DiffyInputPose
     override lateinit var target: DiffyOutputPose
 
+    var limitPowerNearThresh = true
+
     override fun copy(): Controller<DiffyInputPose, List<Volt>, DiffyOutputPose> {
         TODO("Not yet implemented")
     }
@@ -77,8 +79,10 @@ class PIDDiffyController(
                 if(axis2OverMax) axis2SafePower else Double.MAX_VALUE.V
             )
 
-            axis1Power = axis1PowerBounds.apply(axis1Power)
-            axis2Power = axis2PowerBounds.apply(axis2Power)
+            if(limitPowerNearThresh) {
+                axis1Power = axis1PowerBounds.apply(axis1Power)
+                axis2Power = axis2PowerBounds.apply(axis2Power)
+            }
 
             val powers = listOf(axis1Power+axis2Power,axis1Power-axis2Power)
 
