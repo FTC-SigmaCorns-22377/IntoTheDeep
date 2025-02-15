@@ -11,8 +11,9 @@ import net.unnamedrobotics.lib.command.runCommand
 import net.unnamedrobotics.lib.command.schedule
 
 class RaceGroup(private vararg val cmds: Command) : Command() {
-
+    override var dependencies: Set<Command> = cmds.toSet()
     override var onCancel = { cmds.forEach { if(it.status!=Status.FINISHED) it.status = Status.CANCELLED } }
+
     /**
      * Initializes all the commands in the group in parallel using coroutines.
      */
@@ -27,7 +28,6 @@ class RaceGroup(private vararg val cmds: Command) : Command() {
      */
     override suspend fun run(): Boolean {
         return cmds.any { it.status == Status.FINISHED }.also {
-            if(cmds.all { it.status != Status.RUNNING || it.status!=Status.INIT }) status=Status.CANCELLED
             if(it) cmds.forEach { if(it.status!=Status.FINISHED) it.status = Status.CANCELLED }
         }
     }
