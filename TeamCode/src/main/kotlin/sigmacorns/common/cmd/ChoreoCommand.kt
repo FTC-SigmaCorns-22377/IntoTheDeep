@@ -4,6 +4,9 @@ import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
 import dev.nullrobotics.trajectory.Trajectory
 import net.unnamedrobotics.lib.command.cmd
+import net.unnamedrobotics.lib.command.groups.then
 import sigmacorns.common.Robot
 
-fun choreoCommand(robot: Robot, trajName: String) = robot.choreo.follow(Choreo.loadTrajectory<SwerveSample>(trajName).get())
+var choreoActive = false
+fun choreoCommand(robot: Robot, trajName: String) =
+    robot.followPath(Choreo.loadTrajectory<SwerveSample>(trajName).get()).name("follow($trajName)")

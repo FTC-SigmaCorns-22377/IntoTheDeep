@@ -15,10 +15,12 @@ import eu.sirotin.kotunil.core.unaryMinus
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.groups.parallel
+import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.gamepad.GamepadEx
 import net.unnamedrobotics.lib.math2.Transform2D
+import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.vec2
@@ -133,7 +135,7 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g1.a.isJustPressed) {
                 val cmd = if(clawClosed())  {
-                    score(robot,scoringPosition) then instant { scoringPosition=null }
+                    score(robot,scoringPosition) + instant { scoringPosition=null }
                 } else {
                     clawCommand(robot,true).let {
                         if(atWallPosition())
@@ -183,8 +185,8 @@ class Teleop: SimOrHardwareOpMode() {
     private var wasManuallyControllingActive = false
 
     fun manualControls(dt: Second) {
-        val v = vec2(-gamepad1.left_stick_y, gamepad1.left_stick_x)
-        robot.mecanum.t = Transform2D(v * maxSpeed, -maxAngSpeed * gamepad1.right_stick_x)
+        val v = vec2(-gamepad1.left_stick_y, -gamepad1.left_stick_x)
+        robot.mecanum.t = Twist2D(v * maxSpeed, -maxAngSpeed * gamepad1.right_stick_x).exp()
 
         val activePower =
             gamepad1.left_trigger - gamepad1.right_trigger + gamepad2.left_trigger - gamepad2.right_trigger

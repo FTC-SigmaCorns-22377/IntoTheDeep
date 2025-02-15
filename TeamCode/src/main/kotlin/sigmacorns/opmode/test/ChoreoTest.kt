@@ -1,5 +1,6 @@
 package sigmacorns.opmode.test
 
+import android.graphics.Path.Op
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
@@ -14,10 +15,12 @@ import net.unnamedrobotics.lib.rerun.rerun
 import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.control.TrajectoryLogger
+import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.opmode.SIM
 import sigmacorns.opmode.SimOrHardwareOpMode
 import java.io.File
+import java.util.Optional
 
 @TeleOp
 class ChoreoTest: SimOrHardwareOpMode() {
@@ -32,14 +35,14 @@ class ChoreoTest: SimOrHardwareOpMode() {
             io.rerunConnection.field("$dir/src/test/resources/field_image.png")
         }
 
-        val robot = Robot(io)
+        val traj = (Choreo::loadTrajectory)("push_specimen").get() as Trajectory<SwerveSample>
+        val robot = Robot(io, initPos = traj.initialPose.toTransform2d())
 
 //        val viz = RobotVisualizer(io)
 
-        robot.io.setPinPos(Transform2D(0.m,0.m,0.rad))
         waitForStart()
 
-        robot.choreo.t = (Choreo::loadTrajectory)("COPE").get() as Trajectory<SwerveSample>
+        robot.choreo.t = Optional.of(traj)
 
         robot.update(0.0)
 

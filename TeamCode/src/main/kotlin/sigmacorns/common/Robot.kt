@@ -1,5 +1,7 @@
 package sigmacorns.common
 
+import dev.nullrobotics.sample.SwerveSample
+import dev.nullrobotics.trajectory.Trajectory
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.schedule
@@ -25,6 +27,7 @@ import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
 import sigmacorns.constants.toServoPos
+import java.util.Optional
 
 class Robot(
     val io: SigmaIO,
@@ -65,6 +68,7 @@ class Robot(
     val intakeCommandSlot = CommandSlot()
 
     init {
+        io.setPinPos(initPos)
         extendCommandSlot.schedule()
         liftCommandSlot.schedule()
         armCommandSlot.schedule()
@@ -82,4 +86,6 @@ class Robot(
         io.updateColor()
         io.updatePinpoint()
     }
+
+    fun followPath(traj: Trajectory<SwerveSample>) = choreo.follow(Optional.of(traj))
 }

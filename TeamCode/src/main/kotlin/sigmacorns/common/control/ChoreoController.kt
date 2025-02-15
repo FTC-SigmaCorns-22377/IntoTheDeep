@@ -23,6 +23,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 import sigmacorns.common.Robot
 import sigmacorns.constants.Tuning
+import java.util.Optional
 import kotlin.math.absoluteValue
 
 data class RobotMovementState(val pos: Transform2D, val vel: Twist2D)
@@ -32,16 +33,21 @@ class ChoreoController(
     val angCoeff: PIDCoefficients,
     val drivebaseSize: Vector2,
     val rerunDownscale: Int = 1
-): Controller<RobotMovementState, Transform2D, Trajectory<SwerveSample>>() {
+): Controller<RobotMovementState, Transform2D, Optional<Trajectory<SwerveSample>>>() {
     override var output: Transform2D = Transform2D(0.m/s,0.m/s,0.rad/s)
     override var position: RobotMovementState = RobotMovementState(Transform2D(0.m,0.m,0.rad),
         Twist2D(0.m/s,0.m/s,0.rad/s)
     )
-    override lateinit var target: Trajectory<SwerveSample>
+    override var target: Optional<Trajectory<SwerveSample>> = Optional.empty()
+        set(value) {
+            targetNew = true
+            field = value
+        }
+    var targetNew = false
 
     val trajectoryLogger = TrajectoryLogger(drivebaseSize.x.cast(m),drivebaseSize.y.cast(m))
 
-    private var lastTraj: Trajectory<SwerveSample>? = null
+    var lastTraj: Trajectory<SwerveSample>? = null
 
     var t = 0.0
 
@@ -54,6 +60,10 @@ class ChoreoController(
     override fun copy() = TODO()
 
     override fun update(deltaTime: Double): Transform2D {
+        if(!target.isPresent) return Transform2D(0.m/s,0.m/s,0.rad/s)
+
+        targetNew = false
+        val target = target.get()
         if(lastTraj == target) t += deltaTime else t = 0.0
         lastTraj = target
 
@@ -102,16 +112,27 @@ fun choreoControllerLoop(
 },{
     robot.mecanum.t = it
 },{ x,t ->
-    val f = t.finalSample
-    (x.pos-f.pose.toTransform2d()).let {
-        it.vector().magnitude() < Tuning.choreoPosThresh
-        it.angle.normalizeRadian().map { it.absoluteValue } < Tuning.choreoAngThresh
-    } && (x.vel.vector()-vec2(f.vx.m/s,f.vy.m/s)).magnitude() < Tuning.choreoVelThresh
-            && (x.vel.dAngle-f.omega.rad/s).normalizeRadian().map { it.absoluteValue } < Tuning.choreoAngVelThresh
+    println("HII")
+    if(!t.isPresent || choreoController.targetNew) return@toControlLoop false
+    val f = t.get().finalSample
+    var log = "WAITING FOR: "
+    val posReached = (x.pos-f.pose.toTransform2d()).let { d ->
+        (d.vector().magnitude() < Tuning.choreoPosThresh)
+            .also { if(!it) log += "POS(${d.vector().magnitude()}), "} &&
+        (d.angle.normalizeRadian().map { it.absoluteValue } < Tuning.choreoAngThresh)
+            .also { if(!it) log += "ANG(${d.angle.normalizeRadian()}), " }
+    }
+    val velReached = ((x.vel.vector()-vec2(f.vx.m/s,f.vy.m/s)).magnitude() < Tuning.choreoVelThresh)
+        .also { log += "VEL(${x.vel.vector().magnitude()}), " }
+    val angVelReached = ((x.vel.dAngle-f.omega.rad/s).map { it.absoluteValue } < Tuning.choreoAngVelThresh)
+        .also { log += "ANGVEL(${x.vel.dAngle}), " }
+    val res = posReached && velReached && angVelReached
+    println(log)
+    res
 })
 
-private fun Transform2D.toPose2d(): Pose2D = Pose2D(DistanceUnit.METER, x.value, y.value, AngleUnit.RADIANS, angle.value)
-private fun Pose2D.toTransform2d(): Transform2D = Transform2D(
+fun Transform2D.toPose2d(): Pose2D = Pose2D(DistanceUnit.METER, x.value, y.value, AngleUnit.RADIANS, angle.value)
+fun Pose2D.toTransform2d(): Transform2D = Transform2D(
     getX(DistanceUnit.METER).m,
     getY(DistanceUnit.METER).m,
     getHeading(AngleUnit.RADIANS).rad

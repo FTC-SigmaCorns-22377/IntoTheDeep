@@ -13,13 +13,13 @@ import sigmacorns.constants.Tuning
 
 fun liftCommand(robot: Robot, dist: Metre, lock: Boolean = true) = robot.slides.follow {
     DiffyOutputPose(robot.slides.t.axis1, dist)
-}.let {
+}.name("lift").let {
     if(lock) robot.liftCommandSlot.register(it) else it
 }
 
 fun armCommand(robot: Robot, arm: Radian, wrist: Radian, lock: Boolean = true) = robot.arm.follow(
     DiffyOutputPose(arm,wrist)
-).let {
+).name("arm").let {
     if(lock) robot.liftCommandSlot.register(it) else series(instant { println("STARTED ARM") }, it, instant { println("OH SHIT BRO") })
 }
 

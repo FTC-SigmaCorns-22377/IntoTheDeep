@@ -29,11 +29,12 @@ class CommandSlot: Command() {
     }
 
     fun register(command: Command, interruptible: Boolean = true) = cmd {
+        dependencies += command
         onCancel = { if(command.status!=Status.FINISHED) command.status = Status.CANCELLED }
         init { if(!tryPut(command, interruptible)) status = Status.CANCELLED; }
         loop { if(command.status==Status.CANCELLED) status=Status.CANCELLED }
         finishWhen { command.status==Status.FINISHED }
-    }
+    }.name("registerSlot(${command.name})")
 
     fun lock() = cmd {
         instant { tryPut(this,false) }
