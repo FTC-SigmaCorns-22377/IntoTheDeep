@@ -8,7 +8,6 @@ import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
-import eu.sirotin.kotunil.derived.microbecquerel
 import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.Status
 import net.unnamedrobotics.lib.command.cmd
@@ -95,10 +94,10 @@ fun eject(robot: Robot) =
         powerIntakeCommand(robot, 0.0)
     )
 
-
-
-fun wait(t: Second) = cmd {
+fun wait(t: Second) = wait { t }
+fun wait(t: ()->Second) = cmd {
     val curTime = ElapsedTime()
-    init { curTime.reset() }
-    finishWhen { curTime.seconds().s > t }
+    var waitTime: Second? = null
+    init { curTime.reset(); waitTime = t() }
+    finishWhen { curTime.seconds().s > waitTime!! }
 }.name("wait($t)")

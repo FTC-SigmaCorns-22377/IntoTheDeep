@@ -3,7 +3,9 @@ package sigmacorns.common
 import dev.nullrobotics.sample.SwerveSample
 import dev.nullrobotics.trajectory.Trajectory
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.rad
+import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.control.controller.transfer
 import net.unnamedrobotics.lib.math2.Transform2D
@@ -87,5 +89,12 @@ class Robot(
         io.updatePinpoint()
     }
 
-    fun followPath(traj: Trajectory<SwerveSample>) = choreo.follow(Optional.of(traj))
+    fun followPath(traj: Trajectory<SwerveSample>, fast: Boolean = false): Command {
+        val cmd = choreo.follow(Optional.of(traj))
+        if(fast) {
+            choreoController.t = 0.15
+            choreoController.tPreset = true
+        }
+        return cmd
+    }
 }

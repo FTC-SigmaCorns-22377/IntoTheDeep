@@ -23,14 +23,16 @@ import sigmacorns.common.cmd.ScorePosition
 import sigmacorns.common.cmd.choreoCommand
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
+import sigmacorns.common.cmd.fastChoreoCommand
+import sigmacorns.common.cmd.fastScore
+import sigmacorns.common.cmd.score
+import sigmacorns.common.cmd.timeout
+import sigmacorns.common.cmd.wait
 import sigmacorns.common.cmd.eject
 import sigmacorns.common.cmd.extendCommand
 import sigmacorns.common.cmd.intakeCommand
 import sigmacorns.common.cmd.powerIntakeCommand
 import sigmacorns.common.cmd.reset
-import sigmacorns.common.cmd.score
-import sigmacorns.common.cmd.wait
-import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
@@ -47,14 +49,15 @@ class SpecimenAuto: SimOrHardwareOpMode() {
             initPos = startPosFromTraj("push_specimen")
         )
         
-        Scheduler.log = true
+        Scheduler.log = false
         Scheduler.reset()
         
         robot.update(0.0)
+
+        specimenAuto(robot).schedule()
         
         waitForStart()
 
-        specimenAuto(robot).schedule()
         
         var lastT = io.time()
         while (opModeIsActive()) {
@@ -62,11 +65,11 @@ class SpecimenAuto: SimOrHardwareOpMode() {
             val dt = (t - lastT).cast(s)
             lastT = t
 
-            println("RUNNING COMMANDS")
-            for(cmd in Scheduler.cmds) {
-                print("${cmd.name}(${cmd.status}), ")
-            }
-            println("--------------")
+//            println("RUNNING COMMANDS")
+//            for(cmd in Scheduler.cmds) {
+//                print("${cmd.name}(${cmd.status}), ")
+//            }
+//            println("--------------")
 
             robot.choreo.tickControlNode(dt.value)
             Scheduler.tick()
@@ -77,17 +80,19 @@ class SpecimenAuto: SimOrHardwareOpMode() {
 
 fun specimenAuto(robot: Robot) =
     series(
+        clawCommand(robot,false),
         choreoCommand(robot,"push_specimen") + depoCommand(robot,Tuning.specimenWallPose),
-        cycle(robot, true)
+        cycle(robot, true),
+        cycle(robot, false)
     )   
 
 fun cycle(robot: Robot, first: Boolean): Command {
     val scorePath = if(first) "score_first_specimen" else "score_specimen"
     return series(
         clawCommand(robot,true),
-        choreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
-        score(robot,ScorePosition.HIGH_SPECIMEN),
-        choreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose),
+        fastChoreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
+        fastScore(robot,ScorePosition.HIGH_SPECIMEN),
+        fastChoreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose),
     ) 
 }
 

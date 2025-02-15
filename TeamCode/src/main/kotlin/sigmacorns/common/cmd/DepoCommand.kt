@@ -24,7 +24,10 @@ fun armCommand(robot: Robot, arm: Radian, wrist: Radian, lock: Boolean = true) =
 }
 
 fun clawCommand(robot: Robot, closed: Boolean)
-    = instant { robot.claw.updatePort(if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN) } + wait(Tuning.CLAW_TIME)
+    = wait {
+        val targetClosedBefore = robot.claw.v?.equals(Tuning.CLAW_CLOSED)
+        if(targetClosedBefore!=closed) Tuning.CLAW_TIME else 0.s
+    } + instant { robot.claw.updatePort(if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN) }
 
 fun depoCommand(robot: Robot, liftPose: LiftPose, lock: Boolean = true)
     = (armCommand(robot,liftPose.arm,liftPose.wrist,lock).name("arm") + liftCommand(robot, liftPose.lift,lock).name("lift")).name("depo")

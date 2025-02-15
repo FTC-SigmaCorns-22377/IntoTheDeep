@@ -101,9 +101,15 @@ class Teleop: SimOrHardwareOpMode() {
 
         waitForStart()
 
-        robot.update(0.0)
-
         var lastT = io.time()
+        while (opModeInInit()) {
+            val t = io.time()
+            val dt = (t - lastT).cast(s)
+            lastT = t
+
+            robot.update(0.0)
+        }
+
         while (opModeIsActive()) {
             val t = io.time()
             val dt = (t - lastT).cast(s)

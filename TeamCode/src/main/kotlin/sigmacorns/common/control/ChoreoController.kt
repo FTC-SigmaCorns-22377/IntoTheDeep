@@ -42,8 +42,10 @@ class ChoreoController(
         set(value) {
             targetNew = true
             field = value
+            tPreset = false
         }
     var targetNew = false
+    var tPreset = false
 
     val trajectoryLogger = TrajectoryLogger(drivebaseSize.x.cast(m),drivebaseSize.y.cast(m))
 
@@ -64,7 +66,7 @@ class ChoreoController(
 
         targetNew = false
         val target = target.get()
-        if(lastTraj == target) t += deltaTime else t = 0.0
+        if(lastTraj == target || tPreset) t += deltaTime else t = 0.0
         lastTraj = target
 
 //        sample = target.getClosestSample(position.pos.toPose2d())
@@ -122,9 +124,9 @@ fun choreoControllerLoop(
         (d.angle.normalizeRadian().map { it.absoluteValue } < Tuning.choreoAngThresh)
             .also { if(!it) log += "ANG(${d.angle.normalizeRadian()}), " }
     }
-    val velReached = ((x.vel.vector()-vec2(f.vx.m/s,f.vy.m/s)).magnitude() < Tuning.choreoVelThresh)
+    val velReached = ((x.vel.vector()-vec2(f.vx.m/s,f.vy.m/s)).magnitude() < Tuning.choreoVelThresh) || true
         .also { log += "VEL(${x.vel.vector().magnitude()}), " }
-    val angVelReached = ((x.vel.dAngle-f.omega.rad/s).map { it.absoluteValue } < Tuning.choreoAngVelThresh)
+    val angVelReached = ((x.vel.dAngle-f.omega.rad/s).map { it.absoluteValue } < Tuning.choreoAngVelThresh) || true
         .also { log += "ANGVEL(${x.vel.dAngle}), " }
     val res = posReached && velReached && angVelReached
     println(log)

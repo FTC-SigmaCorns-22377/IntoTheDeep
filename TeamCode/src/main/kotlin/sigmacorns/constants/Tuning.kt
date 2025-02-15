@@ -42,7 +42,7 @@ object Tuning {
     var INTAKE_SERVO_VEL: Expression = 60.degrees/(0.2.s)
     var INTAKE_SERVO_TOLERANCE: Radian = 3.degrees
 
-    var CLAW_TIME: Second = 300.ms
+    var CLAW_TIME: Second = 200.ms
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.7
 
@@ -63,13 +63,10 @@ object Tuning {
     }
 
     var specimenWallPose = LiftPose(0.cm,(-145).degrees, 55.degrees)
-    var specimenHighPose = LiftPose(170.mm,(30).degrees, (30).degrees)
+    var specimenHighPose = LiftPose(150.mm,(30).degrees, (30).degrees)
     var specimenLowPose = LiftPose((specimenHighPose.lift-13.inches).cast(m),(30).degrees, (30).degrees)
     var bucketHighPose: LiftPose = LiftPose(740.mm,(-45).degrees,(-25).degrees)
     var bucketLowPose: LiftPose = LiftPose((bucketHighPose.lift-44.cm).cast(m),(-45).degrees,(-25).degrees)
-
-    var postTransferPose = LiftPose(TRANSFER_EXTRACT_POSE.lift, bucketLowPose.arm, bucketLowPose.wrist)
-    var asdf = LiftPose(150.mm,(30).degrees, (50).degrees)
 
     enum class TiltPositions(val x: Double) {
         STRAIGHT(0.65),
@@ -83,10 +80,10 @@ object Tuning {
         }
     }
 
-    var specimentScoreOffset = 200.mm
+    var specimentScoreOffset = 220.mm
 
 
-    var choreoPosPID = PIDCoefficients(20.0,0.0,1.5)
+    var choreoPosPID = PIDCoefficients(25.0,0.0,2.0)
     var choreoAngPID = PIDCoefficients(10.0,0.0,0.0)
 
     var choreoPosThresh = 3.cm

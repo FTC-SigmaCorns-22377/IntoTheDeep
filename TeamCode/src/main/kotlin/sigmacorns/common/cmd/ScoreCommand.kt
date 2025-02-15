@@ -37,6 +37,26 @@ fun score(robot: Robot, dst: ScorePosition?) = (when (dst) {
     null -> clawCommand(robot,false)
 }).name("score(${dst?.name ?: "null)"})").timeout(10.s)
 
+fun fastScore(robot: Robot, dst: ScorePosition?) =  (when(dst) {
+    ScorePosition.HIGH_SPECIMEN, ScorePosition.LOW_SPECIMEN ->
+        race(
+            liftCommand(
+                robot,
+                (dst.x.lift + Tuning.specimentScoreOffset).cast(m)
+            ),
+            wait(400.ms) then clawCommand(robot,false)
+        )
+
+    ScorePosition.HIGH_BUCKET, ScorePosition.LOW_BUCKET ->
+        clawCommand(robot,false) then armCommand(
+            robot,
+            robot.arm.t.axis1.map { -it }.cast(rad),
+            robot.arm.t.axis2.map { -it }.cast(rad)
+        ).name("arm").timeout(7.s)
+    null -> clawCommand(robot,false)
+}).name("score(${dst?.name ?: "null)"})").timeout(10.s)
+
+
 fun reset(robot: Robot) =
     series(
         retract(robot),
