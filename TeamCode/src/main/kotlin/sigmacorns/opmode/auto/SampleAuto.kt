@@ -4,8 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import dev.nullrobotics.Choreo
 import dev.nullrobotics.sample.SwerveSample
+import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.m
-import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.minus
 import eu.sirotin.kotunil.derived.rad
@@ -20,16 +20,14 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import sigmacorns.common.Robot
 import sigmacorns.common.cmd.ScorePosition
+import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.choreoCommand
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
-import sigmacorns.common.cmd.eject
 import sigmacorns.common.cmd.extendCommand
 import sigmacorns.common.cmd.intakeCommand
-import sigmacorns.common.cmd.powerIntakeCommand
 import sigmacorns.common.cmd.reset
 import sigmacorns.common.cmd.score
-import sigmacorns.common.cmd.wait
 import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
@@ -38,7 +36,7 @@ import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
 
 @Autonomous
-class SpecimenAuto: SimOrHardwareOpMode() {
+class SampleAuto: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
         val robot = Robot(
             io,
@@ -46,16 +44,16 @@ class SpecimenAuto: SimOrHardwareOpMode() {
             DiffyOutputPose(0.m, 0.m),
             initPos = startPosFromTraj("push_specimen")
         )
-        
+
         Scheduler.log = true
         Scheduler.reset()
-        
+
         robot.update(0.0)
-        
+
         waitForStart()
 
-        specimenAuto(robot).schedule()
-        
+        sampleAuto(robot).schedule()
+
         var lastT = io.time()
         while (opModeIsActive()) {
             val t = io.time()
@@ -75,43 +73,20 @@ class SpecimenAuto: SimOrHardwareOpMode() {
     }
 }
 
-fun specimenAuto(robot: Robot) =
+fun sampleAuto(robot: Robot) =
     series(
-        choreoCommand(robot,"push_specimen") + depoCommand(robot,Tuning.specimenWallPose),
-        cycle(robot, true)
-    )   
-
-fun cycle(robot: Robot, first: Boolean): Command {
-    val scorePath = if(first) "score_first_specimen" else "score_specimen"
-    return series(
-        clawCommand(robot,true),
-        choreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
-        score(robot,ScorePosition.HIGH_SPECIMEN),
-        choreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose),
-    ) 
-}
-
-fun betterSpecimenAuto(robot:Robot) =
-    series(
-
+        sampleCycle(robot, "first", 0.1.m),
+        sampleCycle(robot, "second", 0.1.m),
+        sampleCycle(robot, "third", 0.1.m),
+        choreoCommand(robot, "park")
     )
 
-fun dropoff(robot: Robot): Command{
+fun sampleCycle(robot: Robot, numSample: String, dist: Metre): Command {
     return series(
-        clawCommand(robot, true),
-        choreoCommand(robot, "Preload") + depoCommand(robot, ScorePosition.HIGH_SPECIMEN),
-        score(robot, ScorePosition.HIGH_SPECIMEN),
-        reset(robot),
-        choreoCommand(robot, "Post Preload") + extendCommand(robot, 0.1.m),
-        powerIntakeCommand(robot,Tuning.ACTIVE_POWER),
-        wait(200.ms),
-        powerIntakeCommand(robot,0.0),
-        choreoCommand(robot, "Dropoff 1"),
-        eject(robot),
-        choreoCommand(robot, "")
+        choreoCommand(robot, numSample + "_sample") + extendCommand(robot, dist),
+        autoIntake(robot, dist),
+        choreoCommand(robot, numSample + "_score") + depoCommand(robot, ScorePosition.HIGH_BUCKET),
+        score(robot, ScorePosition.HIGH_BUCKET),
+        reset(robot)
     )
 }
-
-operator fun Command.times(n: Int) = series(*Array(n) { this })
-
-fun startPosFromTraj(name: String) = Choreo.loadTrajectory<SwerveSample>(name).get().initialPose.toTransform2d()

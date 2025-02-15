@@ -6,6 +6,7 @@ import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.rad
+import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.map
@@ -35,3 +36,10 @@ fun score(robot: Robot, dst: ScorePosition?) = (when (dst) {
         ).name("arm").timeout(7.s)
     null -> clawCommand(robot,false)
 }).name("score(${dst?.name ?: "null)"})").timeout(10.s)
+
+fun reset(robot: Robot) =
+    series(
+        retract(robot),
+        liftCommand(robot, 0.m),
+        depoCommand(robot, Tuning.TRANSFER_POSE)
+    )

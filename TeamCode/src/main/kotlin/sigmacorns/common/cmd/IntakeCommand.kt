@@ -14,6 +14,7 @@ import net.unnamedrobotics.lib.command.Status
 import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
+import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import sigmacorns.common.Robot
@@ -85,6 +86,16 @@ fun autoIntake(robot: Robot, dist: Metre): Command {
 
 fun retract(robot: Robot, lock: Boolean = true) =
     parallel(extendCommand(robot,0.m,lock), powerIntakeCommand(robot,0.0), robot.intake.follow(Tuning.IntakePosition.OVER)).name("retractCommand")
+
+fun eject(robot: Robot) =
+    series(
+        robot.intake.follow(Tuning.IntakePosition.BACK),
+        powerIntakeCommand(robot, -Tuning.ACTIVE_POWER),
+        wait(200.ms),
+        powerIntakeCommand(robot, 0.0)
+    )
+
+
 
 fun wait(t: Second) = cmd {
     val curTime = ElapsedTime()
