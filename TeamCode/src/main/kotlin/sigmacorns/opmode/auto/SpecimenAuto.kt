@@ -60,6 +60,9 @@ class SpecimenAuto: SimOrHardwareOpMode() {
         pushSpecimenAuto(robot).schedule()
         
         waitForStart()
+
+        var loop = true
+        var requestedEndTime = 0.s
         
         var lastT = io.time()
         while (opModeIsActive()) {
@@ -78,7 +81,7 @@ fun pushSpecimenAuto(robot: Robot) =
     series(
         choreoCommand(robot,"preload_specimen") + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
         fastScore(robot,ScorePosition.HIGH_SPECIMEN),
-        fastChoreoCommand(robot,"push_specimen") + depoCommand(robot,Tuning.specimenWallPose),
+        choreoCommand(robot,"push_specimen") + depoCommand(robot,Tuning.specimenWallPose),
         cycle(robot, true),
         cycle(robot, false),
         cycle(robot,false),

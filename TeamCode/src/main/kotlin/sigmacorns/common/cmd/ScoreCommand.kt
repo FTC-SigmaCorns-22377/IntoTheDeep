@@ -44,7 +44,7 @@ fun fastScore(robot: Robot, dst: ScorePosition?) =  (when(dst) {
                 robot,
                 (dst.x.lift + Tuning.specimentScoreOffset).cast(m)
             ),
-            wait(400.ms) then clawCommand(robot,false)
+            wait(250.ms) then clawCommand(robot,false)
         )
 
     ScorePosition.HIGH_BUCKET, ScorePosition.LOW_BUCKET ->
