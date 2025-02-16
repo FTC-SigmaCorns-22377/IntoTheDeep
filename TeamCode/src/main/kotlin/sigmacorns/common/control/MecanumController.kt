@@ -19,6 +19,8 @@ class MecanumController(
     val kinematics = drivebase.powerKinematics
     override fun update(deltaTime: Double): List<Double> = kinematics.inverse(t.log().let { Twist2D(it.dx,-it.dy,it.dAngle) })
 
+    var baseScalar = 1.0
+
     override var x: Unit = Unit
     override var u: List<Double> = List(4) { 0.0 }
     override var t: Transform2D = Transform2D(0.m/s, 0.m/s, 0.rad/s)
@@ -28,7 +30,7 @@ class MecanumController(
     override fun reached(x: Unit, t: Transform2D): Boolean = true
 
     override fun write(u: List<Double>) {
-        val scalar = max(u.max(),1.0)
+        val scalar = max(u.max(),1.0)*baseScalar
         io.driveFL = u[0]/scalar
         io.driveBL = u[1]/scalar
         io.driveBR = u[2]/scalar
