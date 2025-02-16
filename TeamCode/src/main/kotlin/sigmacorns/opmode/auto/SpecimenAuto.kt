@@ -81,14 +81,14 @@ fun pushSpecimenAuto(robot: Robot) =
         choreoCommand(robot,"preload_specimen") + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
         fastScore(robot,ScorePosition.HIGH_SPECIMEN),
         choreoCommand(robot,"push_specimen") + depoCommand(robot,Tuning.specimenWallPose),
-        cycle(robot, true),
-        cycle(robot, false),
-        cycle(robot,false),
-        cycle(robot,false)
+        cycle(robot, 1),
+        cycle(robot, 2),
+        cycle(robot,3),
+        cycle(robot,4)
     )
 
-fun cycle(robot: Robot, first: Boolean): Command {
-    val scorePath = if(first) "score_first_specimen" else "score_specimen"
+fun cycle(robot: Robot, n: Int): Command {
+    val scorePath = "score_specimen$n"
     return series(
         clawCommand(robot,true),
         fastChoreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
