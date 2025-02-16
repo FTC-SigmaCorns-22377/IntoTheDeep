@@ -33,8 +33,10 @@ import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.extendCommand
 import sigmacorns.common.cmd.flapCommand
 import sigmacorns.common.cmd.instant
+import sigmacorns.common.cmd.intakeCommand
 import sigmacorns.common.cmd.liftCommand
 import sigmacorns.common.cmd.numAutoIntakes
+import sigmacorns.common.cmd.powerIntakeCommand
 import sigmacorns.common.cmd.retract
 import sigmacorns.common.cmd.score
 import sigmacorns.common.cmd.transferCommand
@@ -132,21 +134,24 @@ class Teleop: SimOrHardwareOpMode() {
 
             manualControls(dt)
 
-            if(g1.dpadUp.isJustPressed) scoringPosition = when(scoringPosition) {
+//            val climbing = tiltPosition==TiltPositions.DOWN
+            val climbing = false
+
+            if(g1.dpadUp.isJustPressed || (g2.dpadUp.isJustPressed && climbing)) scoringPosition = when(scoringPosition) {
                 ScorePosition.LOW_SPECIMEN -> ScorePosition.HIGH_SPECIMEN
                 ScorePosition.LOW_BUCKET -> ScorePosition.HIGH_BUCKET
                 null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.HIGH_SPECIMEN else ScorePosition.HIGH_BUCKET
                 else -> scoringPosition
             }
 
-            if(g1.dpadDown.isJustPressed) scoringPosition = when(scoringPosition) {
+            if(g1.dpadDown.isJustPressed || (g2.dpadDown.isJustPressed && climbing) ) scoringPosition = when(scoringPosition) {
                 ScorePosition.HIGH_SPECIMEN -> ScorePosition.LOW_SPECIMEN
                 ScorePosition.HIGH_BUCKET -> ScorePosition.LOW_BUCKET
                 null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.LOW_SPECIMEN else ScorePosition.LOW_BUCKET
                 else -> scoringPosition
             }
 
-            if(g1.dpadRight.isJustPressed) scoringPosition = when(scoringPosition) {
+            if(g1.dpadRight.isJustPressed || (g2.dpadRight.isJustPressed && climbing)) scoringPosition = when(scoringPosition) {
                 ScorePosition.HIGH_SPECIMEN -> ScorePosition.HIGH_BUCKET
                 ScorePosition.LOW_SPECIMEN -> ScorePosition.LOW_BUCKET
                 ScorePosition.HIGH_BUCKET -> ScorePosition.HIGH_SPECIMEN
@@ -175,24 +180,24 @@ class Teleop: SimOrHardwareOpMode() {
                 instant { scoringPosition = null }
             ).schedule()
 
-            if(g1.x.isJustPressed) {
+            if(g1.x.isJustPressed || g2.x.isJustPressed ) {
                 // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
                 val c = if(robot.slides.t.axis2 > Tuning.TRANSFER_EXTRACT_POSE.lift)
                     depoCommand(robot,Tuning.TRANSFER_HOVER_POSE)
                 else
-                    transferCommand(robot)
-                (c + instant { scoringPosition=null }).schedule()
+                   transferCommand(robot)
+                (c + instant { scoringPosition=null; } + powerIntakeCommand(robot,0.0)).schedule()
             }
 
-            if(g1.y.isJustPressed) autoIntake(robot,300.mm).schedule()
+            if(g1.y.isJustPressed || g2.y.isJustPressed) intakeCommand(robot,300.mm).schedule()
 
-            if(g1.rightBumper.isJustPressed) robot.intake.follow(when(robot.intake.t) {
+            if(g1.rightBumper.isJustPressed || g2.rightBumper.isJustPressed) robot.intake.follow(when(robot.intake.t) {
                 IntakePosition.OVER -> IntakePosition.BACK
                 IntakePosition.BACK -> IntakePosition.ACTIVE
                 IntakePosition.ACTIVE -> IntakePosition.BACK
             }).schedule()
 
-            if(g1.leftBumper.isJustPressed) parallel(
+            if(g1.leftBumper.isJustPressed || g2.leftBumper.isJustPressed) parallel(
                 instant { robot.active.updatePort(0.0) },
                 flapCommand(robot,false),
                 extendCommand(robot,0.m)
@@ -235,8 +240,8 @@ class Teleop: SimOrHardwareOpMode() {
         // MANUAL SLIDES/ARM
         var slidesTarget = robot.slides.t
         slidesTarget = DiffyOutputPose(
-            slidesTarget.axis1 - gamepad2.left_stick_y * dt * 20.cm / s,
-            slidesTarget.axis2 - gamepad2.right_stick_y * dt * 20.cm / s,
+            slidesTarget.axis1 - gamepad2.left_stick_y * dt * 40.cm / s,
+            slidesTarget.axis2 - gamepad2.right_stick_y * dt * 40.cm / s,
         )
 
         slidesTarget.axis1 = Limits.EXTENSION.apply(slidesTarget.axis1.cast(m))
@@ -275,6 +280,19 @@ class Teleop: SimOrHardwareOpMode() {
             if(g2.dpadDown.isJustPressed) climbPos = ClimbPosition.FIRST_RUNG
         } else {
             (robot.slides.controller as PIDDiffyController).limitPowerNearThresh = true
+        }
+
+        (robot.slides.controller as PIDDiffyController).clampAxis1 = !g2.leftStickButton.isPressed
+        (robot.slides.controller as PIDDiffyController).clampAxis2 = !g2.rightStickButton.isPressed
+
+        if(g2.leftStickButton.isJustReleased) {
+            val c = (robot.slides.controller as PIDDiffyController)
+            c.axis1Offset = c.axis1Offset?.plus(c.position.axis1) ?: c.position.axis1
+        }
+
+        if(g2.rightStickButton.isJustReleased) {
+            val c = (robot.slides.controller as PIDDiffyController)
+            c.axis2Offset = c.axis2Offset?.plus(c.position.axis2) ?: c.position.axis2
         }
     }
 }

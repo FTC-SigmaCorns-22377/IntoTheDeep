@@ -39,20 +39,31 @@ class PIDDiffyController(
     override lateinit var target: DiffyOutputPose
 
     var limitPowerNearThresh = true
+    var clampAxis1 = true
+    var clampAxis2 = true
+
+    var axis1Offset: Expression? = null
+    var axis2Offset: Expression? = null
 
     override fun copy(): Controller<DiffyInputPose, List<Volt>, DiffyOutputPose> {
         TODO("Not yet implemented")
     }
 
     override fun update(dt: Double): List<Volt> {
-        val x = position
+        val x = position.let {
+            DiffyInputPose(
+                if(axis1Offset!=null) it.axis1 - axis1Offset!! else it.axis1,
+                if(axis2Offset!=null) it.axis2 - axis2Offset!! else it.axis2,
+            )
+        }
+
         val t = target
         pid1.coefficients = axis1PIDCoefficients
         pid2.coefficients = axis2PIDCoefficients
 
         val tBounded = DiffyOutputPose(
-            axis1Bounds.apply(t.axis1),
-            axis2Bounds.apply(t.axis2)
+            if(clampAxis1) axis1Bounds.apply(t.axis1) else t.axis1,
+            if(clampAxis2) axis2Bounds.apply(t.axis2) else t.axis2
         )
 
         return kinematics.forward(x).let {
@@ -80,8 +91,8 @@ class PIDDiffyController(
             )
 
             if(limitPowerNearThresh) {
-                axis1Power = axis1PowerBounds.apply(axis1Power)
-                axis2Power = axis2PowerBounds.apply(axis2Power)
+                if(clampAxis1) axis1Power = axis1PowerBounds.apply(axis1Power)
+                if(clampAxis2) axis2Power = axis2PowerBounds.apply(axis2Power)
             }
 
             val powers = listOf(axis1Power+axis2Power,axis1Power-axis2Power)
