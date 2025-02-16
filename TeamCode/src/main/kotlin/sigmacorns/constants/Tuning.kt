@@ -43,7 +43,7 @@ object Tuning {
 
     var CLAW_TIME: Second = 200.ms
     var CLAW_CLOSED: Double = 0.35
-    var CLAW_OPEN: Double = 0.7
+    var CLAW_OPEN: Double = 0.77
 
     var FLAP_TIME: Second = 300.ms
     var FLAP_CLOSED: Double = 0.6375
@@ -63,7 +63,7 @@ object Tuning {
     var specimentScoreOffset = 220.mm
 
     var choreoPosPID = PIDCoefficients(20.0,0.0,1.5)
-    var choreoAngPID = PIDCoefficients(15.0,0.0,0.0)
+    var choreoAngPID = PIDCoefficients(15.0,0.0,0.5)
 
     var choreoPosThresh = 3.cm
     var choreoAngThresh = 5.degrees
