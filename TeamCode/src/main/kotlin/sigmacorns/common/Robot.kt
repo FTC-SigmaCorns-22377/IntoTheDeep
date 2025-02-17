@@ -62,6 +62,12 @@ class Robot(
         io.intakeL = Limits.INTAKE_SERVO_1.toServoPos()(it); io.intakeR = Limits.INTAKE_SERVO_2.toServoPos()(it)
    }).also { it.t = intakePos  }
 
+    fun resetSlots() {
+        extendCommandSlot.curCmd = null
+        liftCommandSlot.curCmd = null
+        armCommandSlot.curCmd = null
+        intakeCommandSlot.curCmd = null
+    }
     val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
     val active: Actuator<Double> = with(io) { Actuator({ Exception().printStackTrace() }) { intake = it }}
     val flap: Actuator<Double> = with(io) { Actuator { flap = it }}

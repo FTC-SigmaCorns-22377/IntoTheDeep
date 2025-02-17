@@ -86,7 +86,7 @@ fun autoIntake(robot: Robot, dist: Metre): Command {
 }
 
 fun retract(robot: Robot, lock: Boolean = true) =
-    parallel(extendCommand(robot,0.m,lock), powerIntakeCommand(robot,0.0), robot.intake.follow(
+    parallel(extendCommand(robot,(0).cm,lock) then instant { robot.slides.t.axis1 = (-10).cm }, powerIntakeCommand(robot,0.0), robot.intake.follow(
         IntakePosition.OVER)).name("retractCommand")
 
 fun eject(robot: Robot) =

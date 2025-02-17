@@ -12,11 +12,13 @@ import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
+import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
 import sigmacorns.common.Robot
 import sigmacorns.common.cmd.ScorePosition
+import sigmacorns.common.cmd.armCommand
 import sigmacorns.common.cmd.choreoCommand
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
@@ -25,6 +27,7 @@ import sigmacorns.common.cmd.fastScore
 import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.common.kinematics.LiftPose
 import sigmacorns.constants.TiltPositions
 import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
@@ -92,8 +95,8 @@ fun cycle(robot: Robot, n: Int): Command {
     return series(
         clawCommand(robot,true),
         fastChoreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
-        fastScore(robot,ScorePosition.HIGH_SPECIMEN),
-        fastChoreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose),
+        fastScore(robot,ScorePosition.HIGH_SPECIMEN).let { if(n==4) it then armCommand(robot,0.rad,0.rad) else it },
+        fastChoreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose.let { if(n==4) LiftPose(it.lift,0.rad,0.rad) else it }),
     ) 
 }
 

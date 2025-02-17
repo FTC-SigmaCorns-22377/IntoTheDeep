@@ -42,6 +42,10 @@ class PIDDiffyController(
     var clampAxis1 = true
     var clampAxis2 = true
 
+    var bypassPower = false
+    var bypassAxis1 = 0.0
+    var bypassAxis2 = 0.0
+
     var axis1Offset: Expression? = null
     var axis2Offset: Expression? = null
 
@@ -93,6 +97,11 @@ class PIDDiffyController(
             if(limitPowerNearThresh) {
                 if(clampAxis1) axis1Power = axis1PowerBounds.apply(axis1Power)
                 if(clampAxis2) axis2Power = axis2PowerBounds.apply(axis2Power)
+            }
+
+            if(bypassPower) {
+                axis1Power = (bypassAxis1*motorMaxPower).cast(V)
+                axis2Power = (bypassAxis2*motorMaxPower).cast(V)
             }
 
             val powers = listOf(axis1Power+axis2Power,axis1Power-axis2Power)

@@ -31,7 +31,7 @@ object Tuning {
 
     var HOVER_DIST: Metre = 7.cm
     var EXTRACT_DIST = 12.cm
-    var TRANSFER_POSE: LiftPose = LiftPose(2.cm,140.degrees,43.degrees)
+    var TRANSFER_POSE: LiftPose = LiftPose(2.cm,140.degrees,47.degrees)
     var TRANSFER_HOVER_POSE: LiftPose = TRANSFER_POSE
         .let { LiftPose((it.lift + HOVER_DIST).cast(m),it.arm,it.wrist) }
     var TRANSFER_EXTRACT_POSE = TRANSFER_POSE

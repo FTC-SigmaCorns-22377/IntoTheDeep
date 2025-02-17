@@ -265,7 +265,7 @@ class Teleop: SimOrHardwareOpMode() {
         robot.slides.t = slidesTarget
 
         // tilt
-        if(g2.y.isJustPressed) {
+        if(g2.a.isJustPressed) {
             tiltPosition = tiltPosition.next()
         }
 
@@ -285,14 +285,30 @@ class Teleop: SimOrHardwareOpMode() {
         (robot.slides.controller as PIDDiffyController).clampAxis1 = !g2.leftStickButton.isPressed
         (robot.slides.controller as PIDDiffyController).clampAxis2 = !g2.rightStickButton.isPressed
 
-        if(g2.leftStickButton.isJustReleased) {
-            val c = (robot.slides.controller as PIDDiffyController)
-            c.axis1Offset = c.axis1Offset?.plus(c.position.axis1) ?: c.position.axis1
+        val c  = (robot.slides.controller as PIDDiffyController)
+
+        c.bypassPower = g2.leftStickButton.isPressed || g2.rightStickButton.isPressed
+
+        if(c.bypassPower) {
+            Scheduler.reset()
+            robot.resetSlots()
         }
 
-        if(g2.rightStickButton.isJustReleased) {
+        c.bypassAxis1 = -g2.leftStick.yAxis
+        c.bypassAxis2 = -g2.rightStick.yAxis
+
+        if(g2.leftStickButton.isPressed) {
             val c = (robot.slides.controller as PIDDiffyController)
-            c.axis2Offset = c.axis2Offset?.plus(c.position.axis2) ?: c.position.axis2
+            c.axis1Offset = c.position.axis1
+            c.axis2Offset = c.position.axis2
+//            c.target = c.target.let { DiffyOutputPose(c.position.axis1+ c.axis1Offset!!,it.axis2) }
+        }
+
+        if(g2.rightStickButton.isPressed) {
+            val c = (robot.slides.controller as PIDDiffyController)
+            c.axis2Offset = c.position.axis2
+            c.axis1Offset = c.position.axis1
+//            c.target = c.target.let { DiffyOutputPose(it.axis1, c.position.axis2+ c.axis2Offset!!) }
         }
     }
 }

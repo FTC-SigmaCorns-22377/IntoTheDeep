@@ -7,7 +7,7 @@ import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.schedule
 
 class CommandSlot: Command() {
-    private var curCmd: Command? = null
+    var curCmd: Command? = null
     private var interruptible = true
     private var runningProxy: Command? = null
 
