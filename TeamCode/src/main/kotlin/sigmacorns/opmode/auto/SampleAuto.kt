@@ -18,6 +18,7 @@ import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.degrees
+import net.unnamedrobotics.lib.math2.inches
 import sigmacorns.common.Robot
 import sigmacorns.common.cmd.ScorePosition
 import sigmacorns.common.cmd.autoIntake
@@ -25,13 +26,16 @@ import sigmacorns.common.cmd.choreoCommand
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.extendCommand
+import sigmacorns.common.cmd.getSample
 import sigmacorns.common.cmd.intakeCommand
+import sigmacorns.common.cmd.liftCommand
 import sigmacorns.common.cmd.reset
 import sigmacorns.common.cmd.score
 import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
+import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
 
@@ -42,7 +46,7 @@ class SampleAuto: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(0.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
-            initPos = startPosFromTraj("push_specimen")
+            initPos = startPosFromTraj("Preload")
         )
 
         Scheduler.log = true
@@ -75,18 +79,23 @@ class SampleAuto: SimOrHardwareOpMode() {
 
 fun sampleAuto(robot: Robot) =
     series(
-        sampleCycle(robot, "first", 0.1.m),
-        sampleCycle(robot, "second", 0.1.m),
-        sampleCycle(robot, "third", 0.1.m),
-        choreoCommand(robot, "park")
-    )
-
-fun sampleCycle(robot: Robot, numSample: String, dist: Metre): Command {
-    return series(
-        choreoCommand(robot, numSample + "_sample") + extendCommand(robot, dist),
-        autoIntake(robot, dist),
-        choreoCommand(robot, numSample + "_score") + depoCommand(robot, ScorePosition.HIGH_BUCKET),
+        choreoCommand(robot, "Preload") + depoCommand(robot, Tuning.bucketHighPose),
         score(robot, ScorePosition.HIGH_BUCKET),
-        reset(robot)
+        reset(robot),
+        robot.intake.follow(IntakePosition.BACK),
+        choreoCommand(robot, "Pickup_1") + autoIntake(robot, 18.inches),
+        choreoCommand(robot, "Score_1") + depoCommand(robot, Tuning.bucketHighPose),
+        score(robot, ScorePosition.HIGH_BUCKET),
+        reset(robot),
+        robot.intake.follow(IntakePosition.BACK),
+        choreoCommand(robot, "Pickup_2") + autoIntake(robot, 20.5.inches),
+        choreoCommand(robot, "Score_2") + depoCommand(robot, Tuning.bucketHighPose),
+        score(robot, ScorePosition.HIGH_BUCKET),
+        reset(robot),
+        robot.intake.follow(IntakePosition.BACK),
+        choreoCommand(robot, "Pickup_3") + autoIntake(robot, 20.5.inches),
+        choreoCommand(robot, "Score_3") + depoCommand(robot, Tuning.bucketHighPose),
+        score(robot, ScorePosition.HIGH_BUCKET),
+        reset(robot),
+        choreoCommand(robot, "Ascent")
     )
-}

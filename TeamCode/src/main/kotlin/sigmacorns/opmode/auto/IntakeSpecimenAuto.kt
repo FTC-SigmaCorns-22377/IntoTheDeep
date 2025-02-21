@@ -38,7 +38,7 @@ class IntakeSpecimenAuto: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(0.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
-            initPos = startPosFromTraj("Preload")
+            initPos = startPosFromTraj("preload_specimen")
         )
 
         Scheduler.log = false
@@ -68,18 +68,17 @@ class IntakeSpecimenAuto: SimOrHardwareOpMode() {
 
 fun intakeSpecimenAuto(robot: Robot): Command {
     return series(
-        choreoCommand(robot, "Preload") + depoCommand(robot, ScorePosition.HIGH_SPECIMEN),
+        choreoCommand(robot, "preload_specimen") + depoCommand(robot, ScorePosition.HIGH_SPECIMEN),
         fastScore(robot, ScorePosition.HIGH_SPECIMEN),
         parallel(
             choreoCommand(robot, "Post Preload"),
             depoCommand(robot, Tuning.specimenWallPose),
-            wait(700.ms) then (extendCommand(robot, 11.inches) + getSample(robot)),
+            wait(700.ms) then (extendCommand(robot, 19.25.inches)),
         ),
         choreoCommand(robot, "Dropoff 1"),
-        eject(robot),
-        choreoCommand(robot, "Dropoff 2") + extendCommand(robot, 12.inches),
-        getSample(robot),
+        choreoCommand(robot, "Dropoff 2"),
         choreoCommand(robot, "Dropoff 3"),
-        eject(robot)
+        choreoCommand(robot, "Dropoff 4"),
+        choreoCommand(robot, "Dropoff 5")
     )
 }

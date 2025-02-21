@@ -100,6 +100,12 @@ fun cycle(robot: Robot, n: Int): Command {
     ) 
 }
 
+fun dropoff(robot: Robot): Command {
+    return series(
+
+    )
+}
+
 operator fun Command.times(n: Int) = series(*Array(n) { this })
 
 fun startPosFromTraj(name: String) = Choreo.loadTrajectory<SwerveSample>(name).get().initialPose.toTransform2d()
