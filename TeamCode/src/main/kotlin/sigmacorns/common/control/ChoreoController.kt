@@ -85,22 +85,22 @@ class ChoreoController(
         val acc = Twist2D(vec2(sample.ax.m/s,sample.ay.m/s).rotate((-position.pos.angle).cast(
             rad)),sample.alpha.rad/s)
 
-        val velBase = Twist2D(
+        val velBase = Transform2D(
             vec2(sample.vx.m/s,sample.vy.m/s).rotate((-position.pos.angle).cast(rad)),
             sample.omega.rad/s
         )
-        val velErr = (velBase - position.vel.let { Twist2D(it.vector().rotate((-position.pos.angle).cast(rad)),it.dAngle) })
+//        val velErr = (velBase - position.vel.let { Twist2D(it.vector().rotate((-position.pos.angle).cast(rad)),it.dAngle) })
 
 //        val res =
 //            Transform2D(robotRelPosErr*coeff.p, headingErr*angCoeff.p) +
 //            (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
 //            Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
 
-        val res = Twist2D(
+        val res = Transform2D(
             vec2(xController.updateStateless(deltaTime,0.0,posErr.x.value).m/s,
             yController.updateStateless(deltaTime,0.0,posErr.y.value).m/s).rotate((-position.pos.angle).cast(rad)),
             angController.updateStateless(deltaTime,0.0,posErr.angle.value).rad/s
-        ).exp()
+        ) + velBase
 
         return res
     }
@@ -109,13 +109,12 @@ class ChoreoController(
 fun choreoControllerLoop(
     choreoController: ChoreoController,
     robot: Robot
-) = choreoController.toControlLoop("choreo",robot.io,{
-    RobotMovementState(io.position(),io.velocity())
+) = choreoController.toControlLooP("choreo",robot.io,{
+    RobotMovementState(robot.io.position(),robot.io.velocity())
 },{
     robot.mecanum.t = it
-},{ x,t ->
-    println("HII")
-    if(!t.isPresent || choreoController.targetNew) return@toControlLoop false
+},{ x: RobotMovementState,t ->
+    if(!t.isPresent || choreoController.targetNew) return@toControlLooP false
     val f = t.get().finalSample
     var log = "WAITING FOR: "
     val posReached = (x.pos-f.pose.toTransform2d()).let { d ->

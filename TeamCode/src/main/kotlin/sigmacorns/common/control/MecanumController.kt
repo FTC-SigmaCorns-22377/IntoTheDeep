@@ -11,13 +11,13 @@ import sigmacorns.common.io.SigmaIO
 import kotlin.math.max
 import kotlin.math.min
 
-// TODO(after qual): combine all the controllers into one control graph...
 class MecanumController(
     drivebase: MecanumDrivebase,
     io: SigmaIO
 ): ControlLoop<Unit, List<Double>, Transform2D>("drivebase",io) {
     val kinematics = drivebase.powerKinematics
-    override fun update(deltaTime: Double): List<Double> = kinematics.inverse(t.log().let { Twist2D(it.dx,-it.dy,it.dAngle) })
+    override fun update(deltaTime: Double): List<Double>
+        = kinematics.inverse(t.log().let { Twist2D(it.dx,-it.dy,it.dAngle) })
 
     var baseScalar = 1.0
 

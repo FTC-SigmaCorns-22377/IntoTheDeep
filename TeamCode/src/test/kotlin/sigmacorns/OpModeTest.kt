@@ -23,7 +23,6 @@ class OpModeTest {
     val useGamepadInput = false
     val maxTime = 200.s
 
-
     @Test
     fun test() {
         SIM = true

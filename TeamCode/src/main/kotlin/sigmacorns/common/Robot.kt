@@ -21,7 +21,7 @@ import sigmacorns.common.control.ControllerControlLoop
 import sigmacorns.common.control.MecanumController
 import sigmacorns.common.control.choreoControllerLoop
 import sigmacorns.common.control.slidesControlLoop
-import sigmacorns.common.control.toControlLoop
+import sigmacorns.common.control.toControlLooP
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
@@ -30,7 +30,7 @@ import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
-import sigmacorns.constants.toServoPos
+import sigmacorns.constants.*
 import java.util.Optional
 
 class Robot(
@@ -58,7 +58,7 @@ class Robot(
 
     val intake = transfer { d, x: Unit, t: IntakePosition ->
         IntakeAngleKinematics.inverse(t.x)
-    }.toControlLoop("intake",io,{},{
+    }.toControlLooP("intake",io,{},{
         io.intakeL = Limits.INTAKE_SERVO_1.toServoPos()(it); io.intakeR = Limits.INTAKE_SERVO_2.toServoPos()(it)
    }).also { it.t = intakePos  }
 

@@ -33,7 +33,7 @@ fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControllerControlLoop
         Limits.SLIDE_MOTOR_MAX
     )
 
-    return controller.toControlLoop("slides",io,
+    return controller.toControlLooP("slides",io,
         { DiffyInputPose(io.motor1Pos(), io.motor2Pos()) },
         { u ->
             io.motor1 = (u[0]/io.voltage()).checkedUnitless()

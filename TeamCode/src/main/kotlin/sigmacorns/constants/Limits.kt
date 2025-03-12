@@ -39,5 +39,4 @@ object Limits {
     val INTAKE_SERVO_2: Bounds<Radian> = Bounds((180-355).degrees,180.degrees)
 }
 
-fun Bounds<Radian>.toServoPos(): (Radian)->Double
-= { mapRanges(min.value..max.value,0.0..1.0)(it.value).toDouble() }
+fun Bounds<Radian>.toServoPos(): (Radian)->Double = { mapRanges(min.value..max.value,0.0..1.0)(it.value).toDouble() }

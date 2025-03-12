@@ -95,8 +95,12 @@ fun cycle(robot: Robot, n: Int): Command {
     return series(
         clawCommand(robot,true),
         fastChoreoCommand(robot,scorePath) + depoCommand(robot,ScorePosition.HIGH_SPECIMEN),
-        fastScore(robot,ScorePosition.HIGH_SPECIMEN).let { if(n==4) it then armCommand(robot,0.rad,0.rad) else it },
-        fastChoreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose.let { if(n==4) LiftPose(it.lift,0.rad,0.rad) else it }),
+        fastScore(robot,ScorePosition.HIGH_SPECIMEN).let {
+            if(n==4) it then armCommand(robot,0.rad,0.rad) else it
+        },
+        fastChoreoCommand(robot, "grab_specimen") + depoCommand(robot,Tuning.specimenWallPose.let {
+            if(n==4) LiftPose(it.lift,0.rad,0.rad) else it
+        }),
     ) 
 }
 

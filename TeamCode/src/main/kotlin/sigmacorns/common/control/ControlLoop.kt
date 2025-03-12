@@ -49,7 +49,7 @@ abstract class ControlLoop<X:Any, U: Any, T: Any>(
 }
 
 
-fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLoop(
+fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLooP(
     name: String,
     io: SigmaIO,
     fRead: context(ControlLoop<X,U,T>) () -> X,

@@ -1,6 +1,7 @@
 package sigmacorns.common.io
 
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.mm
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.rad
@@ -68,8 +69,8 @@ class PinpointLocalizer(val device: GoBildaPinpointDriver) {
         if (pollPos) {
             device.update()
             velocity = Twist2D(
-                device.velX.m/s,
-                device.velX.m/s,
+                device.velX.mm/s,
+                device.velX.mm/s,
                 device.headingVelocity.rad/s
             )
         } else {
