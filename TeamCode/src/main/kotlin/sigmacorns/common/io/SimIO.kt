@@ -33,7 +33,6 @@ class SimIO(
     override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
     override fun updatePinpoint() {}
 
-
     override fun setPinPos(p: Transform2D) {
     }
 
@@ -57,9 +56,11 @@ class SimIO(
         val input = SimInput(
             driveFL,driveBL,driveBR,driveFR,motor1,motor2
         )
+
         repeat(numSteps) {
             sim.step(simStep.value, input)
         }
+
         val rem = dt-numSteps*simStep
         sim.step(rem.value,input)
 
@@ -70,7 +71,7 @@ class SimIO(
     override fun motor1Pos(): Tick = sim.output.motor1.tick
 
     override fun motor2Pos(): Tick = sim.output.motor2.tick
-    override fun updateColor() {
+    override fun updateColorDist() {
     }
 
     override fun red(): Int {
@@ -124,11 +125,6 @@ class SimIO(
             step(SimLoopTimes.motorWrite)
         }
     override var motor2: Double = 0.0
-        set(value) {
-            field = value
-            step(SimLoopTimes.motorWrite)
-        }
-    override var motor3: Double = 0.0
         set(value) {
             field = value
             step(SimLoopTimes.motorWrite)

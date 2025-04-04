@@ -20,16 +20,16 @@ import kotlin.math.min
 import kotlin.math.sign
 
 class PIDDiffyController(
-    private val kinematics: DiffyKinematics,
-    private var axis1PIDCoefficients: PIDCoefficients,
-    private var axis2PIDCoefficients: PIDCoefficients,
-    private val axis1Bounds: Bounds<Expression>,
-    private val axis2Bounds: Bounds<Expression>,
-    private val axis1SafePowerTheshold: Expression,
-    private val axis2SafePowerTheshold: Expression,
-    private val axis1SafePower: Volt,
-    private val axis2SafePower: Volt,
-    private val motorMaxPower: Volt
+    val kinematics: DiffyKinematics,
+    var axis1PIDCoefficients: PIDCoefficients,
+    var axis2PIDCoefficients: PIDCoefficients,
+    val axis1Bounds: Bounds<Expression>,
+    val axis2Bounds: Bounds<Expression>,
+    val axis1SafePowerTheshold: Expression,
+    val axis2SafePowerTheshold: Expression,
+    val axis1SafePower: Volt,
+    val axis2SafePower: Volt,
+    val motorMaxPower: Volt
 ): Controller<DiffyInputPose, List<Volt>, DiffyOutputPose>() {
     val pid1 = PIDController(axis1PIDCoefficients)
     val pid2 = PIDController(axis2PIDCoefficients)
@@ -77,8 +77,6 @@ class PIDDiffyController(
             var axis1Power = pid1.updateStateless(dt,it.axis1.value,tBounded.axis1.value).V
             var axis2Power = pid2.updateStateless(dt,it.axis2.value,tBounded.axis2.value).V
 
-//            println("Axis 1 raw: $axis1Power, Axis 2 raw: $axis2Power. target: ${t.axis1},${t.axis2}")
-
             val axis1OverMax = it.axis1 > axis1Bounds.max - axis1SafePowerTheshold
             val axis1UnderMin = it.axis1 < axis1Bounds.min + axis1SafePowerTheshold
             val axis2OverMax = it.axis2 > axis2Bounds.max - axis2SafePowerTheshold
@@ -111,4 +109,3 @@ class PIDDiffyController(
         }
     }
 }
-

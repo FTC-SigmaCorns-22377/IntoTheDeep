@@ -23,13 +23,12 @@ abstract class SigmaIO: Closeable {
     abstract fun motor1Pos(): Tick
     abstract fun motor2Pos(): Tick
 
-    abstract fun updateColor(): Unit
+    abstract fun updateColorDist(): Unit
     abstract fun red(): Int
     abstract fun green(): Int
     abstract fun blue(): Int
     abstract fun alpha(): Int
     abstract fun distance(): Metre
-
 
     abstract fun voltage(): Volt
     abstract fun time(): Second
@@ -41,7 +40,6 @@ abstract class SigmaIO: Closeable {
 
     abstract var motor1: Double
     abstract var motor2: Double
-    abstract var motor3: Double
 
     abstract var intake: Double
     abstract var intakeL: Double

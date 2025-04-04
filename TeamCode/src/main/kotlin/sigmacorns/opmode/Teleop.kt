@@ -12,7 +12,6 @@ import eu.sirotin.kotunil.core.minus
 import eu.sirotin.kotunil.core.plus
 import eu.sirotin.kotunil.core.times
 import eu.sirotin.kotunil.core.unaryMinus
-import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.groups.parallel
@@ -27,7 +26,6 @@ import net.unnamedrobotics.lib.math2.vec2
 import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.ScorePosition
-import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
 import sigmacorns.common.cmd.extendCommand
@@ -35,12 +33,9 @@ import sigmacorns.common.cmd.flapCommand
 import sigmacorns.common.cmd.instant
 import sigmacorns.common.cmd.intakeCommand
 import sigmacorns.common.cmd.liftCommand
-import sigmacorns.common.cmd.numAutoIntakes
 import sigmacorns.common.cmd.powerIntakeCommand
-import sigmacorns.common.cmd.retract
 import sigmacorns.common.cmd.score
 import sigmacorns.common.cmd.transferCommand
-import sigmacorns.common.control.ControllerControlLoop
 import sigmacorns.common.control.PIDDiffyController
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
@@ -271,7 +266,7 @@ class Teleop: SimOrHardwareOpMode() {
 
         //climb controls
         if(tiltPosition==TiltPositions.DOWN) {
-            (robot.slides.controller as PIDDiffyController).limitPowerNearThresh = false
+            robot.slidesController.limitPowerNearThresh = false
             if(g2.dpadUp.isJustPressed) climbPos = when(climbPos) {
                     null -> ClimbPosition.FIRST_RUNG
                     else -> ClimbPosition.SECOND_RUNG
@@ -279,13 +274,13 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g2.dpadDown.isJustPressed) climbPos = ClimbPosition.FIRST_RUNG
         } else {
-            (robot.slides.controller as PIDDiffyController).limitPowerNearThresh = true
+            robot.slidesController.limitPowerNearThresh = true
         }
 
-        (robot.slides.controller as PIDDiffyController).clampAxis1 = !g2.leftStickButton.isPressed
-        (robot.slides.controller as PIDDiffyController).clampAxis2 = !g2.rightStickButton.isPressed
+        robot.slidesController.clampAxis1 = !g2.leftStickButton.isPressed
+        robot.slidesController.clampAxis2 = !g2.rightStickButton.isPressed
 
-        val c  = (robot.slides.controller as PIDDiffyController)
+        val c  = robot.slidesController
 
         c.bypassPower = g2.leftStickButton.isPressed || g2.rightStickButton.isPressed
 
@@ -298,16 +293,15 @@ class Teleop: SimOrHardwareOpMode() {
         c.bypassAxis2 = -g2.rightStick.yAxis
 
         if(g2.leftStickButton.isPressed) {
-            val c = (robot.slides.controller as PIDDiffyController)
+            val c = robot.slidesController
             c.axis1Offset = c.position.axis1
             c.axis2Offset = c.position.axis2
 //            c.target = c.target.let { DiffyOutputPose(c.position.axis1+ c.axis1Offset!!,it.axis2) }
         }
 
         if(g2.rightStickButton.isPressed) {
-            val c = (robot.slides.controller as PIDDiffyController)
-            c.axis2Offset = c.position.axis2
-            c.axis1Offset = c.position.axis1
+            robot.slidesController.axis2Offset = robot.slidesController.position.axis2
+            robot.slidesController.axis1Offset = robot.slidesController.position.axis1
 //            c.target = c.target.let { DiffyOutputPose(it.axis1, c.position.axis2+ c.axis2Offset!!) }
         }
     }

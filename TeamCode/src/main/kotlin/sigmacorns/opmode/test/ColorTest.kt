@@ -10,7 +10,7 @@ class ColorTest: SimOrHardwareOpMode() {
         waitForStart()
 
         while (opModeIsActive()) {
-            io.updateColor()
+            io.updateColorDist()
 
             telemetry.addData("red",io.red())
             telemetry.addData("green",io.green())

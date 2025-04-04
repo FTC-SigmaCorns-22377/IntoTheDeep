@@ -30,20 +30,17 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 
 class RobotIO(
-    val hardwareMap: HardwareMap,
+    hardwareMap: HardwareMap,
     val ip: String = "192.168.43.122",
     val rerunName: String = "unnamed",
-    val initialPos: Transform2D? = null
+    initialPos: Transform2D? = null
 ): SigmaIO() {
-    //TODO: disable rerunconnection by default.
     private var rerun: RerunConnection? = null
     override val rerunConnection: RerunConnection
         get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
 
-
     private val m1 = hardwareMap.get(DcMotor::class.java,"D1")
     private val m2 = hardwareMap.get(DcMotor::class.java,"D2")
-    private val m3 = hardwareMap.get(DcMotor::class.java,"D3")
 
     private val fl = hardwareMap.get(DcMotor::class.java,"FL")
     private val bl = hardwareMap.get(DcMotor::class.java,"BL")
@@ -51,12 +48,6 @@ class RobotIO(
     private val fr = hardwareMap.get(DcMotor::class.java,"FR")
 
     private val mIntake = hardwareMap.get(DcMotor::class.java,"intake")
-
-    // arm: 01
-    // claw: 2
-    // intake: 34
-    // tilt: 56
-    //
 
     private val sArmL = hardwareMap.get(Servo::class.java, "AL")
     private val sArmR = hardwareMap.get(Servo::class.java, "AR")
@@ -88,7 +79,6 @@ class RobotIO(
         m1.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
         m2.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
 
-
         m1.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         m2.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
 
@@ -115,19 +105,14 @@ class RobotIO(
     }
 
     override fun position() = pinpoint.getTransform()
-
     override fun velocity() = pinpoint.velocity
-
-    //TODO: proper caching once per tick.
-
     override fun motor1Pos() = m1.currentPosition.tick
-
     override fun motor2Pos() = m2.currentPosition.tick
 
     private var lastColorVal: Int = 0
     private var distance: Metre = 0.m
 
-    override fun updateColor() {
+    override fun updateColorDist() {
         lastColorVal = colorSensor.argb()
         distance = colorSensor.getDistance(DistanceUnit.METER).m
     }
@@ -184,14 +169,6 @@ class RobotIO(
         set(value) {
             if(value!=field) {
                 m2.power = value
-                field = value
-            }
-        }
-
-    override var motor3: Double = 0.0
-        set(value) {
-            if(value!=field) {
-                m3.power = value
                 field = value
             }
         }

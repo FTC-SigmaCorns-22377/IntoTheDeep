@@ -49,26 +49,27 @@ abstract class ControlLoop<X:Any, U: Any, T: Any>(
 }
 
 
-fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLooP(
+fun <X: Any,U: Any,T: Any> controlLoop(
+    controller: Controller<X,U,T>,
     name: String,
     io: SigmaIO,
     fRead: context(ControlLoop<X,U,T>) () -> X,
     fWrite: context(ControlLoop<X,U,T>) (U) -> Unit,
     fReached: context(ControlLoop<X,U,T>) (X,T) -> Boolean = { _,_ -> true }
-) = object : ControllerControlLoop<X,U,T>(name,io,this) {
+) = object : ControlLoop<X,U,T>(name,io) {
     override fun update(deltaTime: Double): U {
-        return updateStateless(deltaTime,x,t)
+        return controller.updateStateless(deltaTime,x,t)
     }
 
     override var x: X
-        get() = position
-        set(value) { position = value }
+        get() = controller.position
+        set(value) { controller.position = value }
     override var u: U
-        get() = output
-        set(value) { output = value }
+        get() = controller.output
+        set(value) { controller.output = value }
     override var t: T
-        get() = target
-        set(value) { target = value }
+        get() = controller.target
+        set(value) { controller.target = value }
 
     override fun read() = fRead(this)
     override fun write(u: U) = fWrite(this,u)
@@ -76,16 +77,8 @@ fun <X: Any,U: Any,T: Any> Controller<X,U,T>.toControlLooP(
     override fun reached(x: X, t: T) = fReached(this,x,t)
 }
 
-abstract class ControllerControlLoop<X: Any,U: Any,T: Any>(
-    name: String,
-    io: SigmaIO,
-    val controller: Controller<X,U,T>
-): ControlLoop<X, U, T>(name,io)
-
 context(SigmaIO)
-class Sensor<T: Any>(
-    private val f: context(SigmaIO) () -> T,
-): PortOut<T, XPortKind>() {
+fun <T: Any> sensor(f: context(SigmaIO) () -> T) = object: PortOut<T, XPortKind>() {
     private lateinit var t: T
 
     override val node: ControlNode = object :ControlNode {

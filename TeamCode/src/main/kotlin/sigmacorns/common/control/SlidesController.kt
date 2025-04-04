@@ -17,40 +17,30 @@ import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
 import kotlin.math.absoluteValue
 
-fun slidesControlLoop(io: SigmaIO, init: DiffyOutputPose): ControllerControlLoop<DiffyInputPose, List<Volt>, DiffyOutputPose> {
-    val kinematics = DiffyKinematics(Physical.EXTEND_M_PER_TICK, Physical.LIFT_M_PER_TICK)
-
-    val controller = PIDDiffyController(
-        kinematics,
-        Tuning.EXTENSION_PID,
-        Tuning.LIFT_PID,
-        Limits.EXTENSION as Bounds<Expression>,
-        Limits.LIFT as Bounds<Expression>,
-        Limits.EXTENSION_SAFE_THRESH,
-        Limits.LIFT_SAFE_THRESH,
-        Limits.EXTENSION_SAFE_POWER,
-        Limits.LIFT_SAFE_POWER,
-        Limits.SLIDE_MOTOR_MAX
-    )
-
-    return controller.toControlLooP("slides",io,
+fun slidesControlLoop(
+    controller: PIDDiffyController,
+    io: SigmaIO,
+    init: DiffyOutputPose,
+): ControlLoop<DiffyInputPose, List<Volt>, DiffyOutputPose> {
+    return controlLoop(controller, "slides", io,
         { DiffyInputPose(io.motor1Pos(), io.motor2Pos()) },
         { u ->
-            io.motor1 = (u[0]/io.voltage()).checkedUnitless()
-            io.motor2 = (u[1]/io.voltage()).checkedUnitless()
-            val third = (u[0]-u[1])/2.0
-            io.motor3 = (third/io.voltage()).checkedUnitless()
+            io.motor1 = (u[0] / io.voltage()).checkedUnitless()
+            io.motor2 = (u[1] / io.voltage()).checkedUnitless()
         },
         { x, t ->
-            val cur = kinematics.forward(x)
-            val tBounded = DiffyOutputPose(Limits.EXTENSION.apply(t.axis1.cast(m)),Limits.LIFT.apply(t.axis2.cast(m)))
-            val extensionError = (tBounded.axis1-cur.axis1)
-            val liftError = (tBounded.axis2-cur.axis2)
+            val cur = controller.kinematics.forward(x)
+            val tBounded = DiffyOutputPose(
+                Limits.EXTENSION.apply(t.axis1.cast(m)),
+                Limits.LIFT.apply(t.axis2.cast(m))
+            )
+            val extensionError = (tBounded.axis1 - cur.axis1)
+            val liftError = (tBounded.axis2 - cur.axis2)
 
             (
                     extensionError.map { it.absoluteValue } < Tuning.EXTENSION_TOLERANCE &&
-                    liftError.map { it.absoluteValue } < Tuning.LIFT_TOLERANCE
-            )
+                            liftError.map { it.absoluteValue } < Tuning.LIFT_TOLERANCE
+                    )
         }
     ).also { it.t = init }
 }
