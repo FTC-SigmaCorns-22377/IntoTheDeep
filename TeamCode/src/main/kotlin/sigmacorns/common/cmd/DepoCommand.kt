@@ -4,6 +4,7 @@ import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.derived.Radian
 import net.unnamedrobotics.lib.command.cmd
+import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.wait
@@ -21,19 +22,24 @@ fun liftCommand(robot: Robot, dist: Metre, lock: Boolean = true) = robot.slides.
 fun armCommand(robot: Robot, arm: Radian, wrist: Radian, lock: Boolean = true) = robot.arm.follow(
     DiffyOutputPose(arm,wrist)
 ).name("arm").let {
-    if(lock) robot.liftCommandSlot.register(it) else series(instant { println("STARTED ARM") }, it, instant { println("OH SHIT BRO") })
+    if(lock) robot.liftCommandSlot.register(it) else it
 }
 
 fun clawCommand(robot: Robot, closed: Boolean)
     = wait {
-        val targetClosedBefore = robot.claw.v?.equals(Tuning.CLAW_CLOSED)
+        val targetClosedBefore = robot.claw == Tuning.CLAW_CLOSED
         if(targetClosedBefore!=closed) Tuning.CLAW_TIME else 0.s
-    } + instant { robot.claw.updatePort(if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN) }
+    } + instant {
+        robot.claw = if(closed) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN
+    }
 
 fun depoCommand(robot: Robot, liftPose: LiftPose, lock: Boolean = true)
-    = (armCommand(robot,liftPose.arm,liftPose.wrist,lock).name("arm") + liftCommand(robot, liftPose.lift,lock).name("lift")).name("depo")
+    = parallel(
+        armCommand(robot,liftPose.arm,liftPose.wrist,lock).name("arm"),
+        liftCommand(robot, liftPose.lift,lock).name("lift")
+    ).name("depo")
 
 fun depoCommand(robot: Robot, positions: ScorePosition) = depoCommand(robot,positions.x)
 
-fun instant(f: ()->Unit) = cmd {instant(f)}
+fun instant(f: ()->Unit) = cmd { instant(f) }
 

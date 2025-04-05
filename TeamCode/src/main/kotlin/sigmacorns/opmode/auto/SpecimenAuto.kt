@@ -53,8 +53,7 @@ class SpecimenAuto: SimOrHardwareOpMode() {
         
         robot.update(0.0)
 
-        robot.claw.updatePort(Tuning.CLAW_CLOSED)
-        robot.claw.node.tickControlNode(0.0)
+        robot.claw = Tuning.CLAW_CLOSED
 
         io.tilt1 = TiltPositions.AUTO.x
         io.tilt2 = TiltPositions.AUTO.x

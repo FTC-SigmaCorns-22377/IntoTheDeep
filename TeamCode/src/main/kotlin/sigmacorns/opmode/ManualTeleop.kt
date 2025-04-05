@@ -19,14 +19,13 @@ import sigmacorns.common.Robot
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
-import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Limits
 import sigmacorns.constants.Tuning
 
 @TeleOp
 class ManualTeleop: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
-        val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m), IntakePosition.OVER)
+        val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m))
 
         val g1 = GamepadEx(gamepad1)
         val g2 = GamepadEx(gamepad2)
@@ -48,9 +47,8 @@ class ManualTeleop: SimOrHardwareOpMode() {
             robot.mecanum.t = Transform2D(v*maxSpeed, -maxAngSpeed*gamepad1.right_stick_x)
 
             val activePower = gamepad1.left_trigger - gamepad1.right_trigger
-            robot.active.updatePort(activePower*Tuning.ACTIVE_POWER)
-            robot.intake.t = if(g1.rightBumper.isToggled) IntakePosition.BACK else IntakePosition.OVER
-            robot.claw.updatePort(if(g1.a.isToggled) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN)
+            robot.active = activePower*Tuning.ACTIVE_POWER
+            robot.claw = if(g1.a.isToggled) Tuning.CLAW_CLOSED else Tuning.CLAW_OPEN
 
             slidesTarget = DiffyOutputPose(
                 slidesTarget.axis1 - gamepad2.left_stick_y*dt*20.cm/ s,

@@ -42,8 +42,7 @@ abstract class SigmaIO: Closeable {
     abstract var motor2: Double
 
     abstract var intake: Double
-    abstract var intakeL: Double
-    abstract var intakeR: Double
+    abstract var push: Double
 
     abstract var armL: Double
     abstract var armR: Double

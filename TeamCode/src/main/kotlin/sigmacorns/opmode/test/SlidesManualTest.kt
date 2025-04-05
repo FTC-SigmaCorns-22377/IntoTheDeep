@@ -15,7 +15,6 @@ class SlidesManualTest: SimOrHardwareOpMode() {
 
         val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m),)
 
-        robot.intake.disabled = true
         robot.slides.disabled = true
         robot.arm.disabled = true
         robot.mecanum.disabled = true

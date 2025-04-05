@@ -137,12 +137,11 @@ class SimIO(
         }
 
 
-    override var intakeL: Double = 0.0
-    override var intakeR: Double = 0.0
     override var armL: Double = 0.0
     override var armR: Double = 0.0
     override var claw: Double = 0.0
     override var flap: Double = 0.0
+    override var push: Double = 0.0
     override var tilt1: Double = 0.0
     override var tilt2: Double = 0.0
 }

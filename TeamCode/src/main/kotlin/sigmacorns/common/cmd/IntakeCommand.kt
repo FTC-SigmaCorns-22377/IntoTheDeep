@@ -19,7 +19,6 @@ import net.unnamedrobotics.lib.command.groups.then
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.Color
-import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Tuning
 
 fun extendCommand(robot: Robot, dist: Metre, lock: Boolean = true) = (robot.slides.follow {
@@ -29,17 +28,21 @@ fun extendCommand(robot: Robot, dist: Metre, lock: Boolean = true) = (robot.slid
     .name("extendCommand($dist)")
 
 fun powerIntakeCommand(robot: Robot, power: Double) = cmd {
-    instant { robot.active.updatePort(power) }
+    var old: Double? = null;
+    instant {
+        old = robot.active
+        robot.active = power
+    }
+    inverse { instant { robot.active = old!!  } }
 }.name("powerIntakeCommand($power)")
 
 fun flapCommand(robot: Robot, closed: Boolean) = instant {
-    robot.flap.updatePort(if(closed) Tuning.FLAP_CLOSED else Tuning.FLAP_OPEN)
+    robot.flap = if(closed) Tuning.FLAP_CLOSED else Tuning.FLAP_OPEN
 } + wait(Tuning.FLAP_TIME)
 
 fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) = parallel(
     extendCommand(robot,dist, lock),
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
-//    robot.intake.follow(IntakePosition.ACTIVE)).name("intakeCommand($dist)") +
     flapCommand(robot, true)
 )
 
@@ -47,12 +50,12 @@ fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) = parallel(
 //    finishWhen { robot.io.distance() < Color.DIST_THRESHOLD || }
 //}
 
-// TODO: onCancel!!!!
-
-fun brakeIntakeRollers(robot: Robot) =
-    (instant { robot.active.updatePort(Tuning.ACTIVE_STOP_POWER) } then
-    wait(Tuning.ACTIVE_STOP_TIME) then
-    instant { robot.active.updatePort(0.0) }).name("brakeIntakeRollers")
+fun brakeIntakeRollers(robot: Robot)
+    = series(
+        instant { robot.active = Tuning.ACTIVE_STOP_POWER },
+        wait(Tuning.ACTIVE_STOP_TIME),
+        instant { robot.active = 0.0 }
+    ).name("brakeIntakeRollers")
 
 val MIN_AUTO_INTAKE_TIME = 300.ms
 var numAutoIntakes = 0
@@ -85,30 +88,26 @@ fun autoIntake(robot: Robot, dist: Metre): Command {
     } then cmd
 }
 
-fun retract(robot: Robot, lock: Boolean = true) =
-    parallel(extendCommand(robot,(0).cm,lock) then instant { robot.slides.t.axis1 = (-10).cm }, powerIntakeCommand(robot,0.0), robot.intake.follow(
-        IntakePosition.OVER)).name("retractCommand")
+fun retract(robot: Robot, lock: Boolean = true)
+    = parallel(
+        extendCommand(robot,(0).cm,lock) then instant { robot.slides.t.axis1 = (-10).cm },
+        powerIntakeCommand(robot,0.0),
+    ).name("retractCommand")
 
+// TODO: maybe eject through top, needs testing.
 fun eject(robot: Robot) =
     series(
-        robot.intake.follow(IntakePosition.BACK),
         powerIntakeCommand(robot, -Tuning.ACTIVE_POWER),
         wait(200.ms),
         powerIntakeCommand(robot, 0.0)
     )
 
 fun getSample(robot: Robot) = series(
-    robot.intake.follow(IntakePosition.BACK) + flapCommand(robot,true),
+    flapCommand(robot,true),
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
     cmd { finishWhen { robot.io.distance() < Color.DIST_THRESHOLD } }.timeout(1.s),
     powerIntakeCommand(robot, 0.0)
 )
-//    series(
-//        robot.intake.follow(IntakePosition.BACK),
-//        powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
-//        wait(200.ms),
-//        powerIntakeCommand(robot, 0.0)
-//    )
 
 fun wait(t: Second) = cmd {
     val curTime = ElapsedTime()

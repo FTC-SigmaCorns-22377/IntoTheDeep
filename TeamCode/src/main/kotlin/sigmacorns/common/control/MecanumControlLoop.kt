@@ -9,9 +9,8 @@ import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.physics.MecanumDrivebase
 import sigmacorns.common.io.SigmaIO
 import kotlin.math.max
-import kotlin.math.min
 
-class MecanumController(
+class MecanumControlLoop(
     drivebase: MecanumDrivebase,
     io: SigmaIO
 ): ControlLoop<Unit, List<Double>, Transform2D>("drivebase",io) {

@@ -18,17 +18,11 @@ class DriveTest: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
         val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m),)
 
-        robot.intake.disabled = true
         robot.slides.disabled = true
         robot.arm.disabled = true
 
         val maxSpeed = robot.drivebase.motor.topSpeed(1.0)*robot.drivebase.radius
         val maxAngSpeed = maxSpeed/(robot.drivebase.length/2.0+robot.drivebase.width/2.0)
-//
-//            return drivebase.wheels.minOf {
-//                tangentialSpeed/it.position.magnitude()
-//            }
-//        }
 
         waitForStart()
 

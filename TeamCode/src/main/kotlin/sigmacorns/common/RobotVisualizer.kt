@@ -13,7 +13,6 @@ import net.unnamedrobotics.lib.math2.degrees
 import net.unnamedrobotics.lib.math2.inverseLerp
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.mapRanges
-import net.unnamedrobotics.lib.math2.rotateY
 import net.unnamedrobotics.lib.math2.spherical
 import net.unnamedrobotics.lib.math2.vec3
 import net.unnamedrobotics.lib.math2.withZ
@@ -25,7 +24,6 @@ import net.unnamedrobotics.lib.rerun.archetypes.Points3D
 import net.unnamedrobotics.lib.rerun.rerun
 import org.joml.Quaterniond
 import sigmacorns.common.io.SigmaIO
-import sigmacorns.common.kinematics.IntakeAngleKinematics
 import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Physical.EXTEND_M_PER_TICK
@@ -97,60 +95,11 @@ class RobotVisualizer(
             vec3(it.x, 0.m, it.z)
         }
 
-        val intakeServoPos = mapRanges(0.0..1.0, Limits.INTAKE_SERVO_1.let { it.min.value..it.max.value })(io.intakeL).rad
-        val intakePos = IntakeAngleKinematics.forward(intakeServoPos)
-
-//        prefix("kinematics") {
-//            log("circle1") {
-//                Ellipsoids3D(
-//                    centers = listOf(IntakeAngleKinematics.lastCircle1Pos + intakeEnd),
-//                    sizes = listOf(vec3(IntakeAngleKinematics.lastCircle1Radius,0.m,IntakeAngleKinematics.lastCircle1Radius))
-//                )
-//            }
-//
-//            log("circle2") {
-//                Ellipsoids3D(
-//                    centers = listOf(IntakeAngleKinematics.lastCircle2Pos + intakeEnd),
-//                    sizes = listOf(vec3(IntakeAngleKinematics.lastCircle2Radius,0.m,IntakeAngleKinematics.lastCircle2Radius))
-//                )
-//            }
-//
-//            log("intersection") {
-//                Points3D(origins = listOf(IntakeAngleKinematics.lastIntersectionPos + intakeEnd))
-//            }
-//        }
-
-//        println("intakePos = $intakePos")
-
-        prefix("links") {
-            val linkServoPos = Physical.INTAKE_SERVO_POS + intakeEnd
-            val link1End = linkServoPos + spherical(Physical.INTAKE_LINKAGE_1_LEN,0.rad,intakeServoPos)
-                .normalized()*Physical.INTAKE_LINKAGE_1_LEN
-            val link2End = (Physical.INTAKE_LINKAGE_AXLE_POS + intakeEnd + Physical.INTAKE_LINKAGE_END_POS.rotateY(intakePos.map { -it })).let {
-                link1End + (it-link1End).normalized()*Physical.INTAKE_LINKAGE_2_LEN
-            }
-
-            logRectP2P("intakeLink1",
-                linkServoPos,
-                link1End,
-                Visualization.INTAKE_LINK_WIDTH,
-                Visualization.INTAKE_LINK_WIDTH,
-            )
-
-            logRectP2P("intakeLink2",
-                link1End,
-                link2End,
-                Visualization.INTAKE_LINK_WIDTH,
-                Visualization.INTAKE_LINK_WIDTH,
-            )
-        }
-
-
-        logRectP2P("intake",
-            IntakeAngleKinematics.offsetFromSlideEnd(intakePos) + intakeEnd,
-            IntakeAngleKinematics.offsetFromSlideEnd(intakePos,(-Visualization.INTAKE_HEIGHT).cast(m)) + intakeEnd,
-            Visualization.INTAKE_LENGTH,Visualization.INTAKE_WIDTH
-        )
+//        logRectP2P("intake",
+//            IntakeAngleKinematics.offsetFromSlideEnd(intakePos) + intakeEnd,
+//            IntakeAngleKinematics.offsetFromSlideEnd(intakePos,(-Visualization.INTAKE_HEIGHT).cast(m)) + intakeEnd,
+//            Visualization.INTAKE_LENGTH,Visualization.INTAKE_WIDTH
+//        )
     }
 
     context(RerunPrefix, RerunConnection)
@@ -178,8 +127,6 @@ class RobotVisualizer(
             scalar("motor2",io.motor2)
 
             scalar("intake",io.intake)
-            scalar("intakeL",io.intakeL)
-            scalar("intakeR",io.intakeR)
 
             scalar("armL",io.armL)
             scalar("armR",io.armR)

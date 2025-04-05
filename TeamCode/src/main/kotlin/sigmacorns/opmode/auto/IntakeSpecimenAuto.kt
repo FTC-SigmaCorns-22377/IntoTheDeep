@@ -48,8 +48,7 @@ class IntakeSpecimenAuto: SimOrHardwareOpMode() {
 
         intakeSpecimenAuto(robot).schedule()
 
-        robot.claw.updatePort(Tuning.CLAW_CLOSED)
-        robot.claw.node.tickControlNode(0.0)
+        robot.claw = Tuning.CLAW_CLOSED
 
         waitForStart()
 

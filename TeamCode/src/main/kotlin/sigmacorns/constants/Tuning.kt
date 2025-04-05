@@ -37,10 +37,6 @@ object Tuning {
     var TRANSFER_EXTRACT_POSE = TRANSFER_POSE
         .let { LiftPose((it.lift + EXTRACT_DIST).cast(m),it.arm,it.wrist) }
 
-    var INTAKE_SERVO_ACC: Expression = 100.degrees/(0.2.s)/s
-    var INTAKE_SERVO_VEL: Expression = 60.degrees/(0.2.s)
-    var INTAKE_SERVO_TOLERANCE: Radian = 3.degrees
-
     var CLAW_TIME: Second = 200.ms
     var CLAW_CLOSED: Double = 0.35
     var CLAW_OPEN: Double = 0.77
@@ -77,6 +73,4 @@ object Tuning {
         val deadZoneAdjustedPow = max(0.0,(abs(it) - STICK_DEADZONE)/(1.0- STICK_DEADZONE))
         sign(it).toDouble()*deadZoneAdjustedPow.pow(STICK_EXP)
     }
-
-
 }

@@ -19,7 +19,6 @@ class ArmTest: SimOrHardwareOpMode() {
         val robot = Robot(io, DiffyOutputPose(0.rad,0.rad), DiffyOutputPose(0.m,0.m), )
 
         robot.slides.disabled = true
-        robot.intake.disabled = true
 
         waitForStart()
 

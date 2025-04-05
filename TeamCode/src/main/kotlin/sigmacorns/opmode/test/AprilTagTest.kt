@@ -16,8 +16,8 @@ import sigmacorns.opmode.SimOrHardwareOpMode
 class AprilTagTest: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
         val robot = Robot(io)
-        val lime = (io as RobotIO).limelight
-        val imu = io.imu
+        val lime = (io as RobotIO).limelight!!
+        val imu = io.imu!!
         telemetry.setMsTransmissionInterval(10)
         lime.start()
 

@@ -48,7 +48,6 @@ abstract class ControlLoop<X:Any, U: Any, T: Any>(
     }
 }
 
-
 fun <X: Any,U: Any,T: Any> controlLoop(
     controller: Controller<X,U,T>,
     name: String,
@@ -75,35 +74,4 @@ fun <X: Any,U: Any,T: Any> controlLoop(
     override fun write(u: U) = fWrite(this,u)
 
     override fun reached(x: X, t: T) = fReached(this,x,t)
-}
-
-context(SigmaIO)
-fun <T: Any> sensor(f: context(SigmaIO) () -> T) = object: PortOut<T, XPortKind>() {
-    private lateinit var t: T
-
-    override val node: ControlNode = object :ControlNode {
-        override fun tickControlNode(dt: Double) {
-            t = f(this@SigmaIO)
-        }
-    }
-
-    override fun getPort() = t
-}
-
-context(SigmaIO)
-class Actuator<T: Any>(
-    private val onUpdate: () -> Unit,
-    private val f: context(SigmaIO) (T) -> Unit,
-): PortIn<T, UPortKind>() {
-    var v: T? = null
-
-    constructor(f: context(SigmaIO) (T) -> Unit): this({},f)
-
-    override val node = object : ControlNode {
-        override fun tickControlNode(dt: Double): Unit {
-            v?.let { f(this@SigmaIO,it) }
-        }
-    }
-
-    override fun updatePort(v: T) {  this.v = v; onUpdate(); }
 }

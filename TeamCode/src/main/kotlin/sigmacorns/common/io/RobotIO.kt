@@ -1,25 +1,19 @@
 package sigmacorns.common.io
 
 import android.graphics.Color
-import android.graphics.ColorSpace
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.ColorRangeSensor
-import com.qualcomm.robotcore.hardware.ColorSensor
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
-import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.hardware.Servo
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.s
-import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
-import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.driver.gobilda.GoBildaPinpointDriver
-import net.unnamedrobotics.lib.math.Pose
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
 import net.unnamedrobotics.lib.math2.tick
@@ -39,33 +33,32 @@ class RobotIO(
     override val rerunConnection: RerunConnection
         get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
 
-    private val m1: DcMotor? = hardwareMap.get(DcMotor::class.java,"D1")
-    private val m2: DcMotor? = hardwareMap.get(DcMotor::class.java,"D2")
+    private val m1: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D1")
+    private val m2: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D2")
 
-    private val fl: DcMotor? = hardwareMap.get(DcMotor::class.java,"FL")
-    private val bl: DcMotor? = hardwareMap.get(DcMotor::class.java,"BL")
-    private val br: DcMotor? = hardwareMap.get(DcMotor::class.java,"BR")
-    private val fr: DcMotor? = hardwareMap.get(DcMotor::class.java,"FR")
+    private val fl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"FL")
+    private val bl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BL")
+    private val br: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BR")
+    private val fr: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"FR")
 
-    private val mIntake: DcMotor? = hardwareMap.get(DcMotor::class.java,"intake")
+    private val mIntake: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"intake")
 
-    private val sArmL: Servo? = hardwareMap.get(Servo::class.java, "AL")
-    private val sArmR: Servo? = hardwareMap.get(Servo::class.java, "AR")
-    private val sClaw: Servo? = hardwareMap.get(Servo::class.java, "claw")
-    private val sIntake1: Servo? = hardwareMap.get(Servo::class.java, "I1")
-    private val sIntake2: Servo? = hardwareMap.get(Servo::class.java, "I2")
-    private val sFlap: Servo? = hardwareMap.get(Servo::class.java, "flap")
+    private val sArmL: Servo? = hardwareMap.tryGet(Servo::class.java, "AL")
+    private val sArmR: Servo? = hardwareMap.tryGet(Servo::class.java, "AR")
+    private val sClaw: Servo? = hardwareMap.tryGet(Servo::class.java, "claw")
+    private val sPush: Servo? = hardwareMap.tryGet(Servo::class.java,"push")
+    private val sFlap: Servo? = hardwareMap.tryGet(Servo::class.java, "flap")
 
-    private val t1: Servo? = hardwareMap.get(Servo::class.java,"T1")
-    private val t2: Servo? = hardwareMap.get(Servo::class.java,"T2")
+    private val t1: Servo? = hardwareMap.tryGet(Servo::class.java,"T1")
+    private val t2: Servo? = hardwareMap.tryGet(Servo::class.java,"T2")
 
-    private val colorSensor: ColorRangeSensor? = hardwareMap.get(ColorRangeSensor::class.java, "color")
+    private val colorSensor: ColorRangeSensor? = hardwareMap.tryGet(ColorRangeSensor::class.java, "color")
 
-    val limelight: Limelight3A? = hardwareMap.get(Limelight3A::class.java, "limelight")
+    val limelight: Limelight3A? = hardwareMap.tryGet(Limelight3A::class.java, "limelight")
 
-    val imu: IMU? = hardwareMap.get(IMU::class.java, "imu")
+    val imu: IMU? = hardwareMap.tryGet(IMU::class.java, "imu")
 
-    private val pinpointDriver: GoBildaPinpointDriver? = hardwareMap.get(
+    private val pinpointDriver: GoBildaPinpointDriver? = hardwareMap.tryGet(
         GoBildaPinpointDriver::class.java,"pinpoint")
 
     private val pinpoint = pinpointDriver?.let { PinpointLocalizer(it) }
@@ -180,22 +173,13 @@ class RobotIO(
                 field = value
             }
         }
-
-    override var intakeL: Double = 0.0
+    override var push: Double = 0.0
         set(value) {
-            if(value!=field) {
-                sIntake1?.position = 1.0-value
+            if (value != field) {
+                sPush?.position = value
                 field = value
             }
         }
-    override var intakeR: Double = 0.0
-        set(value) {
-            if(value!=field) {
-                sIntake2?.position = 1.0-value
-                field = value
-            }
-        }
-
     override var armL: Double = 0.0
         set(value) {
             if(value!=field) {

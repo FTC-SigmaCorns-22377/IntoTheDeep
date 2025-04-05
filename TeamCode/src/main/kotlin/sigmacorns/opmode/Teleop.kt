@@ -16,6 +16,7 @@ import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
+import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.schedule
 import net.unnamedrobotics.lib.gamepad.GamepadEx
@@ -41,7 +42,6 @@ import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.ClimbPosition
-import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Limits
 import sigmacorns.constants.TiltPositions
 import sigmacorns.constants.Tuning
@@ -73,9 +73,9 @@ class Teleop: SimOrHardwareOpMode() {
             field = value
         }
 
-    fun atWallPosition() = robot.slides.t.axis2 == Tuning.specimenWallPose.lift && robot.arm.t.axis1.value.sign < 0.0
+    private fun atWallPosition() = robot.slides.t.axis2 == Tuning.specimenWallPose.lift && robot.arm.t.axis1.value.sign < 0.0
 
-    fun clawClosed() = robot.io.claw.let { (it-Tuning.CLAW_CLOSED).absoluteValue < (it-Tuning.CLAW_OPEN).absoluteValue }
+    private fun clawClosed() = robot.io.claw.let { (it-Tuning.CLAW_CLOSED).absoluteValue < (it-Tuning.CLAW_OPEN).absoluteValue }
 
     lateinit var g1: GamepadEx
     lateinit var g2: GamepadEx
@@ -88,14 +88,12 @@ class Teleop: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(90.degrees, 0.rad),
             DiffyOutputPose(0.m, 0.m),
-            IntakePosition.OVER
         )
 
         val visualizer = if(SIM) RobotVisualizer(io) else null
 
         maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
         maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
-
 
         // sample sequence: extend -> transfer -> move -> score
         // specimen sequence: wall pickup -> move -> score
@@ -106,7 +104,6 @@ class Teleop: SimOrHardwareOpMode() {
         // b: pickup from wall
         // y: extend
         // a: claw
-
 
         visualizer?.init()
         Scheduler.reset()
@@ -129,24 +126,21 @@ class Teleop: SimOrHardwareOpMode() {
 
             manualControls(dt)
 
-//            val climbing = tiltPosition==TiltPositions.DOWN
-            val climbing = false
-
-            if(g1.dpadUp.isJustPressed || (g2.dpadUp.isJustPressed && climbing)) scoringPosition = when(scoringPosition) {
+            if(g1.dpadUp.isJustPressed) scoringPosition = when(scoringPosition) {
                 ScorePosition.LOW_SPECIMEN -> ScorePosition.HIGH_SPECIMEN
                 ScorePosition.LOW_BUCKET -> ScorePosition.HIGH_BUCKET
                 null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.HIGH_SPECIMEN else ScorePosition.HIGH_BUCKET
                 else -> scoringPosition
             }
 
-            if(g1.dpadDown.isJustPressed || (g2.dpadDown.isJustPressed && climbing) ) scoringPosition = when(scoringPosition) {
+            if(g1.dpadDown.isJustPressed) scoringPosition = when(scoringPosition) {
                 ScorePosition.HIGH_SPECIMEN -> ScorePosition.LOW_SPECIMEN
                 ScorePosition.HIGH_BUCKET -> ScorePosition.LOW_BUCKET
                 null -> if(robot.arm.t.axis1.value.sign < 0) ScorePosition.LOW_SPECIMEN else ScorePosition.LOW_BUCKET
                 else -> scoringPosition
             }
 
-            if(g1.dpadRight.isJustPressed || (g2.dpadRight.isJustPressed && climbing)) scoringPosition = when(scoringPosition) {
+            if(g1.dpadRight.isJustPressed) scoringPosition = when(scoringPosition) {
                 ScorePosition.HIGH_SPECIMEN -> ScorePosition.HIGH_BUCKET
                 ScorePosition.LOW_SPECIMEN -> ScorePosition.LOW_BUCKET
                 ScorePosition.HIGH_BUCKET -> ScorePosition.HIGH_SPECIMEN
@@ -155,25 +149,25 @@ class Teleop: SimOrHardwareOpMode() {
             }
 
             if(g1.a.isJustPressed) {
-                val cmd = if(clawClosed())  {
-                    score(robot,scoringPosition) + instant { scoringPosition=null }
-                } else {
-                    clawCommand(robot,true).let {
-                        if(atWallPosition())
-                            it then instant { scoringPosition = ScorePosition.HIGH_SPECIMEN }
-                        else
-                            it
-                    }
+                val cmd = when {
+                    clawClosed() -> score(robot,scoringPosition) + instant { scoringPosition=null }
+                    atWallPosition() -> series(
+                        clawCommand(robot,true),
+                        instant { scoringPosition = ScorePosition.HIGH_SPECIMEN}
+                    )
+                    else -> clawCommand(robot,true)
                 }
 
                 cmd.schedule()
             }
 
-            if(g1.b.isJustPressed) parallel(
-                clawCommand(robot,false),
-                depoCommand(robot, Tuning.specimenWallPose),
-                instant { scoringPosition = null }
-            ).schedule()
+            if(g1.b.isJustPressed) {
+                parallel(
+                    clawCommand(robot,false),
+                    depoCommand(robot, Tuning.specimenWallPose),
+                    instant { scoringPosition = null }
+                ).schedule()
+            }
 
             if(g1.x.isJustPressed || g2.x.isJustPressed ) {
                 // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
@@ -186,31 +180,15 @@ class Teleop: SimOrHardwareOpMode() {
 
             if(g1.y.isJustPressed || g2.y.isJustPressed) intakeCommand(robot,300.mm).schedule()
 
-            if(g1.rightBumper.isJustPressed || g2.rightBumper.isJustPressed) robot.intake.follow(when(robot.intake.t) {
-                IntakePosition.OVER -> IntakePosition.BACK
-                IntakePosition.BACK -> IntakePosition.ACTIVE
-                IntakePosition.ACTIVE -> IntakePosition.BACK
-            }).schedule()
-
             if(g1.leftBumper.isJustPressed || g2.leftBumper.isJustPressed) parallel(
-                instant { robot.active.updatePort(0.0) },
+                instant { robot.active = 0.0 },
                 flapCommand(robot,false),
                 extendCommand(robot,0.m)
             ).schedule()
 
-//            println("RUNNING COMMANDS")
-//            for(cmd in Scheduler.cmds) {
-//                print("${cmd.name}(${cmd.status}), ")
-//            }
-//            println("--------------")
-//            println("numAutoIntakes = $numAutoIntakes")
-
             Scheduler.tick()
 
             if(SIM) Thread.sleep(50)
-
-//            telemetry.addData("distance",io.distance())
-//            telemetry.update()
 
             g1.periodic()
             g2.periodic()
@@ -227,9 +205,12 @@ class Teleop: SimOrHardwareOpMode() {
 
         val activePower =
             gamepad1.left_trigger - gamepad1.right_trigger + gamepad2.left_trigger - gamepad2.right_trigger
+
         val controllingActive = activePower.absoluteValue>0.05
-        if(controllingActive) robot.active.updatePort(activePower * Tuning.ACTIVE_POWER)
-        if(!controllingActive && wasManuallyControllingActive) robot.active.updatePort(0.0)
+
+        if(controllingActive) robot.active = activePower * Tuning.ACTIVE_POWER
+        if(!controllingActive && wasManuallyControllingActive) robot.active = 0.0
+
         wasManuallyControllingActive = controllingActive
 
         // MANUAL SLIDES/ARM
@@ -296,13 +277,11 @@ class Teleop: SimOrHardwareOpMode() {
             val c = robot.slidesController
             c.axis1Offset = c.position.axis1
             c.axis2Offset = c.position.axis2
-//            c.target = c.target.let { DiffyOutputPose(c.position.axis1+ c.axis1Offset!!,it.axis2) }
         }
 
         if(g2.rightStickButton.isPressed) {
             robot.slidesController.axis2Offset = robot.slidesController.position.axis2
             robot.slidesController.axis1Offset = robot.slidesController.position.axis1
-//            c.target = c.target.let { DiffyOutputPose(it.axis1, c.position.axis2+ c.axis2Offset!!) }
         }
     }
 }

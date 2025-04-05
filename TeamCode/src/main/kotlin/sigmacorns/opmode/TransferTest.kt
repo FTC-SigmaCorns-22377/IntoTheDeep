@@ -10,7 +10,6 @@ import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
-import sigmacorns.constants.IntakePosition
 
 @TeleOp
 class TransferTest: SimOrHardwareOpMode() {
@@ -19,7 +18,6 @@ class TransferTest: SimOrHardwareOpMode() {
             io,
             DiffyOutputPose(0.rad,0.rad),
             DiffyOutputPose(0.m,0.m),
-            IntakePosition.OVER
         )
 
         val visualizer = RobotVisualizer(io)

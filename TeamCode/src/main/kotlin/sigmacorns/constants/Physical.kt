@@ -31,27 +31,14 @@ object Physical {
     val EXTEND_M_PER_TICK = (MOTOR_TICKS_PER_REV.pow(-1) / INTAKE_GEAR_RATIO * INTAKE_SPOOL_RADIUS ).cast(m/ tick)
     val LIFT_M_PER_TICK = (LIFT_GEAR_RATIO.pow(-1.0)/MOTOR_TICKS_PER_REV*LIFT_SPOOL_RADIUS).cast(m/tick)
 
+    // TODO: UPDATE WITH NEW CAD
     val ARM_AXLE_POS: Vector3 = vec3(0.m, (-60).mm,0.m)
     val LIFT_ANGLE: Radian = 90.degrees
     val ARM_LENGTH: Metre = 156.mm
     val CLAW_LENGTH: Metre = 90.mm // NOT EXACT
 
-    // position of the axle relative to the end of the slides.
-    val INTAKE_LINKAGE_AXLE_POS: Vector3 = vec3((-110).mm,0.mm, (-18).mm)
-
-    //position of the servo relative to the end of the slides
-    val INTAKE_SERVO_POS: Vector3 = vec3((-73.17625).mm, 0.m, 32.15000.mm)
-
-    // length of the link connected to the servo
-    val INTAKE_LINKAGE_1_LEN: Metre = 32.mm
-
-    // length of the link connected to the intake
-    val INTAKE_LINKAGE_2_LEN: Metre = 64.mm
-
-    // position of the end of the linkage relative to the axle when it is pointing straight up (0 rad)
-    val INTAKE_LINKAGE_END_POS: Vector3 = vec3(127.82.mm, 0.mm, 19.61427.mm)
-
-    // position of the center of the intake when it is straight up relative to the axle of rotation
+    // TODO: UPDATE
+    // position of the center of the intake when it is straight up relative to the end of the slides
     val INTAKE_CENTER_POS: Vector3 = vec3(72.16213.mm,0.mm,85.18402.mm)
 
     val WHEEL_RADIUS = 4.8.cm
@@ -59,5 +46,4 @@ object Physical {
     val WEIGHT: Kilogram = 20.kg
     val WHEEL_INERTIA: Expression = 0.5*kg*mm*mm
     val DRIVE_RATIO: Double = 13.7
-    val INTAKE_END = vec3(DRIVEBASE_SIZE.x/2.0, 0.m, DRIVEBASE_SIZE.z/2.0)
 }

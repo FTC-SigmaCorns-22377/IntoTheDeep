@@ -35,7 +35,6 @@ import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.toTransform2d
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyOutputPose
-import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Tuning
 import sigmacorns.opmode.SimOrHardwareOpMode
 
@@ -82,17 +81,14 @@ fun sampleAuto(robot: Robot) =
         choreoCommand(robot, "Preload") + depoCommand(robot, Tuning.bucketHighPose),
         score(robot, ScorePosition.HIGH_BUCKET),
         reset(robot),
-        robot.intake.follow(IntakePosition.BACK),
         choreoCommand(robot, "Pickup_1") + autoIntake(robot, 18.inches),
         choreoCommand(robot, "Score_1") + depoCommand(robot, Tuning.bucketHighPose),
         score(robot, ScorePosition.HIGH_BUCKET),
         reset(robot),
-        robot.intake.follow(IntakePosition.BACK),
         choreoCommand(robot, "Pickup_2") + autoIntake(robot, 20.5.inches),
         choreoCommand(robot, "Score_2") + depoCommand(robot, Tuning.bucketHighPose),
         score(robot, ScorePosition.HIGH_BUCKET),
         reset(robot),
-        robot.intake.follow(IntakePosition.BACK),
         choreoCommand(robot, "Pickup_3") + autoIntake(robot, 20.5.inches),
         choreoCommand(robot, "Score_3") + depoCommand(robot, Tuning.bucketHighPose),
         score(robot, ScorePosition.HIGH_BUCKET),

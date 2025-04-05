@@ -8,7 +8,6 @@ import eu.sirotin.kotunil.derived.Volt
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.command.Command
 import net.unnamedrobotics.lib.command.schedule
-import net.unnamedrobotics.lib.control.controller.transfer
 import net.unnamedrobotics.lib.math2.Bounds
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.cast
@@ -16,32 +15,26 @@ import net.unnamedrobotics.lib.math2.xy
 import net.unnamedrobotics.lib.physics.MecanumDrivebase
 import net.unnamedrobotics.lib.physics.goBildaMotorConstants
 import sigmacorns.common.cmd.CommandSlot
-import sigmacorns.common.control.Actuator
 import sigmacorns.common.control.ArmControlLoop
 import sigmacorns.common.control.ChoreoController
 import sigmacorns.common.control.ControlLoop
-import sigmacorns.common.control.MecanumController
+import sigmacorns.common.control.MecanumControlLoop
 import sigmacorns.common.control.PIDDiffyController
 import sigmacorns.common.control.choreoControllerLoop
-import sigmacorns.common.control.controlLoop
 import sigmacorns.common.control.slidesControlLoop
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyKinematics
 import sigmacorns.common.kinematics.DiffyOutputPose
-import sigmacorns.common.kinematics.IntakeAngleKinematics
-import sigmacorns.constants.IntakePosition
 import sigmacorns.constants.Limits
 import sigmacorns.constants.Physical
 import sigmacorns.constants.Tuning
-import sigmacorns.constants.*
 import java.util.Optional
 
 class Robot(
     val io: SigmaIO,
     val initArmPose: DiffyOutputPose = DiffyOutputPose(0.rad, 0.rad),
     initSlidesPose: DiffyOutputPose = DiffyOutputPose(0.m, 0.m),
-    intakePos: IntakePosition = IntakePosition.OVER,
     initPos: Transform2D = Transform2D(0.m, 0.m, 0.rad)
 ) {
     val drivebase: MecanumDrivebase = MecanumDrivebase(
@@ -66,23 +59,15 @@ class Robot(
         Limits.SLIDE_MOTOR_MAX
     )
 
-    val mecanum = MecanumController(drivebase, io)
+    val mecanum = MecanumControlLoop(drivebase, io)
     private val choreoController =
         ChoreoController(Tuning.choreoPosPID, Tuning.choreoAngPID, Physical.DRIVEBASE_SIZE.xy, 0)
     val choreo = choreoControllerLoop(choreoController, this)
-    val trajLogger = choreoController.trajectoryLogger
     val slides: ControlLoop<DiffyInputPose, List<Volt>, DiffyOutputPose> =
         slidesControlLoop(slidesController, io, initSlidesPose)
-    val arm =
-        with(io) { ArmControlLoop(Actuator { armL = it }, Actuator { armR = it }, initArmPose, io) }
+    val arm = ArmControlLoop({ io.armL = it }, { io.armR = it }, initArmPose, io)
 
-    val intake = controlLoop(
-        transfer { d, x: Unit, t: IntakePosition ->
-            IntakeAngleKinematics.inverse(t.x)
-        }, "intake", io, {}, {
-            io.intakeL = Limits.INTAKE_SERVO_1.toServoPos()(it); io.intakeR =
-            Limits.INTAKE_SERVO_2.toServoPos()(it)
-        }).also { it.t = intakePos }
+    val trajLogger = choreoController.trajectoryLogger
 
     fun resetSlots() {
         extendCommandSlot.curCmd = null
@@ -91,10 +76,26 @@ class Robot(
         intakeCommandSlot.curCmd = null
     }
 
-    val claw: Actuator<Double> = with(io) { Actuator { claw = it } }
-    val active: Actuator<Double> =
-        with(io) { Actuator({ Exception().printStackTrace() }) { intake = it } }
-    val flap: Actuator<Double> = with(io) { Actuator { flap = it } }
+    var claw: Double
+        set(value) {
+            io.claw = value
+        }
+        get() = io.claw
+    var active: Double
+        set(value) {
+            io.intake = value
+        }
+        get() = io.intake
+    var flap: Double
+        set(value) {
+            io.flap = value
+        }
+        get() = io.flap
+    var push: Double
+        set(value) {
+            io.push = value
+        }
+        get() = io.push
 
     val extendCommandSlot = CommandSlot()
     val liftCommandSlot = CommandSlot()
@@ -113,10 +114,6 @@ class Robot(
         mecanum.tickControlNode(dt)
         slides.tickControlNode(dt)
         arm.tickControlNode(dt)
-        intake.tickControlNode(dt)
-        active.node.tickControlNode(dt)
-        claw.node.tickControlNode(dt)
-        flap.node.tickControlNode(dt)
         io.updateColorDist()
         io.updatePinpoint()
     }

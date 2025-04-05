@@ -26,13 +26,13 @@ import java.util.Optional
 class ChoreoTest: SimOrHardwareOpMode() {
     override fun runOpMode(io: SigmaIO) {
         if(SIM) {
-            Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
-                it.isAccessible = true
-                it.set(null, File("C:\\Users\\chemi\\Documents\\choreo\\base"))
-            }
             io.rerunConnection.setTimeSeconds("sim",0.s)
             val dir = System.getProperty("user.dir")
             io.rerunConnection.field("$dir/src/test/resources/field_image.png")
+            Choreo::class.java.getDeclaredField("CHOREO_DIR").let {
+                it.isAccessible = true
+                it.set(null, File(dir!!).parentFile!!.resolve("paths/choreo") )
+            }
         }
 
         val traj = (Choreo::loadTrajectory)("HOPE").get() as Trajectory<SwerveSample>
@@ -45,7 +45,6 @@ class ChoreoTest: SimOrHardwareOpMode() {
         robot.choreo.t = Optional.of(traj)
 
         robot.update(0.0)
-
 
 //        viz.init()
 
