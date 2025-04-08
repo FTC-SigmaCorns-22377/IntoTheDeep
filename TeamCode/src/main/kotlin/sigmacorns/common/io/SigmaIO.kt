@@ -53,4 +53,7 @@ abstract class SigmaIO: Closeable {
 
     abstract var tilt1: Double
     abstract var tilt2: Double
+
+    abstract var pto1: Double
+    abstract var pto2: Double
 }

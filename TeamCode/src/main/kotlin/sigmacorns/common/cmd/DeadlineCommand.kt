@@ -6,6 +6,7 @@ import net.unnamedrobotics.lib.command.schedule
 
 class DeadlineGroup(val deadline: Command, private vararg val cmds: Command) : Command() {
     override var dependencies: Set<Command> = cmds.toSet()
+
     override var onCancel = {
         deadline.status = Status.CANCELLED;
         cmds.forEach { if(it.status!=Status.FINISHED) it.status = Status.CANCELLED }

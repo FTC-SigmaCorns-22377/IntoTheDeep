@@ -42,7 +42,7 @@ object Physical {
     val INTAKE_CENTER_POS: Vector3 = vec3(72.16213.mm,0.mm,85.18402.mm)
 
     val WHEEL_RADIUS = 4.8.cm
-    val DRIVEBASE_SIZE: Vector3 = vec3(347.17500.mm,284.70000.mm,124.mm)
+    val DRIVEBASE_SIZE: Vector3 = vec3(248.mm,216.3.mm,124.mm)
     val WEIGHT: Kilogram = 20.kg
     val WHEEL_INERTIA: Expression = 0.5*kg*mm*mm
     val DRIVE_RATIO: Double = 13.7

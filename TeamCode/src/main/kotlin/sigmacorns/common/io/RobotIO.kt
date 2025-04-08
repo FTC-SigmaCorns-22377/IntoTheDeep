@@ -22,6 +22,7 @@ import net.unnamedrobotics.lib.util.Clock
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
+import sigmacorns.constants.Debug
 
 class RobotIO(
     hardwareMap: HardwareMap,
@@ -35,7 +36,6 @@ class RobotIO(
 
     private val m1: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D1")
     private val m2: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D2")
-
     private val fl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"FL")
     private val bl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BL")
     private val br: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BR")
@@ -52,6 +52,9 @@ class RobotIO(
     private val t1: Servo? = hardwareMap.tryGet(Servo::class.java,"T1")
     private val t2: Servo? = hardwareMap.tryGet(Servo::class.java,"T2")
 
+    private val sPto1: Servo? = hardwareMap.tryGet(Servo::class.java,"PTO1")
+    private val sPto2: Servo? = hardwareMap.tryGet(Servo::class.java,"PTO2")
+
     private val colorSensor: ColorRangeSensor? = hardwareMap.tryGet(ColorRangeSensor::class.java, "color")
 
     val limelight: Limelight3A? = hardwareMap.tryGet(Limelight3A::class.java, "limelight")
@@ -66,6 +69,14 @@ class RobotIO(
     init {
         fl?.direction = DcMotorSimple.Direction.REVERSE
         bl?.direction = DcMotorSimple.Direction.REVERSE
+
+        val driveMode = DcMotor.RunMode.RUN_USING_ENCODER
+
+        fl?.mode = driveMode
+        fr?.mode = driveMode
+        bl?.mode = driveMode
+        br?.mode = driveMode
+
         m1?.direction = DcMotorSimple.Direction.FORWARD
         m2?.direction = DcMotorSimple.Direction.REVERSE
 
@@ -79,6 +90,29 @@ class RobotIO(
 
         pinpointDriver?.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
         if(initialPos!=null) pinpointDriver?.setPosition(transToPose(initialPos))
+
+        if(!Debug.ALLOW_INCOMPLETE_HARDWARE_MAP) {
+            m1!!
+            m2!!
+            fl!!
+            fr!!
+            bl!!
+            br!!
+            mIntake!!
+            sArmL!!
+            sArmR!!
+            sClaw!!
+            sPush!!
+            sFlap!!
+            t1!!
+            t2!!
+            sPto1!!
+            sPto2!!
+            colorSensor!!
+            limelight!!
+            imu!!
+            pinpoint!!
+        }
     }
 
     private fun transToPose(t: Transform2D): Pose2D
@@ -219,6 +253,20 @@ class RobotIO(
         set(value) {
             if(value!=field) {
                 t2?.position = value
+                field = value
+            }
+        }
+    override var pto1: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sPto1?.position = value
+                field = value
+            }
+        }
+    override var pto2: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sPto2?.position = value
                 field = value
             }
         }

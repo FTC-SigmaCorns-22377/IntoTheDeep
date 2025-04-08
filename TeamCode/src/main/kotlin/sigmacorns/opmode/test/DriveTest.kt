@@ -42,6 +42,9 @@ class DriveTest: SimOrHardwareOpMode() {
             else if(gamepad1.y) io.driveBR = 1.0
             else robot.update(dt.value)
 
+            telemetry.addData("v: ","<${v.x},${v.y}>")
+            telemetry.addData("powers: ","FL=${io.driveFL}, FR=${io.driveFR}, BL=${io.driveBL}, BR=${io.driveFR}")
+            telemetry.update()
         }
     }
 }

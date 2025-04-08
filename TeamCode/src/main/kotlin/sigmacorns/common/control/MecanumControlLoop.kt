@@ -16,7 +16,7 @@ class MecanumControlLoop(
 ): ControlLoop<Unit, List<Double>, Transform2D>("drivebase",io) {
     val kinematics = drivebase.powerKinematics
     override fun update(deltaTime: Double): List<Double>
-        = kinematics.inverse(t.log().let { Twist2D(it.dx,-it.dy,it.dAngle) })
+        = kinematics.inverse(t.log())
 
     var baseScalar = 1.0
 
