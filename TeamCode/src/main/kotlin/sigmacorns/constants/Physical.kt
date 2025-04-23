@@ -22,10 +22,10 @@ import kotlin.math.pow
 object Physical {
     val MOTOR_TICKS_PER_REV = 28.0.tick/ revolution
     val LIFT_GEAR_RATIO = (1.0+(46.0/17.0)).pow(2)
-    val INTAKE_GEAR_RATIO = (1.0+(46.0/17.0)).pow(2)/2.0
+    val INTAKE_GEAR_RATIO = (1.0+(46.0/17.0)).pow(2)*(24.0/20.0)
 
     val INTAKE_SPOOL_RADIUS = 35.90071.mm/2.0
-    val LIFT_SPOOL_RADIUS = 20.mm
+    val LIFT_SPOOL_RADIUS = 35.90071.mm/2.0
 
 //    val EXTEND_M_PER_TICK = (INTAKE_GEAR_RATIO.pow(-1.0)/MOTOR_TICKS_PER_REV*INTAKE_SPOOL_RADIUS).cast(m/ tick)
     val EXTEND_M_PER_TICK = (MOTOR_TICKS_PER_REV.pow(-1) / INTAKE_GEAR_RATIO * INTAKE_SPOOL_RADIUS ).cast(m/ tick)

@@ -21,15 +21,18 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 import sigmacorns.common.Robot
+import sigmacorns.constants.DynamicFFCoefficients
 import sigmacorns.constants.Tuning
 import java.util.Optional
 import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlin.math.min
 
 data class RobotMovementState(val pos: Transform2D, val vel: Twist2D)
 
 class ChoreoController(
-    coeff: PIDCoefficients,
-    angCoeff: PIDCoefficients,
+    coeffInit: PIDCoefficients,
+    angCoeffInit: PIDCoefficients,
     drivebaseSize: Vector2,
     val rerunDownscale: Int = 1
 ) : Controller<RobotMovementState, Transform2D, Optional<Trajectory<SwerveSample>>>() {
@@ -45,6 +48,18 @@ class ChoreoController(
             targetNew = true
             field = value
             tPreset = false
+        }
+
+    var coeff = coeffInit
+        set(value) {
+            field = value
+            xController.coefficients = value
+            yController.coefficients = value
+        }
+    var angCoeff = angCoeffInit
+        set(value) {
+            field = value
+            angController.coefficients = value
         }
 
     var targetNew = false
@@ -85,18 +100,28 @@ class ChoreoController(
         val robotRelPosErr = posErr.vector().rotate((-position.pos.angle).cast(rad)) / s
         val headingErr = posErr.angle / s
 
-        val acc = Twist2D(
-            vec2(sample.ax.m / s, sample.ay.m / s).rotate(
-                (-position.pos.angle).cast(
-                    rad
-                )
-            ), sample.alpha.rad / s
-        )
 
         val velBase = Transform2D(
-            vec2(sample.vx.m / s, sample.vy.m / s).rotate((-position.pos.angle).cast(rad)),
+            vec2(sample.vx.m / s, sample.vy.m / s),
             sample.omega.rad / s
+        )*Tuning.choreoKV
+
+        val acc = Twist2D(
+            vec2(sample.ax.m / s, sample.ay.m / s), sample.alpha.rad / s
         )
+
+        var accPow = acc*Tuning.choreoKA
+        val decelerating = acc.vector().dot(velBase.vector()).value<0
+        val velOvershoot = velBase.vector().dot(position.vel.vector()-velBase.vector()).value
+
+        if(decelerating) {
+             accPow *= min(2.0,max(1.0,velOvershoot))
+        }
+
+        if((decelerating && velOvershoot<=0.5) || sample==target.finalSample) {
+            accPow *= 0
+        }
+
 //        val velErr = (velBase - position.vel.let { Twist2D(it.vector().rotate((-position.pos.angle).cast(rad)),it.dAngle) })
 
 //        val res =
@@ -104,13 +129,13 @@ class ChoreoController(
 //            (velBase + Twist2D(velErr.vector()*coeff.d,velErr.dAngle*angCoeff.d)).exp() +
 //            Twist2D(acc.vector()*coeff.i,acc.dAngle*angCoeff.i).exp()
 
-        val res = Transform2D(
-            vec2(
+        val res = Twist2D(
+            (vec2(
                 xController.updateStateless(deltaTime, 0.0, posErr.x.value).m / s,
                 yController.updateStateless(deltaTime, 0.0, posErr.y.value).m / s
-            ).rotate((-position.pos.angle).cast(rad)),
-            angController.updateStateless(deltaTime, 0.0, posErr.angle.value).rad / s
-        ) + velBase
+            ) + velBase.vector() + accPow.vector()).rotate((-position.pos.angle).cast(rad)) ,
+            angController.updateStateless(deltaTime, 0.0, posErr.angle.value).rad / s + velBase.angle
+        ).exp()
 
         return res
     }
@@ -123,7 +148,7 @@ fun choreoControllerLoop(
     RobotMovementState(robot.io.position(), robot.io.velocity())
 }, {
     robot.mecanum.t = it
-}, { x: RobotMovementState, t ->
+}, { x: RobotMovementState, t: Optional<Trajectory<SwerveSample>> ->
     if (!t.isPresent || choreoController.targetNew) return@controlLoop false
 
     val f = t.get().finalSample

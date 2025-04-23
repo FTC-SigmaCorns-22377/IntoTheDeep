@@ -6,6 +6,7 @@ import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.rad
+import net.unnamedrobotics.lib.command.groups.race
 import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.math2.cast

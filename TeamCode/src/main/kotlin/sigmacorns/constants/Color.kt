@@ -1,12 +1,20 @@
 package sigmacorns.constants
 
+import com.acmerobotics.dashboard.config.Config
 import eu.sirotin.kotunil.base.cm
+import eu.sirotin.kotunil.core.Expression
 
+@Config
 object Color {
-    var DIST_THRESHOLD = 5.cm
+    @JvmField var DIST_THRESHOLD_CM = 2.5
 
-    fun color(r: Int, g: Int, b: Int): SampleColors? {
-        return null
+    fun color(dist: Expression, r: Int, g: Int, b: Int): SampleColors? {
+        return when {
+            dist.value*100>DIST_THRESHOLD_CM -> null
+            (g > b && g > r) || g+b+r >= 12 -> SampleColors.YELLOW
+            b > r && b > g -> SampleColors.BLUE
+            else -> SampleColors.RED
+        }
     }
 }
 

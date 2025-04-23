@@ -42,24 +42,15 @@ class PIDDiffyController(
     var clampAxis1 = true
     var clampAxis2 = true
 
-    var bypassPower = false
-    var bypassAxis1 = 0.0
-    var bypassAxis2 = 0.0
-
-    var axis1Offset: Expression? = null
-    var axis2Offset: Expression? = null
+    var bypassAxis1: Double? = null
+    var bypassAxis2: Double? = null
 
     override fun copy(): Controller<DiffyInputPose, List<Volt>, DiffyOutputPose> {
         TODO("Not yet implemented")
     }
 
     override fun update(dt: Double): List<Volt> {
-        val x = position.let {
-            DiffyInputPose(
-                if(axis1Offset!=null) it.axis1 - axis1Offset!! else it.axis1,
-                if(axis2Offset!=null) it.axis2 - axis2Offset!! else it.axis2,
-            )
-        }
+        val x = position
 
         val t = target
         pid1.coefficients = axis1PIDCoefficients
@@ -97,10 +88,8 @@ class PIDDiffyController(
                 if(clampAxis2) axis2Power = axis2PowerBounds.apply(axis2Power)
             }
 
-            if(bypassPower) {
-                axis1Power = (bypassAxis1*motorMaxPower).cast(V)
-                axis2Power = (bypassAxis2*motorMaxPower).cast(V)
-            }
+            bypassAxis1?.let { axis1Power=(it*motorMaxPower).cast(V) }
+            bypassAxis2?.let { axis2Power=(it*motorMaxPower).cast(V) }
 
             val powers = listOf(axis1Power+axis2Power,axis1Power-axis2Power)
 

@@ -1,5 +1,6 @@
 package sigmacorns.common.io
 
+import eu.sirotin.kotunil.base.A
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.cm
@@ -16,6 +17,7 @@ import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.rerun.RerunSources
 import net.unnamedrobotics.lib.util.Clock
 import sigmacorns.common.sim.SimInput
 import sigmacorns.common.sim.SimNative
@@ -30,8 +32,12 @@ class SimIO(
     val simV: Volt = 12.V,
     val realtime: Boolean = false
 ): SigmaIO() {
-    override val rerunConnection = RerunConnection(rerunName,"127.0.0.1")
-    override fun updatePinpoint() {}
+    override val rerunConnection = RerunConnection(rerunName,RerunSources.TCP(rerunName))
+
+    override fun updateSensors() {}
+    override fun resetSlideMotors(zero1: Tick, zero2: Tick) {
+        TODO("Not yet implemented")
+    }
 
     override fun setPinPos(p: Transform2D) {
     }
@@ -71,7 +77,16 @@ class SimIO(
     override fun motor1Pos(): Tick = sim.output.motor1.tick
 
     override fun motor2Pos(): Tick = sim.output.motor2.tick
-    override fun updateColorDist() {
+    override fun intakeLimitTriggered(): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun liftLimitTriggered(): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun intakeCurrent(): Expression {
+        return 0.A
     }
 
     override fun red(): Int {
@@ -129,6 +144,9 @@ class SimIO(
             field = value
             step(SimLoopTimes.motorWrite)
         }
+    override var motor3: Double
+        get() = TODO("Not yet implemented")
+        set(value) {}
     override var intake: Double = 0.0
         set(value) {
             println("INTAKE=$value")
@@ -139,9 +157,18 @@ class SimIO(
 
     override var armL: Double = 0.0
     override var armR: Double = 0.0
+    override var wrist: Double
+        get() = TODO("Not yet implemented")
+        set(value) {}
     override var claw: Double = 0.0
     override var flap: Double = 0.0
     override var push: Double = 0.0
     override var tilt1: Double = 0.0
     override var tilt2: Double = 0.0
+    override var pto1: Double
+        get() = TODO("Not yet implemented")
+        set(value) {}
+    override var pto2: Double
+        get() = TODO("Not yet implemented")
+        set(value) {}
 }

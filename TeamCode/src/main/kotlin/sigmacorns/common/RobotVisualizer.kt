@@ -2,6 +2,7 @@ package sigmacorns.common
 
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.m
+import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.Radian
 import eu.sirotin.kotunil.derived.rad
@@ -14,6 +15,7 @@ import net.unnamedrobotics.lib.math2.inverseLerp
 import net.unnamedrobotics.lib.math2.map
 import net.unnamedrobotics.lib.math2.mapRanges
 import net.unnamedrobotics.lib.math2.spherical
+import net.unnamedrobotics.lib.math2.unitless
 import net.unnamedrobotics.lib.math2.vec3
 import net.unnamedrobotics.lib.math2.withZ
 import net.unnamedrobotics.lib.math2.z
@@ -103,7 +105,7 @@ class RobotVisualizer(
     }
 
     context(RerunPrefix, RerunConnection)
-    private fun logScalars() {
+    fun logScalars() {
         prefix("sensors") {
             scalar("x", io.position().x.value)
             scalar("y", io.position().y.value)
@@ -138,12 +140,12 @@ class RobotVisualizer(
     }
 
     context(RerunPrefix, RerunConnection)
-    private fun logTwist(twist: Twist2D, name: String, samples: Int, length: Number = 1.0) {
+    fun logTwist(twist: Twist2D, name: String, samples: Int, length: Number = 1.0, origin: Vector3 = vec3(0.m,0.m,0.rad)) {
         log(name) {
             Points3D(
                 origins = (0..samples)
                     .map {
-                        (twist * length*(it.toDouble()/samples.toDouble())).exp().vector().withZ(0.m)
+                        (twist.let { Twist2D(it.dx.value,it.dy.value,it.dAngle.value) } * length*(it.toDouble()/samples.toDouble())).exp().vector().withZ(0.unitless()) + origin.let { vec3(it.x.value,it.y.value,it.z.value) }
                     },
                 radii = List(samples) { 0.0 }
             )

@@ -4,22 +4,28 @@ import com.qualcomm.robotcore.util.ElapsedTime
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.Second
 import eu.sirotin.kotunil.base.cm
-import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.ms
 import eu.sirotin.kotunil.base.s
 import eu.sirotin.kotunil.core.*
-import eu.sirotin.kotunil.derived.microbecquerel
 import net.unnamedrobotics.lib.command.Command
+import net.unnamedrobotics.lib.command.Scheduler
 import net.unnamedrobotics.lib.command.Status
 import net.unnamedrobotics.lib.command.cmd
+import net.unnamedrobotics.lib.command.forever
+import net.unnamedrobotics.lib.command.groups.deadline
 import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
+import net.unnamedrobotics.lib.command.groups.race
 import net.unnamedrobotics.lib.command.groups.series
 import net.unnamedrobotics.lib.command.groups.then
+import net.unnamedrobotics.lib.command.schedule
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.Color
+import sigmacorns.constants.FlapPosition
+import sigmacorns.constants.SampleColors
 import sigmacorns.constants.Tuning
+import kotlin.reflect.jvm.internal.impl.utils.FunctionsKt
 
 fun extendCommand(robot: Robot, dist: Metre, lock: Boolean = true) = (robot.slides.follow {
     DiffyOutputPose(dist, robot.slides.t.axis2)
@@ -36,19 +42,15 @@ fun powerIntakeCommand(robot: Robot, power: Double) = cmd {
     inverse { instant { robot.active = old!!  } }
 }.name("powerIntakeCommand($power)")
 
-fun flapCommand(robot: Robot, closed: Boolean) = instant {
-    robot.flap = if(closed) Tuning.FLAP_CLOSED else Tuning.FLAP_OPEN
+fun flapCommand(robot: Robot, closed: FlapPosition) = instant {
+    robot.flap = closed.x
 } + wait(Tuning.FLAP_TIME)
 
 fun intakeCommand(robot: Robot, dist: Metre, lock: Boolean = true) = parallel(
     extendCommand(robot,dist, lock),
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
-    flapCommand(robot, true)
+    flapCommand(robot, FlapPosition.CLOSED)
 )
-
-//fun detectCommand(robot: Robot) = cmd {
-//    finishWhen { robot.io.distance() < Color.DIST_THRESHOLD || }
-//}
 
 fun brakeIntakeRollers(robot: Robot)
     = series(
@@ -61,36 +63,46 @@ val MIN_AUTO_INTAKE_TIME = 300.ms
 var numAutoIntakes = 0
 
 // horrible code practice lmao
-private var runningAutoInputCmd: Command? = null
-fun autoIntake(robot: Robot, dist: Metre): Command {
-    val cmd = (deadline(
+var runningAutoInputCmd: Command? = null
+fun autoIntake(robot: Robot, dist: Metre, maxTime: Second? = null, colors: Set<SampleColors> = setOf(SampleColors.YELLOW,SampleColors.RED,SampleColors.BLUE)): Command {
+    val cmd = parallel(
         cmd {
-            var expireTime: Expression = 0.s
-            init {
-                expireTime = robot.io.time() + MIN_AUTO_INTAKE_TIME
-                numAutoIntakes += 1
-            }
-            loop {
-                if (robot.io.time() > expireTime && robot.slides.t.axis1 < 10.cm) {
-                    status = Status.CANCELLED
-                    numAutoIntakes -= 1
+                finishWhen { robot.slidesController.kinematics.forward(robot.slides.x).axis1<20.cm }
+        } then flapCommand(robot,FlapPosition.CLOSED),
+        deadline(
+            cmd {
+                var lastEjectTime: Second? = null
+                run {
+                    if(robot.color()!=null && robot.color() !in colors) {
+                        robot.flap = FlapPosition.EJECT.x
+                        lastEjectTime = robot.io.time()
+                    } else if(lastEjectTime==null ||  robot.io.time()-lastEjectTime!! > 500.ms) {
+                        robot.flap = FlapPosition.CLOSED.x
+                    }
+
+                    return@run colors.contains(robot.color()).also { if(it) robot.flap = FlapPosition.CLOSED.x }
                 }
-            }
-            finishWhen { robot.io.distance() < Color.DIST_THRESHOLD }
-            onFinish { numAutoIntakes -= 1 }
-        },
-        intakeCommand(robot, dist).name("autoIntakeIntakeCommand")
-    ) /*then brakeIntakeRollers(robot)*/ then powerIntakeCommand(robot,0.0) then transferCommand(robot)).name("autoIntake")
+            }.let { if(maxTime!=null) it.timeout(maxTime) else it },
+        intakeCommand(robot, dist).name("autoIntakeIntakeCommand") then forever { false }
+        ) then (
+                powerIntakeCommand(robot,0.0)
+         + instant { transferCommand(robot).schedule() })).name("autoIntake")
 
     return instant {
-        runningAutoInputCmd?.status = Status.CANCELLED;
+        runningTransferCommand?.status = Status.CANCELLED
+        runningTransferCommand = null
+        runningAutoInputCmd?.status = Status.CANCELLED
         runningAutoInputCmd = cmd
     } then cmd
 }
 
 fun retract(robot: Robot, lock: Boolean = true)
     = parallel(
-        extendCommand(robot,(0).cm,lock) then instant { robot.slides.t.axis1 = (-10).cm },
+        race(
+            cmd {
+                finishWhen { robot.slidesController.kinematics.forward(robot.slides.x).axis1 < 5.cm }
+                },extendCommand(robot,(-20).cm,lock)
+        ).timeout(2.s),
         powerIntakeCommand(robot,0.0),
     ).name("retractCommand")
 
@@ -102,10 +114,17 @@ fun eject(robot: Robot) =
         powerIntakeCommand(robot, 0.0)
     )
 
+fun resetIntake(robot: Robot) = cmd {
+    init { robot.slidesController.bypassAxis1 = Tuning.SLIDE_RESET_POWER }
+    finishWhen { robot.io.intakeLimitTriggered() }
+}.timeout(3.s) then instant {
+    robot.slidesController.bypassAxis1=null
+}
+
 fun getSample(robot: Robot) = series(
-    flapCommand(robot,true),
+    flapCommand(robot,FlapPosition.CLOSED),
     powerIntakeCommand(robot, Tuning.ACTIVE_POWER),
-    cmd { finishWhen { robot.io.distance() < Color.DIST_THRESHOLD } }.timeout(1.s),
+    cmd { finishWhen { robot.color()!=null } }.timeout(1.s),
     powerIntakeCommand(robot, 0.0)
 )
 

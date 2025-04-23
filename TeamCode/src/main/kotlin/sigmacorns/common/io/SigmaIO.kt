@@ -2,6 +2,7 @@ package sigmacorns.common.io
 
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.Second
+import eu.sirotin.kotunil.core.Expression
 import eu.sirotin.kotunil.derived.Volt
 import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.Transform2D
@@ -16,14 +17,21 @@ abstract class SigmaIO: Closeable {
         rerunConnection.close()
     }
 
-    abstract fun updatePinpoint()
+    abstract fun updateSensors()
+    abstract fun resetSlideMotors(zero1: Tick, zero2: Tick)
+
     abstract fun setPinPos(p: Transform2D)
     abstract fun position(): Transform2D
     abstract fun velocity(): Twist2D
+
     abstract fun motor1Pos(): Tick
     abstract fun motor2Pos(): Tick
 
-    abstract fun updateColorDist(): Unit
+    abstract fun intakeLimitTriggered(): Boolean
+    abstract fun liftLimitTriggered(): Boolean
+
+    abstract fun intakeCurrent(): Expression
+
     abstract fun red(): Int
     abstract fun green(): Int
     abstract fun blue(): Int
@@ -40,12 +48,14 @@ abstract class SigmaIO: Closeable {
 
     abstract var motor1: Double
     abstract var motor2: Double
+    abstract var motor3: Double
 
     abstract var intake: Double
     abstract var push: Double
 
     abstract var armL: Double
     abstract var armR: Double
+    abstract var wrist: Double
 
     abstract var claw: Double
 

@@ -27,8 +27,10 @@ import net.unnamedrobotics.lib.math2.vec2
 import sigmacorns.common.Robot
 import sigmacorns.common.RobotVisualizer
 import sigmacorns.common.cmd.ScorePosition
+import sigmacorns.common.cmd.autoIntake
 import sigmacorns.common.cmd.clawCommand
 import sigmacorns.common.cmd.depoCommand
+import sigmacorns.common.cmd.eject
 import sigmacorns.common.cmd.extendCommand
 import sigmacorns.common.cmd.flapCommand
 import sigmacorns.common.cmd.instant
@@ -37,22 +39,27 @@ import sigmacorns.common.cmd.liftCommand
 import sigmacorns.common.cmd.powerIntakeCommand
 import sigmacorns.common.cmd.score
 import sigmacorns.common.cmd.transferCommand
+import sigmacorns.common.cmd.wait
 import sigmacorns.common.control.PIDDiffyController
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.kinematics.DiffyInputPose
 import sigmacorns.common.kinematics.DiffyOutputPose
 import sigmacorns.constants.ClimbPosition
+import sigmacorns.constants.FlapPosition
 import sigmacorns.constants.Limits
+import sigmacorns.constants.SampleColors
 import sigmacorns.constants.TiltPositions
 import sigmacorns.constants.Tuning
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
-@TeleOp(name = "_TELEOP_")
-class Teleop: SimOrHardwareOpMode() {
+//@TeleOp(name = "_TELEOP_")
+open class Teleop: SimOrHardwareOpMode() {
     lateinit var robot: Robot
     lateinit var maxSpeed: Expression
     lateinit var maxAngSpeed: Expression
+
+    open var acceptableColors = setOf(SampleColors.BLUE,SampleColors.RED,SampleColors.YELLOW)
 
     var scoringPosition: ScorePosition? = null
         set(value) {
@@ -90,7 +97,7 @@ class Teleop: SimOrHardwareOpMode() {
             DiffyOutputPose(0.m, 0.m),
         )
 
-        val visualizer = if(SIM) RobotVisualizer(io) else null
+        val visualizer = if(true) RobotVisualizer(io) else null
 
         maxSpeed = robot.drivebase.motor.topSpeed(1.0) * robot.drivebase.radius
         maxAngSpeed = 0.8 * maxSpeed / (robot.drivebase.length / 2.0 + robot.drivebase.width / 2.0)
@@ -148,6 +155,13 @@ class Teleop: SimOrHardwareOpMode() {
                 null -> null
             }
 
+            if(g1.share.isJustPressed) {
+                if(SampleColors.YELLOW in acceptableColors)
+                    acceptableColors -= SampleColors.YELLOW
+                else
+                    acceptableColors += SampleColors.YELLOW
+            }
+
             if(g1.a.isJustPressed) {
                 val cmd = when {
                     clawClosed() -> score(robot,scoringPosition) + instant { scoringPosition=null }
@@ -169,6 +183,8 @@ class Teleop: SimOrHardwareOpMode() {
                 ).schedule()
             }
 
+            if(g2.options.isJustPressed) robot.pto = !robot.pto
+
             if(g1.x.isJustPressed || g2.x.isJustPressed ) {
                 // x is also used to retract the lift slides when they are up and no sample is detected in the intakez
                 val c = if(robot.slides.t.axis2 > Tuning.TRANSFER_EXTRACT_POSE.lift)
@@ -178,11 +194,11 @@ class Teleop: SimOrHardwareOpMode() {
                 (c + instant { scoringPosition=null; } + powerIntakeCommand(robot,0.0)).schedule()
             }
 
-            if(g1.y.isJustPressed || g2.y.isJustPressed) intakeCommand(robot,300.mm).schedule()
+            if(g1.y.isJustPressed || g2.y.isJustPressed) autoIntake(robot,300.mm, colors = acceptableColors).schedule()
 
             if(g1.leftBumper.isJustPressed || g2.leftBumper.isJustPressed) parallel(
                 instant { robot.active = 0.0 },
-                flapCommand(robot,false),
+                flapCommand(robot,FlapPosition.OPEN),
                 extendCommand(robot,0.m)
             ).schedule()
 
@@ -199,7 +215,7 @@ class Teleop: SimOrHardwareOpMode() {
 
     private var wasManuallyControllingActive = false
 
-    fun manualControls(dt: Second) {
+    private fun manualControls(dt: Second) {
         val v = vec2(Tuning.stickProfile(-gamepad1.left_stick_y), Tuning.stickProfile(-gamepad1.left_stick_x))
         robot.mecanum.t = Twist2D(v * maxSpeed, -maxAngSpeed * Tuning.stickProfile(gamepad1.right_stick_x)).exp()
 
@@ -258,30 +274,30 @@ class Teleop: SimOrHardwareOpMode() {
             robot.slidesController.limitPowerNearThresh = true
         }
 
+        if(g2.b.isJustPressed) {
+            val needsExtend = robot.slidesController.kinematics.forward(robot.slides.x).axis1 > 10.cm
+
+            (flapCommand(robot, FlapPosition.EJECT).let {
+                if (needsExtend) extendCommand(
+                    robot,
+                    10.cm
+                ) then it else it
+            } + (instant {
+                robot.active = Tuning.ACTIVE_POWER
+            } then wait(1.s) then instant { robot.active = 0.0 })).schedule()
+        }
+
         robot.slidesController.clampAxis1 = !g2.leftStickButton.isPressed
         robot.slidesController.clampAxis2 = !g2.rightStickButton.isPressed
 
         val c  = robot.slidesController
 
-        c.bypassPower = g2.leftStickButton.isPressed || g2.rightStickButton.isPressed
-
-        if(c.bypassPower) {
+        if(g2.leftStickButton.isPressed || g2.rightStickButton.isPressed) {
             Scheduler.reset()
             robot.resetSlots()
         }
 
-        c.bypassAxis1 = -g2.leftStick.yAxis
-        c.bypassAxis2 = -g2.rightStick.yAxis
-
-        if(g2.leftStickButton.isPressed) {
-            val c = robot.slidesController
-            c.axis1Offset = c.position.axis1
-            c.axis2Offset = c.position.axis2
-        }
-
-        if(g2.rightStickButton.isPressed) {
-            robot.slidesController.axis2Offset = robot.slidesController.position.axis2
-            robot.slidesController.axis1Offset = robot.slidesController.position.axis1
-        }
+        c.bypassAxis1 = (-g2.leftStick.yAxis).takeIf { g2.leftStickButton.isPressed }
+        c.bypassAxis2 = (-g2.rightStick.yAxis).takeIf { g2.rightStickButton.isPressed }
     }
 }

@@ -7,6 +7,7 @@ import net.unnamedrobotics.lib.command.cmd
 import net.unnamedrobotics.lib.command.groups.parallel
 import net.unnamedrobotics.lib.command.groups.plus
 import net.unnamedrobotics.lib.command.groups.series
+import net.unnamedrobotics.lib.command.groups.then
 import net.unnamedrobotics.lib.command.wait
 import sigmacorns.common.Robot
 import sigmacorns.common.kinematics.DiffyOutputPose
@@ -23,6 +24,13 @@ fun armCommand(robot: Robot, arm: Radian, wrist: Radian, lock: Boolean = true) =
     DiffyOutputPose(arm,wrist)
 ).name("arm").let {
     if(lock) robot.liftCommandSlot.register(it) else it
+}
+
+fun resetDepo(robot: Robot) = cmd {
+    init { robot.slidesController.bypassAxis2 = Tuning.SLIDE_RESET_POWER }
+    finishWhen { robot.io.intakeLimitTriggered() }
+}.timeout(3.s) then instant {
+    robot.slidesController.bypassAxis2=null
 }
 
 fun clawCommand(robot: Robot, closed: Boolean)

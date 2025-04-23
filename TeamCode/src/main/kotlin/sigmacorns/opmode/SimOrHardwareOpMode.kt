@@ -4,10 +4,14 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.derived.rad
 import net.unnamedrobotics.lib.math2.Transform2D
+import net.unnamedrobotics.lib.rerun.RerunSources
 import sigmacorns.common.io.RobotIO
 import sigmacorns.common.io.SigmaIO
 import sigmacorns.common.io.SimIO
 import sigmacorns.common.sim.SimNative
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.util.Date
 
 var SIM = false
 var REALTIME = false
@@ -16,6 +20,8 @@ abstract class SimOrHardwareOpMode: LinearOpMode() {
     abstract fun runOpMode(io: SigmaIO)
 
     open val rerunName: String = "unnamed"
+    open val rerunSrc: RerunSources
+        get() = RerunSources.Disk("/sdcard/FIRST/rerun/$rerunName-${System.currentTimeMillis()/1000}.rrd")
 
     var io: SigmaIO? = null
 
@@ -25,6 +31,7 @@ abstract class SimOrHardwareOpMode: LinearOpMode() {
         else
             RobotIO(
                 hardwareMap,
+                rerunSrc = RerunSources.Disk("/sdcard/FIRST/rerun/$rerunName-${System.currentTimeMillis()/1000}.rrd"),
                 rerunName = rerunName,
             )
 

@@ -33,7 +33,7 @@ class DriveTest: SimOrHardwareOpMode() {
             val dt = t-lastT
             lastT = t
 
-            val v = vec2(-gamepad1.left_stick_y,gamepad1.left_stick_x)
+            val v = vec2(-gamepad1.left_stick_y,-gamepad1.left_stick_x)
             robot.mecanum.t = Transform2D(v*maxSpeed, -maxAngSpeed*gamepad1.right_stick_x)
 
             if(gamepad1.a) io.driveFL = 1.0

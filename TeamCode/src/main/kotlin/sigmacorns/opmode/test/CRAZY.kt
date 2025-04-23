@@ -44,6 +44,8 @@ class CRAZY: LinearOpMode() {
                 )
             })
 
+//        hardwareMap.servo.get("S5").direction = Servo.Direction.REVERSE
+
         waitForStart()
 
         while(opModeIsActive()) {

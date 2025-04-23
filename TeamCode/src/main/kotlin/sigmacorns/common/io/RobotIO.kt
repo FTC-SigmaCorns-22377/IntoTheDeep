@@ -4,53 +4,65 @@ import android.graphics.Color
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.ColorRangeSensor
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
 import com.qualcomm.robotcore.hardware.Servo
+import com.qualcomm.robotcore.hardware.TouchSensor
+import eu.sirotin.kotunil.base.A
 import eu.sirotin.kotunil.base.Metre
 import eu.sirotin.kotunil.base.m
 import eu.sirotin.kotunil.base.s
+import eu.sirotin.kotunil.core.*
 import eu.sirotin.kotunil.derived.V
 import eu.sirotin.kotunil.derived.Volt
 import net.unnamedrobotics.lib.driver.gobilda.GoBildaPinpointDriver
+import net.unnamedrobotics.lib.math2.Tick
 import net.unnamedrobotics.lib.math2.Transform2D
 import net.unnamedrobotics.lib.math2.Twist2D
+import net.unnamedrobotics.lib.math2.cast
 import net.unnamedrobotics.lib.math2.tick
 import net.unnamedrobotics.lib.rerun.RerunConnection
+import net.unnamedrobotics.lib.rerun.RerunSources
 import net.unnamedrobotics.lib.util.Clock
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D
 import sigmacorns.constants.Debug
 
 class RobotIO(
     hardwareMap: HardwareMap,
-    val ip: String = "192.168.43.122",
+    val rerunSrc: RerunSources = RerunSources.TCP("192.168.43.122"),
     val rerunName: String = "unnamed",
     initialPos: Transform2D? = null
 ): SigmaIO() {
     private var rerun: RerunConnection? = null
     override val rerunConnection: RerunConnection
-        get() = rerun ?: RerunConnection(rerunName, ip).also { rerun = it }
+        get() = rerun ?: RerunConnection(rerunName, rerunSrc).also { rerun = it }
 
-    private val m1: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D1")
-    private val m2: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"D2")
+    private val m1: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"M3")
+    private val m2: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"M1")
+    private val m3: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"M2")
+
     private val fl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"FL")
     private val bl: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BL")
     private val br: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"BR")
     private val fr: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"FR")
 
-    private val mIntake: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"intake")
+    private val mIntake: DcMotor? = hardwareMap.tryGet(DcMotor::class.java,"M0")
 
     private val sArmL: Servo? = hardwareMap.tryGet(Servo::class.java, "AL")
     private val sArmR: Servo? = hardwareMap.tryGet(Servo::class.java, "AR")
+    private val sWrist: Servo? = hardwareMap.tryGet(Servo::class.java, "wrist")
+
     private val sClaw: Servo? = hardwareMap.tryGet(Servo::class.java, "claw")
     private val sPush: Servo? = hardwareMap.tryGet(Servo::class.java,"push")
-    private val sFlap: Servo? = hardwareMap.tryGet(Servo::class.java, "flap")
+    private val sFlap: Servo? = hardwareMap.tryGet(Servo::class.java, "S4")
 
-    private val t1: Servo? = hardwareMap.tryGet(Servo::class.java,"T1")
-    private val t2: Servo? = hardwareMap.tryGet(Servo::class.java,"T2")
+    private val t1: Servo? = hardwareMap.tryGet(Servo::class.java,"S1C")
+    private val t2: Servo? = hardwareMap.tryGet(Servo::class.java,"S2C")
 
     private val sPto1: Servo? = hardwareMap.tryGet(Servo::class.java,"PTO1")
     private val sPto2: Servo? = hardwareMap.tryGet(Servo::class.java,"PTO2")
@@ -63,28 +75,33 @@ class RobotIO(
 
     private val pinpointDriver: GoBildaPinpointDriver? = hardwareMap.tryGet(
         GoBildaPinpointDriver::class.java,"pinpoint")
-
     private val pinpoint = pinpointDriver?.let { PinpointLocalizer(it) }
+
+    private val intakeTouch = hardwareMap.tryGet(TouchSensor::class.java,"intakeTouch")
+    private val liftTouch = hardwareMap.tryGet(TouchSensor::class.java,"liftTouch")
 
     init {
         fl?.direction = DcMotorSimple.Direction.REVERSE
         bl?.direction = DcMotorSimple.Direction.REVERSE
 
-        val driveMode = DcMotor.RunMode.RUN_USING_ENCODER
+        val driveMode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
 
         fl?.mode = driveMode
         fr?.mode = driveMode
         bl?.mode = driveMode
         br?.mode = driveMode
 
-        m1?.direction = DcMotorSimple.Direction.FORWARD
-        m2?.direction = DcMotorSimple.Direction.REVERSE
+        m1?.direction = DcMotorSimple.Direction.REVERSE
+        m2?.direction = DcMotorSimple.Direction.FORWARD
+        m3?.direction = DcMotorSimple.Direction.REVERSE
 
         m1?.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
         m2?.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+        m3?.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
 
         m1?.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         m2?.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        m3?.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
 
         colorSensor?.argb()
 
@@ -112,6 +129,7 @@ class RobotIO(
             limelight!!
             imu!!
             pinpoint!!
+            sWrist!!
         }
     }
 
@@ -124,35 +142,63 @@ class RobotIO(
             )
 
     override fun setPinPos(p: Transform2D) {
-        pinpointDriver?.setPosition(transToPose(p))
+        pinpointDriver?.setPosition(transToPose(p).let {
+            Pose2D(
+                DistanceUnit.CM,
+                -it.getY(DistanceUnit.CM),
+                it.getX(DistanceUnit.CM),
+                AngleUnit.RADIANS,
+                it.getHeading(AngleUnit.RADIANS)
+            )
+        })
     }
 
-    override fun updatePinpoint() {
-        pinpoint?.update(true)
-    }
+    private var m1Bias = 0.tick
+    private var m2Bias = 0.tick
 
-    override fun position() = (pinpoint?.getTransform() ?: Transform2D(0, 0, 0))
-    override fun velocity() = (pinpoint?.velocity ?: Twist2D(0, 0, 0))
-    override fun motor1Pos() = (m1?.currentPosition ?: 0).tick
-    override fun motor2Pos() = (m2?.currentPosition ?: 0).tick
+    override fun resetSlideMotors(zero1: Tick, zero2: Tick) {
+        m1Bias = (-lastM1Pos+zero1).cast(tick)
+        m2Bias = (-lastM2Pos+zero2).cast(tick)
+    }
 
     private var lastColorVal: Int = 0
     private var distance: Metre = 0.m
+    private var lastM1Pos = 0.tick
+    private var lastM2Pos = 0.tick
+    private var lastVoltage = 12.V
+    private var wasIntakeTriggered = false
+    private var wasLiftTriggered = false
 
-    override fun updateColorDist() {
-        lastColorVal = colorSensor?.argb() ?: 0
+    override fun updateSensors() {
+         lastColorVal = colorSensor?.argb() ?: 0
         distance = (colorSensor?.getDistance(DistanceUnit.METER) ?: 0).m
+        pinpoint?.update(true)
+        lastM1Pos = (m1?.currentPosition ?: 0).tick
+        lastM2Pos = (m2?.currentPosition ?: 0).tick
+        wasIntakeTriggered = intakeTouch?.isPressed ?: false
+        wasLiftTriggered = liftTouch?.isPressed ?: false
     }
 
+    override fun position() = (pinpoint?.getTransform() ?: Transform2D(0, 0, 0)).let {
+        Transform2D(it.y,-it.x,it.angle)
+    }
+    override fun velocity() = (pinpoint?.velocity ?: Twist2D(0, 0, 0)).let {
+        Twist2D(it.dy,-it.dx,it.dAngle)
+    }
+
+    override fun motor1Pos() = (lastM1Pos + m1Bias).cast(tick)
+    override fun motor2Pos() = (lastM2Pos + m2Bias).cast(tick)
     override fun red() = Color.red(lastColorVal)
     override fun green() = Color.green(lastColorVal)
     override fun blue() = Color.blue(lastColorVal)
     override fun alpha() = Color.alpha(lastColorVal)
     override fun distance(): Metre = distance
-
-    override fun voltage(): Volt = 12.V
-
+    override fun voltage(): Volt = lastVoltage
     override fun time() = Clock.seconds.s
+    override fun intakeLimitTriggered(): Boolean = wasIntakeTriggered
+    override fun liftLimitTriggered(): Boolean = wasLiftTriggered
+    override fun intakeCurrent(): Expression
+        = (mIntake as DcMotorEx).getCurrent(CurrentUnit.AMPS).A
 
     override var driveFL: Double = 0.0
         set(value) {
@@ -199,6 +245,13 @@ class RobotIO(
                 field = value
             }
         }
+    override var motor3: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                m3?.power = value
+                field = value
+            }
+        }
 
     override var intake: Double = 0.0
         set(value) {
@@ -228,6 +281,13 @@ class RobotIO(
                 field = value
             }
         }
+    override var wrist: Double = 0.0
+        set(value) {
+            if(value!=field) {
+                sWrist?.position = value
+                field = value
+            }
+        }
     override var claw: Double = 0.0
         set(value) {
             if(value!=field) {
@@ -252,7 +312,7 @@ class RobotIO(
     override var tilt2: Double = 0.0
         set(value) {
             if(value!=field) {
-                t2?.position = value
+                t2?.position = 1-value
                 field = value
             }
         }

@@ -10,7 +10,7 @@ class CommandSlot: Command() {
     var curCmd: Command? = null
     private var interruptible = true
 
-    override suspend fun run(): Boolean {
+    override fun run(): Boolean {
         return false
     }
 

@@ -23,6 +23,7 @@ fun slidesControlLoop(
         { u ->
             io.motor1 = (u[0] / io.voltage()).checkedUnitless()
             io.motor2 = (u[1] / io.voltage()).checkedUnitless()
+            io.motor3 = ((u[0]-u[1]) / 2.0 / io.voltage()).checkedUnitless()
         },
         { x, t ->
             val cur = controller.kinematics.forward(x)

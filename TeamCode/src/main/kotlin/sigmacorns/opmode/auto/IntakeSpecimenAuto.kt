@@ -41,7 +41,7 @@ class IntakeSpecimenAuto: SimOrHardwareOpMode() {
             initPos = startPosFromTraj("preload_specimen")
         )
 
-        Scheduler.log = false
+//        Scheduler.log = false
         Scheduler.reset()
 
         robot.update(0.0)

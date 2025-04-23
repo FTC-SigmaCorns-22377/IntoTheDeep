@@ -29,14 +29,20 @@ class ArmTest: SimOrHardwareOpMode() {
             val dt = t-lastT
             lastT = t
 
+            telemetry.addData("t=","${robot.arm.t.axis1},${robot.arm.t.axis2}")
+            telemetry.addData("a1","${io.armL}")
+            telemetry.addData("a2","${io.armR}")
+            telemetry.addData("wrist","${io.wrist}")
+            telemetry.update()
+
             robot.arm.t = robot.arm.kinematics.underInverse(robot.arm.t.let {
                  DiffyOutputPose(
-                    it.axis1 - gamepad1.left_stick_y*dt*0.1.rad/s,
-                    it.axis2 - gamepad1.right_stick_y*dt*0.1.rad/s
+                    it.axis1 - gamepad1.left_stick_y*dt*0.3.rad/s,
+                    it.axis2 - gamepad1.right_stick_y*dt*0.3.rad/s
                  ) } ) {
                     DiffyInputPose(
                         Limits.ARM_SERVO_1.apply(it.axis1.cast(rad)),
-                        Limits.ARM_SERVO_2.apply(it.axis2.cast(rad))
+                        Limits.WRIST_SERVO.apply(it.axis2.cast(rad))
                     )
                 }
 
